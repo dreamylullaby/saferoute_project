@@ -1,0 +1,13 @@
+ADMINS
+
+'admin_luna', 'adminluna@saferoute.com', '$2a$12$tOgExBIeBKhoSymKRpczzuTkwx0qbvCy6OO67a7u0V93f3.5hXDfq', 'admin', 'local', 'activo' (luna1234)
+'admin_lily', 'adminlily@saferoute.com', '$2a$12$g/zBlxujS51Dgyhbja8qyukslzG1rk.u.mDsgz5W.E4z0r1S.mVTm', 'admin', 'local', 'activo' (lily555)
+'admin_sarah', 'adminsarah@saferoute.com', '$2a$12$i617M0GuFR8vv2voFu27R.0oCBr2QVBtRmvgEhYkrgPqZZ72uUR/2', 'admin', 'local', 'activo' (icrecream)
+
+USUARIOS
+
+'vigilante1', 'vigilar_1@gmail.com','$2a$12$tNG4rQF2sy5R6JJjdQdVouAwayAbjMojds3Ga25Uj8aeZVHPrYc/K','usuario', 'local', 'activo' (12345)
+'vigilante_seguro', 'vigilanteseguro@gmail.com', '$2a$12$4yo4aj4J7aIaF6w9L14A/uanMGuSN5wQxfWm09gs9RG8hhUZ3tfC6', 'usuario', 'local', 'activo' (12345678)
+
+repositorio en gitHUb
+https://github.com/dreamylullaby/saferoute_project.git
