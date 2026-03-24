@@ -1,0 +1,31 @@
+LIBRERÍAS QUE DEBES INSTALAR:
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+En la carpeta backend, clic derecho, abrir consola y pegar el siguiente comando:
+npm install @supabase/supabase-js@2.99.3 bcrypt@6.0.0 cors@2.8.6 dotenv@17.3.1 express@5.2.1 firebase-admin@13.7.0 jsonwebtoken@9.0.3 nodemon@3.1.14 pg@8.20.0
+
+(Opcional) Para mantener todo seguro y actualizado: npm audit fix 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+En la carpeta de flutter, dentro de donde dice: saferoute_app (recuerda que esta la creaste con comandos anteriores) poner el siguiente comando:
+flutter pub add dio firebase_auth firebase_messaging flutter_dotenv flutter_secure_storage google_sign_in provider supabase_flutter shared_preferences url_launcher
+Obtener las dependencias: 
+
+flutter pub get
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+En la carpeta dashboard dentro de frontend-web, abrir la consola y pegar el siguiente comando:
+npm install axios react-router-dom @supabase/supabase-js@2.100.0 chart.js react-chartjs-2 dotenv react react-dom web-vitals
+
+Para mantener seguridad:
+
+npm audit fix o npm audit fix - -force
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+comando para correr el testConnection.js
+
+Dentro de backend: node src/infrastructure/database/tests/testConnection.js
