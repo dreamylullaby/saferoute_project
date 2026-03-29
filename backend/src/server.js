@@ -1,17 +1,16 @@
-const express = require("express");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import userRoutes from "./interfaces/routes/userRoutes.js";
 
-const reportRoutes = require("./interfaces/routes/reportRoutes");
+dotenv.config();
 
 const app = express();
-
+app.use(cors());
 app.use(express.json());
 
-app.use("/reports",reportRoutes);
+// rutas
+app.use("/api/auth", userRoutes);
 
-app.get("/",(req,res)=>{
- res.send("SafeRoute API running");
-});
-
-app.listen(3000,()=>{
- console.log("server running");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));

@@ -1,7 +1,12 @@
-// src/config/firebase.js
+import admin from "firebase-admin";
+import fs from "fs";
 
-import admin from 'firebase-admin';
-import serviceAccount from './firebase-key.json' assert { type: 'json' };
+// ajustar la ruta
+const serviceAccount = JSON.parse(
+  fs.readFileSync(
+    new URL("../../config/firebase-key.json", import.meta.url)
+  )
+);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
