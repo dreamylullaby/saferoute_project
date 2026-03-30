@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import '../../../../services/auth_storage.dart';
 
 class ReportIncidentePage extends StatefulWidget {
@@ -35,6 +36,52 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   final _tiposHurto       = ['atraco', 'raponazo', 'cosquilleo', 'fleteo'];
   final _objetosHurtados  = ['celular', 'dinero', 'tarjetas_documentos', 'articulos_personales', 'dispositivos_electronicos'];
   final _numAgresores     = ['1', '2', '3+', 'desconocido'];
+
+  Future<void> _obtenerUbicacionActual() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("El servicio de ubicación está desactivado")),
+      );
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Permiso de ubicación denegado")),
+        );
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Permiso de ubicación denegado permanentemente")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      latitudController.text = position.latitude.toStringAsFixed(6);
+      longitudController.text = position.longitude.toStringAsFixed(6);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No se pudo obtener la ubicación")),
+      );
+    }
+    setState(() => isLoading = false);
+  }
 
   Future<void> _seleccionarFecha() async {
     final picked = await showDatePicker(
@@ -171,19 +218,21 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
 
               const SizedBox(height: 15),
 
-              // Latitud y longitud (se llenan automáticamente desde el mapa)
+              // Latitud y longitud
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: latitudController,
-                      readOnly: true,
-                      validator: (v) => (v == null || v.isEmpty) ? "Selecciona ubicación en el mapa" : null,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return "Campo obligatorio";
+                        if (double.tryParse(v) == null) return "Número inválido";
+                        return null;
+                      },
                       decoration: InputDecoration(
                         labelText: "Latitud",
                         prefixIcon: const Icon(Icons.gps_fixed),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
@@ -192,18 +241,36 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                   Expanded(
                     child: TextFormField(
                       controller: longitudController,
-                      readOnly: true,
-                      validator: (v) => (v == null || v.isEmpty) ? "Selecciona ubicación en el mapa" : null,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return "Campo obligatorio";
+                        if (double.tryParse(v) == null) return "Número inválido";
+                        return null;
+                      },
                       decoration: InputDecoration(
                         labelText: "Longitud",
                         prefixIcon: const Icon(Icons.gps_fixed),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Botón para usar GPS
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: isLoading ? null : _obtenerUbicacionActual,
+                  icon: const Icon(Icons.my_location),
+                  label: const Text("Usar mi ubicación actual"),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
 
               const SizedBox(height: 15),
