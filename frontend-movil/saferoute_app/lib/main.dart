@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'features/user/presentation/pages/login_page.dart';
 import 'features/user/presentation/pages/register_page.dart';
+import 'features/user/presentation/pages/report_Incidente_page.dart';
+import 'features/user/presentation/pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,8 +33,10 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/login',
       routes: {
-        '/login': (context) => const LoginPage(),
+        '/login':    (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
+        '/home':     (context) => const HomePage(),
+        '/reportar': (context) => const ReportIncidentePage(),
       },
     );
   }

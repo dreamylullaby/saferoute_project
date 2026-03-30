@@ -1,4 +1,4 @@
-// src/application/usecases/CreateReport.js
+// src/application/use-cases/createReport.js
 class CreateReport {
 
   constructor(reportRepository) {
@@ -6,6 +6,9 @@ class CreateReport {
   }
 
   async execute(data) {
+
+    if (!data.usuario_id)
+      throw new Error("usuario_id es obligatorio");
 
     if (!data.tipo_reportante)
       throw new Error("tipo_reportante es obligatorio");
@@ -21,6 +24,9 @@ class CreateReport {
 
     if (!data.tipo_hurto)
       throw new Error("tipo_hurto es obligatorio");
+
+    if (!data.barrio_ingresado)
+      throw new Error("barrio_ingresado es obligatorio");
 
     return await this.reportRepository.create(data);
 

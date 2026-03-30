@@ -40,11 +40,8 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text.trim(),
       );
 
-      print("BIENVENIDO ${user.username}");
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Bienvenido ${user.username}")));
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -71,9 +68,7 @@ class _LoginPageState extends State<LoginPage> {
       final user = await datasource.loginWithGoogle(idToken: idToken!);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Bienvenido ${user.username}")),
-      );
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
