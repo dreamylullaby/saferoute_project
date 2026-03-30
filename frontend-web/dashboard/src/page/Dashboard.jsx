@@ -1,19 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { logoutAdmin } from "../services/authService";
 
-/**
- * Página principal del panel de administración.
- * Solo accesible si hay una sesión de administrador en sessionStorage.
- * Muestra el nombre del admin y permite cerrar sesión.
- */
 export default function Dashboard() {
   const navigate = useNavigate();
   const admin = JSON.parse(sessionStorage.getItem("admin") || "{}");
 
-  /**
-   * Elimina la sesión del administrador y redirige al login.
-   */
-  const cerrarSesion = () => {
-    sessionStorage.removeItem("admin");
+  const cerrarSesion = async () => {
+    await logoutAdmin();
     navigate("/");
   };
 

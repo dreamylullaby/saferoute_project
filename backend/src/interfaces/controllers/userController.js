@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import admin from "../../infrastructure/firebase/firebase.js";
 import db from "../../infrastructure/database/dbScript/db.js";
+import { generateToken } from "../../config/jwt.js";
 
 /**
  * Maneja POST /api/auth/register
@@ -49,7 +50,8 @@ export const registerLocal = async (req, res) => {
         username: newUser.username,
         correo: newUser.correo,
         rol: newUser.rol
-      }
+      },
+      token: generateToken({ id: newUser.id, rol: newUser.rol })
     });
 
   } catch (error) {
@@ -91,13 +93,71 @@ export const loginLocal = async (req, res) => {
         username: data.username,
         correo: data.correo,
         rol: data.rol
-      }
+      },
+      token: generateToken({ id: data.id, rol: data.rol })
     });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 
+};
+
+/**
+ * Maneja POST /api/auth/admin-login
+ * Login exclusivo para administradores. Verifica rol antes de responder.
+ * @param {import('express').Request} req - Body: { correo, password }
+ * @param {import('express').Response} res
+ */
+export const loginAdmin = async (req, res) => {
+
+  try {
+
+    const { correo, password } = req.body;
+
+    const { data, error } = await db
+      .from("usuarios")
+      .select("*")
+      .eq("correo", correo)
+      .eq("estado", "activo")
+      .single();
+
+    if (error || !data)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    if (data.rol !== "admin")
+      return res.status(403).json({ message: "Acceso denegado" });
+
+    const passwordValida = await bcrypt.compare(password, data.password_hash);
+
+    if (!passwordValida)
+      return res.status(401).json({ message: "Contraseña incorrecta" });
+
+    res.json({
+      user: {
+        id: data.id,
+        username: data.username,
+        correo: data.correo,
+        rol: data.rol
+      },
+      token: generateToken({ id: data.id, rol: data.rol })
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+
+};
+
+/**
+ * Maneja POST /api/auth/logout
+ * El cliente debe eliminar el token localmente.
+ * Responde con confirmación para que el frontend limpie su storage.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
+export const logoutUser = (req, res) => {
+  res.json({ message: "Sesión cerrada correctamente" });
 };
 
 /**
@@ -150,7 +210,8 @@ export const loginGoogle = async (req, res) => {
         username: user.username,
         correo: user.correo,
         rol: user.rol
-      }
+      },
+      token: generateToken({ id: user.id, rol: user.rol })
     });
 
   } catch (error) {

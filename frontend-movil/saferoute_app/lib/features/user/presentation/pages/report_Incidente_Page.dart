@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../../../services/auth_storage.dart';
 
 class ReportIncidentePage extends StatefulWidget {
   const ReportIncidentePage({super.key});
@@ -53,10 +54,17 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     setState(() => isLoading = true);
 
     try {
+      final token = await AuthStorage.getToken();
+      final userId = await AuthStorage.getUserId();
+
       final response = await http.post(
         Uri.parse("http://localhost:3000/api/reportes"),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
         body: jsonEncode({
+          "usuario_id":       userId,
           "tipo_reportante":  tipoReportante,
           "fecha_incidente":  fechaController.text,
           "franja_horaria":   franjaHoraria,
@@ -73,7 +81,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Reporte enviado exitosamente")),
         );

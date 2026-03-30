@@ -6,13 +6,25 @@ import api from "./api";
  */
 
 /**
- * Realiza el login de un administrador contra el backend.
- * @param {string} correo - Correo electrónico del administrador
- * @param {string} password - Contraseña del administrador
- * @returns {Promise<{user: {id: string, username: string, correo: string, rol: string}}>}
- * @throws {Error} Si las credenciales son inválidas o hay error de red
+ * Login exclusivo para administradores.
+ * Guarda el token y datos del admin en sessionStorage.
  */
 export const loginAdmin = async (correo, password) => {
-  const response = await api.post("/api/auth/login", { correo, password });
+  const response = await api.post("/api/auth/admin-login", { correo, password });
+  const { user, token } = response.data;
+  sessionStorage.setItem("admin", JSON.stringify(user));
+  sessionStorage.setItem("token", token);
   return response.data;
+};
+
+/**
+ * Cierra sesión llamando al backend y limpiando sessionStorage.
+ */
+export const logoutAdmin = async () => {
+  try {
+    await api.post("/api/auth/logout");
+  } finally {
+    sessionStorage.removeItem("admin");
+    sessionStorage.removeItem("token");
+  }
 };

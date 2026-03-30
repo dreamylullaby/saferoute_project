@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:saferoute_app/features/user/data/datasources/user_Remote_Datasource.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   void cerrarSesion(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
+    await UserRemoteDatasource().logout();
     if (!context.mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }

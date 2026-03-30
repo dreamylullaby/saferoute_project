@@ -44,14 +44,7 @@ export default function LoginAdmin() {
     setIsLoading(true);
 
     try {
-      const data = await loginAdmin(correo, password);
-
-      if (data.user.rol !== "admin") {
-        setServerError("No tienes permisos de administrador");
-        return;
-      }
-
-      sessionStorage.setItem("admin", JSON.stringify(data.user));
+      await loginAdmin(correo, password);
       navigate("/dashboard");
 
     } catch (err) {
