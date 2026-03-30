@@ -1,9 +1,29 @@
-// src/infrastructure/database/repositoriesImplementation/ReportRepositoryImpl.js
-
+/**
+ * Implementación concreta del repositorio de reportes usando Supabase.
+ * @class ReportRepositoryImpl
+ */
 import supabase from '../dbScript/db.js';
 
 export default class ReportRepositoryImpl {
 
+  /**
+   * Inserta un nuevo reporte en la tabla 'reportes'.
+   * @param {Object} data - Datos del reporte
+   * @param {string} data.usuario_id - UUID del usuario
+   * @param {string} data.tipo_reportante - 'victima' | 'testigo'
+   * @param {string} data.fecha_incidente - Fecha ISO del incidente
+   * @param {string} data.franja_horaria - Franja horaria
+   * @param {number} data.latitud - Latitud
+   * @param {number} data.longitud - Longitud
+   * @param {string|null} data.direccion - Dirección (opcional)
+   * @param {string} data.tipo_hurto - Tipo de hurto
+   * @param {string|null} data.descripcion - Descripción (opcional)
+   * @param {string|null} data.objeto_hurtado - Objeto hurtado (opcional)
+   * @param {string|null} data.numero_agresores - Número de agresores (opcional)
+   * @param {string} data.barrio_ingresado - Barrio ingresado por el usuario
+   * @param {number|null} data.zona_id - ID de zona validada (opcional)
+   * @returns {Promise<Object>} El reporte creado
+   */
   async create(data) {
     const { data: newRow, error } = await supabase
       .from('reportes')
@@ -29,6 +49,10 @@ export default class ReportRepositoryImpl {
     return newRow[0];
   }
 
+  /**
+   * Obtiene todos los reportes no eliminados con datos de zona.
+   * @returns {Promise<Array>} Lista de reportes ordenados por fecha_creacion DESC
+   */
   async findAll() {
     const { data, error } = await supabase
       .from('reportes')
@@ -40,6 +64,11 @@ export default class ReportRepositoryImpl {
     return data;
   }
 
+  /**
+   * Obtiene un reporte por su UUID con datos de zona.
+   * @param {string} id - UUID del reporte
+   * @returns {Promise<Object>} El reporte encontrado
+   */
   async findById(id) {
     const { data, error } = await supabase
       .from('reportes')

@@ -1,166 +1,118 @@
--- BASE USADA EN SUPABASE.
+-- ========================================
+-- SCRIPT COMPLETO SAFEROUTE BD
+-- Orden de ejecución: extensiones → usuarios → zonas → reportes
+-- ========================================
 
+-- ========================================
+-- EXTENSIONES NECESARIAS
+-- ========================================
+
+-- Para UUID
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- =========================================
--- TABLA DE USUARIOS
--- =========================================
-CREATE TABLE usuarios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(50) NOT NULL UNIQUE,
-    correo VARCHAR(150) NOT NULL UNIQUE,
-    password_hash TEXT,
-    foto_url TEXT,
-    rol VARCHAR(20) NOT NULL CHECK (rol IN ('usuario','admin')),
-    auth_provider VARCHAR(20) NOT NULL CHECK (auth_provider IN ('local','google')),
-    google_id VARCHAR(255) UNIQUE,
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT NOW(),
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('activo','bloqueado'))
+-- Para búsquedas sin acentos (backend fuzzy search)
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
+-- Para distancia entre palabras (Levenshtein)
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+
+-- ========================================
+-- TABLA USUARIOS
+-- ========================================
+CREATE TABLE IF NOT EXISTS public.usuarios (
+    id              uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    username        VARCHAR     NOT NULL UNIQUE,
+    correo          VARCHAR     NOT NULL UNIQUE,
+    password_hash   TEXT,
+    foto_url        TEXT,
+    rol             VARCHAR     NOT NULL CHECK (rol IN ('usuario', 'admin')),
+    auth_provider   VARCHAR     NOT NULL CHECK (auth_provider IN ('local', 'google')),
+    google_id       VARCHAR     UNIQUE,
+    fecha_creacion  TIMESTAMP   NOT NULL DEFAULT now(),
+    estado          VARCHAR     NOT NULL CHECK (estado IN ('activo', 'bloqueado'))
 );
 
--- Datos de prueba: admin y usuario
-INSERT INTO usuarios (username, correo, password_hash, rol, auth_provider, estado)
-VALUES 
-('admin_luna', 'adminluna@saferoute.com', '$2a$12$tOgExBIeBKhoSymKRpczzuTkwx0qbvCy6OO67a7u0V93f3.5hXDfq', 'admin', 'local', 'activo'),
-('admin_lily', 'adminlily@saferoute.com', '$2a$12$g/zBlxujS51Dgyhbja8qyukslzG1rk.u.mDsgz5W.E4z0r1S.mVTm', 'admin', 'local', 'activo'),
-('admin_sarah', 'adminsarah@saferoute.com', '$2a$12$i617M0GuFR8vv2voFu27R.0oCBr2QVBtRmvgEhYkrgPqZZ72uUR/2', 'admin', 'local', 'activo'),
-('vigilante1', 'vigilar_1@gmail.com','$2a$12$tNG4rQF2sy5R6JJjdQdVouAwayAbjMojds3Ga25Uj8aeZVHPrYc/K','usuario', 'local', 'activo'),
-('vigilante_seguro', 'vigilanteseguro@gmail.com', '$2a$12$4yo4aj4J7aIaF6w9L14A/uanMGuSN5wQxfWm09gs9RG8hhUZ3tfC6', 'usuario', 'local', 'activo');
+-- ========================================
+-- TABLA ZONAS (barrios organizados por comuna)
+-- ========================================
+CREATE TABLE IF NOT EXISTS public.zonas (
+    id      SERIAL      PRIMARY KEY,
+    barrio  VARCHAR(80) NOT NULL,
+    comuna  INTEGER     NOT NULL CHECK (comuna BETWEEN 1 AND 12),
 
+    -- Evita duplicados del mismo barrio en la misma comuna
+    CONSTRAINT unique_barrio_comuna UNIQUE (barrio, comuna),
 
--- =========================================
--- TABLA DE REPORTES
--- =========================================
-CREATE TABLE reportes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
-    -- Mantener que si se borra un usuario, el reporte pasa al admin
-    usuario_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
-    
-    tipo_reportante VARCHAR(20) NOT NULL CHECK (tipo_reportante IN ('victima','testigo')),
-    fecha_incidente DATE NOT NULL,
-    franja_horaria VARCHAR(20) NOT NULL CHECK (
-        franja_horaria IN (
-            '00:00-05:59',
-            '06:00-11:59',
-            '12:00-17:59',
-            '18:00-23:59'
-        )
-    ),
-    latitud DECIMAL(9,6) NOT NULL,
-    longitud DECIMAL(9,6) NOT NULL,
-    direccion VARCHAR(100),
-    comuna INTEGER CHECK (comuna BETWEEN 1 AND 12),
-    tipo_hurto VARCHAR(30) NOT NULL CHECK (
-        tipo_hurto IN ('atraco','raponazo','cosquilleo','fleteo')
-    ),
-    descripcion VARCHAR(300),
-    objeto_hurtado VARCHAR(50) CHECK (
-        objeto_hurtado IN (
-            'celular',
-            'dinero',
-            'tarjetas_documentos',
-            'articulos_personales',
-            'dispositivos_electronicos'
-        )
-    ),
-    numero_agresores VARCHAR(20) CHECK (
-        numero_agresores IN ('1','2','3+','desconocido')
-    ),
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT NOW(),
+    -- Evita strings vacíos
+    CONSTRAINT chk_barrio_not_empty CHECK (barrio <> '')
+);
+
+-- ========================================
+-- TABLA REPORTES
+-- ========================================
+CREATE TABLE IF NOT EXISTS public.reportes (
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id          UUID        NOT NULL REFERENCES public.usuarios(id),
+    tipo_reportante     VARCHAR     NOT NULL CHECK (tipo_reportante IN ('victima', 'testigo')),
+    fecha_incidente     DATE        NOT NULL,
+    franja_horaria      VARCHAR     NOT NULL CHECK (franja_horaria IN (
+                                        '00:00-05:59',
+                                        '06:00-11:59',
+                                        '12:00-17:59',
+                                        '18:00-23:59'
+                                    )),
+    latitud             NUMERIC     NOT NULL,
+    longitud            NUMERIC     NOT NULL,
+    direccion           VARCHAR,
+    tipo_hurto          VARCHAR     NOT NULL CHECK (tipo_hurto IN ('atraco', 'raponazo', 'cosquilleo', 'fleteo')),
+    descripcion         VARCHAR,
+    objeto_hurtado      VARCHAR     CHECK (objeto_hurtado IN (
+                                        'celular',
+                                        'dinero',
+                                        'tarjetas_documentos',
+                                        'articulos_personales',
+                                        'dispositivos_electronicos'
+                                    )),
+    numero_agresores    VARCHAR     CHECK (numero_agresores IN ('1', '2', '3+', 'desconocido')),
+    fecha_creacion      TIMESTAMP   NOT NULL DEFAULT now(),
     fecha_actualizacion TIMESTAMP,
-    actualizado_por UUID,
-    estado VARCHAR(20) NOT NULL CHECK (
-        estado IN ('activo','oculto','eliminado')
-    ),
-    
-    CONSTRAINT fk_usuario FOREIGN KEY (usuario_id)
-        REFERENCES usuarios(id)
-        ON DELETE SET DEFAULT,
-    
-    CONSTRAINT fk_actualizado_por FOREIGN KEY (actualizado_por)
-        REFERENCES usuarios(id)
-        ON DELETE SET NULL
+    actualizado_por     UUID        REFERENCES public.usuarios(id),
+    estado              VARCHAR     NOT NULL CHECK (estado IN ('activo', 'oculto', 'eliminado')),
+
+    -- Texto original escrito por el usuario
+    barrio_ingresado    VARCHAR     NOT NULL,
+
+    -- Referencia al barrio validado por búsqueda difusa
+    zona_id             INTEGER     REFERENCES public.zonas(id)
 );
 
--- Insert de prueba en reportes
-INSERT INTO reportes (
-    usuario_id, tipo_reportante, fecha_incidente, franja_horaria,
-    latitud, longitud, direccion, comuna, tipo_hurto, descripcion, objeto_hurtado, numero_agresores, estado
+-- ========================================
+-- ÍNDICES ÚTILES PARA BÚSQUEDA
+-- ========================================
+CREATE INDEX idx_zonas_barrio  ON zonas (barrio);
+CREATE INDEX idx_zonas_comuna  ON zonas (comuna);
+CREATE INDEX idx_reportes_zona ON reportes (zona_id);
+
+-- ========================================
+-- FUNCIÓN DE APOYO PARA BÚSQUEDA DIFUSA
+-- Usada por el backend para validar el barrio ingresado por el usuario
+-- Retorna los 5 barrios más similares usando distancia Levenshtein
+-- ========================================
+CREATE OR REPLACE FUNCTION buscar_barrio_similar(texto_usuario TEXT)
+RETURNS TABLE (
+    id          INTEGER,
+    barrio      VARCHAR,
+    comuna      INTEGER,
+    similitud   INTEGER
 )
-VALUES
-(
-    (SELECT id FROM usuarios WHERE username='vigilante1'),
-    'victima',
-    CURRENT_DATE,
-    '12:00-17:59',
-    1.234567,
-    -76.543210,
-    'Calle Falsa 123',
-    5,
-    'raponazo',
-    'Me robaron el celular mientras caminaba',
-    'celular',
-    '1',
-    'activo'
-);
-
--- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
--- BASE PARA RDS (RDS)
-
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-CREATE TABLE usuarios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    username VARCHAR(50) NOT NULL UNIQUE,
-    correo VARCHAR(150) NOT NULL UNIQUE,
-    password_hash TEXT,
-    foto_url TEXT,
-    rol VARCHAR(20) NOT NULL CHECK (rol IN ('usuario','admin')),
-    auth_provider VARCHAR(20) NOT NULL CHECK (auth_provider IN ('local','google')),
-    google_id VARCHAR(255) UNIQUE,
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT NOW(),
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('activo','bloqueado'))
-);
-
-INSERT INTO usuarios (id, username, correo, rol, auth_provider, fecha_creacion, estado)
-VALUES (
-'00000000-0000-0000-0000-000000000001',
-'admin_sistema',
-'admin@sistema.com',
-'admin',
-'local',
-NOW(),
-'activo'
-);
-
-CREATE TABLE reportes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000001',
-    tipo_reportante VARCHAR(20) NOT NULL CHECK (tipo_reportante IN ('victima','testigo')),
-    fecha_incidente DATE NOT NULL,
-    franja_horaria VARCHAR(20) NOT NULL CHECK (franja_horaria IN ('00:00-05:59','06:00-11:59','12:00-17:59','18:00-23:59')),
-    latitud DECIMAL(9,6) NOT NULL,
-    longitud DECIMAL(9,6) NOT NULL,
-    direccion VARCHAR(100),
-    comuna INTEGER CHECK (comuna BETWEEN 1 AND 12),
-    tipo_hurto VARCHAR(30) NOT NULL CHECK (tipo_hurto IN ('atraco','raponazo','cosquilleo','fleteo')),
-    descripcion VARCHAR(300),
-    objeto_hurtado VARCHAR(50) CHECK (objeto_hurtado IN ('celular','dinero','tarjetas_documentos','articulos_personales','dispositivos_electronicos')),
-    numero_agresores VARCHAR(20) CHECK (numero_agresores IN ('1','2','3+','desconocido')),
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT NOW(),
-    fecha_actualizacion TIMESTAMP,
-    actualizado_por UUID,
-    estado VARCHAR(20) NOT NULL CHECK (estado IN ('activo','oculto','eliminado')),
-
-    CONSTRAINT fk_usuario FOREIGN KEY (usuario_id)
-        REFERENCES usuarios(id)
-        ON DELETE SET DEFAULT,
-
-    CONSTRAINT fk_actualizado_por FOREIGN KEY (actualizado_por)
-        REFERENCES usuarios(id)
-        ON DELETE SET NULL
-);
-
-
+LANGUAGE sql
+AS $$
+    SELECT
+        z.id,
+        z.barrio,
+        z.comuna,
+        levenshtein(unaccent(lower(z.barrio)), unaccent(lower(texto_usuario))) AS similitud
+    FROM zonas z
+    ORDER BY similitud ASC
+    LIMIT 5;
+$$;

@@ -2,7 +2,12 @@ import bcrypt from "bcrypt";
 import admin from "../../infrastructure/firebase/firebase.js";
 import db from "../../infrastructure/database/dbScript/db.js";
 
-// REGISTRO LOCAL
+/**
+ * Maneja POST /api/auth/register
+ * Registra un nuevo usuario local con contraseña hasheada.
+ * @param {import('express').Request} req - Body: { username, correo, password }
+ * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
+ */
 export const registerLocal = async (req, res) => {
 
   try {
@@ -12,7 +17,6 @@ export const registerLocal = async (req, res) => {
     if (!username || !correo || !password)
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
 
-    // Verificar si el correo ya existe
     const { data: existing } = await db
       .from("usuarios")
       .select("id")
@@ -49,14 +53,17 @@ export const registerLocal = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(500).json({ message: error.message });
-
   }
 
 };
 
-// LOGIN LOCAL
+/**
+ * Maneja POST /api/auth/login
+ * Autentica un usuario local verificando correo, estado activo y contraseña.
+ * @param {import('express').Request} req - Body: { correo, password }
+ * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
+ */
 export const loginLocal = async (req, res) => {
 
   try {
@@ -88,14 +95,18 @@ export const loginLocal = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(500).json({ message: error.message });
-
   }
 
 };
 
-// LOGIN GOOGLE
+/**
+ * Maneja POST /api/auth/google
+ * Autentica o registra un usuario mediante Google Sign-In.
+ * Verifica el idToken con Firebase Admin y crea el usuario si no existe.
+ * @param {import('express').Request} req - Body: { idToken }
+ * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
+ */
 export const loginGoogle = async (req, res) => {
 
   try {
@@ -143,9 +154,7 @@ export const loginGoogle = async (req, res) => {
     });
 
   } catch (error) {
-
     res.status(401).json({ message: "Token inválido" });
-
   }
 
 };

@@ -1,3 +1,8 @@
+/**
+ * Punto de entrada del servidor Express.
+ * Configura middlewares globales (CORS, JSON) y registra las rutas principales.
+ * @module server
+ */
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";

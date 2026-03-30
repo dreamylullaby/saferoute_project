@@ -1,4 +1,8 @@
-// src/infrastructure/database/db.js
+/**
+ * Cliente de Supabase para acceso a la base de datos.
+ * Lee las credenciales desde las variables de entorno definidas en .env
+ * @module db
+ */
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
