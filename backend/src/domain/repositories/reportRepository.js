@@ -1,7 +1,9 @@
+// src/domain/repositories/ReportRepository.js
+
 /**
- * Repositorio abstracto para la entidad Report.
- * Define el contrato que debe implementar cualquier repositorio concreto de reportes.
- * @class ReportRepository
+ * Repositorio de reportes (contrato).
+ * Define las operaciones que se pueden hacer con los reportes.
+ * La implementación real se hace en infraestructura.
  */
 class ReportRepository {
 
@@ -18,13 +20,10 @@ class ReportRepository {
    */
   async findAll() {}
 
-  /**
-   * Obtiene un reporte por su ID.
-   * @param {string} id - UUID del reporte
-   * @returns {Promise<Object>} El reporte encontrado
-   */
+  //Buscar un reporte por id
   async findById(id) {}
 
+  async buscarBarrioSimilar(textoUsuario) {}
 }
 
 export default ReportRepository;
