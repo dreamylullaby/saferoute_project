@@ -10,19 +10,19 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<UserEntity> login({
-
     required String correo,
     required String password
-
   }) {
+    return remoteDatasource.login(correo: correo, password: password);
+  }
 
-    return remoteDatasource.login(
-
-      correo: correo,
-      password: password
-
-    );
-
+  @override
+  Future<UserEntity> register({
+    required String username,
+    required String correo,
+    required String password
+  }) {
+    return remoteDatasource.register(username: username, correo: correo, password: password);
   }
 
 }

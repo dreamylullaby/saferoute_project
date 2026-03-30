@@ -1,4 +1,4 @@
-// src/domain/models/Report.js
+// src/domain/entities/Report.js
 
 class Report {
   constructor({
@@ -10,7 +10,6 @@ class Report {
     latitud,
     longitud,
     direccion,
-    comuna,
     tipo_hurto,
     descripcion,
     objeto_hurtado,
@@ -18,7 +17,9 @@ class Report {
     fecha_creacion,
     fecha_actualizacion,
     actualizado_por,
-    estado
+    estado,
+    barrio_ingresado,
+    zona_id
   }) {
     this.id = id;
     this.usuario_id = usuario_id;
@@ -28,7 +29,6 @@ class Report {
     this.latitud = latitud;
     this.longitud = longitud;
     this.direccion = direccion;
-    this.comuna = comuna;
     this.tipo_hurto = tipo_hurto;
     this.descripcion = descripcion;
     this.objeto_hurtado = objeto_hurtado;
@@ -37,6 +37,8 @@ class Report {
     this.fecha_actualizacion = fecha_actualizacion;
     this.actualizado_por = actualizado_por;
     this.estado = estado;
+    this.barrio_ingresado = barrio_ingresado;
+    this.zona_id = zona_id;
   }
 }
 

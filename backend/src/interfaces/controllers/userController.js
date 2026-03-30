@@ -2,6 +2,60 @@ import bcrypt from "bcrypt";
 import admin from "../../infrastructure/firebase/firebase.js";
 import db from "../../infrastructure/database/dbScript/db.js";
 
+// REGISTRO LOCAL
+export const registerLocal = async (req, res) => {
+
+  try {
+
+    const { username, correo, password } = req.body;
+
+    if (!username || !correo || !password)
+      return res.status(400).json({ message: "Todos los campos son obligatorios" });
+
+    // Verificar si el correo ya existe
+    const { data: existing } = await db
+      .from("usuarios")
+      .select("id")
+      .eq("correo", correo)
+      .single();
+
+    if (existing)
+      return res.status(409).json({ message: "El correo ya está registrado" });
+
+    const password_hash = await bcrypt.hash(password, 12);
+
+    const { data: newUser, error } = await db
+      .from("usuarios")
+      .insert({
+        username,
+        correo,
+        password_hash,
+        rol: "usuario",
+        auth_provider: "local",
+        estado: "activo"
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        correo: newUser.correo,
+        rol: newUser.rol
+      }
+    });
+
+  } catch (error) {
+
+    res.status(500).json({ message: error.message });
+
+  }
+
+};
+
 // LOGIN LOCAL
 export const loginLocal = async (req, res) => {
 
