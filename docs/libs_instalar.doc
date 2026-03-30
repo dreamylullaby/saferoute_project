@@ -2,30 +2,71 @@ LIBRERÍAS QUE DEBES INSTALAR:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+BACKEND
 En la carpeta backend, clic derecho, abrir consola y pegar el siguiente comando:
-npm install @supabase/supabase-js@2.99.3 bcrypt@6.0.0 cors@2.8.6 dotenv@17.3.1 express@5.2.1 firebase-admin@13.7.0 jsonwebtoken@9.0.3 nodemon@3.1.14 pg@8.20.0
 
-(Opcional) Para mantener todo seguro y actualizado: npm audit fix 
+npm install @supabase/supabase-js@2.99.3 bcrypt@6.0.0 cors@2.8.6 dotenv@17.3.1 express@5.2.1 firebase-admin@13.7.0 jsonwebtoken@9.0.3
+
+Para desarrollo (nodemon):
+npm install --save-dev nodemon@3.1.14
+
+NOTA: pg ya no se usa, fue reemplazado por el cliente de Supabase.
+
+(Opcional) Para mantener todo seguro y actualizado: npm audit fix
+
+Correr el backend:
+npm run dev
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-En la carpeta de flutter, dentro de donde dice: saferoute_app (recuerda que esta la creaste con comandos anteriores) poner el siguiente comando:
-flutter pub add dio firebase_auth firebase_messaging flutter_dotenv flutter_secure_storage google_sign_in provider supabase_flutter shared_preferences url_launcher
-Obtener las dependencias: 
+FLUTTER (frontend-movil/saferoute_app)
+En la carpeta saferoute_app abrir consola y pegar:
 
+flutter pub add dio firebase_core firebase_auth firebase_messaging flutter_dotenv flutter_secure_storage provider supabase_flutter http
+
+NOTA: google_sign_in fue removido. El login con Google se maneja directamente con firebase_auth (signInWithPopup para web).
+
+Obtener las dependencias:
 flutter pub get
 
+Correr en Chrome (para pruebas):
+flutter run -d chrome --web-browser-flag "--disable-web-security"
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-En la carpeta dashboard dentro de frontend-web, abrir la consola y pegar el siguiente comando:
-npm install axios react-router-dom @supabase/supabase-js@2.100.0 chart.js react-chartjs-2 dotenv react react-dom web-vitals
+FRONTEND WEB (frontend-web/dashboard)
+En la carpeta dashboard abrir consola y pegar:
+
+npm install axios react-router-dom @supabase/supabase-js chart.js react-chartjs-2 dotenv firebase react react-dom web-vitals
+npm install react-scripts@5.0.1 --save
+
+NOTA: react-scripts debe instalarse explícitamente con la versión 5.0.1 porque el package.json trae una versión placeholder (0.0.0) que no funciona.
 
 Para mantener seguridad:
+npm audit fix
 
-npm audit fix o npm audit fix - -force
+Correr el frontend web:
+npm start
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-comando para correr el testConnection.js
+ARCHIVOS SENSIBLES (no están en git, debes crearlos manualmente)
 
-Dentro de backend: node src/infrastructure/database/tests/testConnection.js
+1. backend/.env
+   Crear el archivo con este contenido:
+   SUPABASE_URL=https://zfgfgymzfjyunyoeddjy.supabase.co
+   SUPABASE_ANON_KEY=<pedir a Sarah>
+   PORT=3000
+   JWT_SECRET=<definir una clave secreta larga>
+
+2. backend/src/config/firebase-key.json
+   Descargar desde Firebase Console:
+   → Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada
+   Guardar el archivo descargado en backend/src/config/firebase-key.json
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+COMANDO PARA PROBAR CONEXIÓN A BASE DE DATOS
+
+Dentro de backend:
+node src/infrastructure/database/tests/testConnection.js
