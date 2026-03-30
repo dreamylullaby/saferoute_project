@@ -1,13 +1,16 @@
+// src/server.js
+
 /**
- * Punto de entrada del servidor Express.
- * Configura middlewares globales (CORS, JSON) y registra las rutas principales.
  * @module server
+ * @description Punto de entrada del servidor Express.
+ * Configura middlewares globales (CORS, JSON) y registra las rutas principales.
  */
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import userRoutes from "./interfaces/routes/userRoutes.js";
-import reportRoutes from "./interfaces/routes/reportRoutes.js";
+import userRoutes   from "./interfaces/routes/userRoutes.js";
+import reportRoutes from "./interfaces/routes/reportRoutes.js"; // ← una sola vez
 
 dotenv.config();
 
@@ -15,7 +18,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", userRoutes);
+// Rutas
+app.use("/api/auth",     userRoutes);
 app.use("/api/reportes", reportRoutes);
 
 const PORT = process.env.PORT || 3000;

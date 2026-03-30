@@ -1,12 +1,15 @@
+// src/application/use-cases/createReport.js
+
+import Report from '../../domain/entities/Report.js';
+
 /**
- * Caso de uso para crear un nuevo reporte de hurto.
- * Valida los campos obligatorios antes de persistir en el repositorio.
- * @class CreateReport
+ * Caso de uso para crear un reporte de hurto.
+ * Se encarga de validar los datos, resolver el barrio (si es posible) y delegar la persistencia al repositorio.
  */
 class CreateReport {
 
   /**
-   * @param {import('../../domain/repositories/reportRepository.js').default} reportRepository
+   * @param {ReportRepository} reportRepository
    */
   constructor(reportRepository) {
     this.reportRepository = reportRepository;
@@ -32,27 +35,75 @@ class CreateReport {
       throw new Error("usuario_id es obligatorio");
 
     if (!data.tipo_reportante)
-      throw new Error("tipo_reportante es obligatorio");
+      throw new Error('tipo_reportante es obligatorio');
+
+    if (!Report.tipo_reportante.includes(data.tipo_reportante))
+      throw new Error(
+        `tipo_reportante inválido. Valores permitidos: ${Report.tipo_reportante.join(', ')}`
+      );
 
     if (!data.fecha_incidente)
-      throw new Error("fecha_incidente es obligatoria");
+      throw new Error('fecha_incidente es obligatoria');
 
     if (!data.franja_horaria)
-      throw new Error("franja_horaria es obligatoria");
+      throw new Error('franja_horaria es obligatoria');
 
-    if (!data.latitud || !data.longitud)
-      throw new Error("coordenadas obligatorias");
+    if (!Report.franja_horaria.includes(data.franja_horaria))
+      throw new Error(
+        `franja_horaria inválida. Valores permitidos: ${Report.franja_horaria.join(', ')}`
+      );
+
+    if (data.latitud === undefined || data.latitud === null)
+      throw new Error('latitud es obligatoria');
+
+    if (data.longitud === undefined || data.longitud === null)
+      throw new Error('longitud es obligatoria');
 
     if (!data.tipo_hurto)
-      throw new Error("tipo_hurto es obligatorio");
+      throw new Error('tipo_hurto es obligatorio');
 
-    if (!data.barrio_ingresado)
-      throw new Error("barrio_ingresado es obligatorio");
+    if (!Report.tipo_hurto.includes(data.tipo_hurto))
+      throw new Error(
+        `tipo_hurto inválido. Valores permitidos: ${Report.tipo_hurto.join(', ')}`
+      );
 
-    return await this.reportRepository.create(data);
+    if (!data.barrio_ingresado || data.barrio_ingresado.trim() === '')
+      throw new Error('barrio_ingresado es obligatorio');
 
+    //Campos opcionales
+    if (data.objeto_hurtado && !Report.objeto_hurtado.includes(data.objeto_hurtado))
+      throw new Error(
+        `objeto_hurtado inválido. Valores permitidos: ${Report.objeto_hurtado.join(', ')}`
+      );
+
+    if (data.numero_agresores && !Report.numero_agresores.includes(data.numero_agresores))
+      throw new Error(
+        `numero_agresores inválido. Valores permitidos: ${Report.numero_agresores.join(', ')}`
+      );
+
+    //Resolución de barrio Campo opcional
+    let zona_id = null;
+
+    try {
+      const sugerencias = await this.reportRepository.buscarBarrioSimilar(
+        data.barrio_ingresado.trim()
+      );
+
+      if (sugerencias.length > 0 && sugerencias[0].similitud <= 3) {
+        zona_id = sugerencias[0].id;
+      }
+    } catch (_) {
+      console.warn('No se pudo resolver el barrio, se continuará sin zona_id');
+    }
+
+    //Persistencia
+    return await this.reportRepository.create({
+      ...data,
+      barrio_ingresado: data.barrio_ingresado.trim(),
+      zona_id,
+      estado: 'activo'
+    });
   }
-
 }
 
 export default CreateReport;

@@ -1,28 +1,19 @@
-/**
- * Implementación concreta del repositorio de reportes usando Supabase.
- * @class ReportRepositoryImpl
- */
-import supabase from '../dbScript/db.js';
+// src/infrastructure/database/repositoriesImplementation/ReportRepositoryImpl.js
 
-export default class ReportRepositoryImpl {
+import supabase from '../dbScript/db.js';
+import ReportRepository from '../../../domain/repositories/reportRepository.js';
+
+/**
+ * @class ReportRepositoryImpl
+ * @extends ReportRepository
+ * @classdesc Implementación concreta del contrato {@link ReportRepository} usando Supabase.
+ * Toda interacción con la tabla `reportes` y la función PG `buscar_barrio_similar` ocurre aquí.
+ */
+export default class ReportRepositoryImpl extends ReportRepository {
 
   /**
    * Inserta un nuevo reporte en la tabla 'reportes'.
-   * @param {Object} data - Datos del reporte
-   * @param {string} data.usuario_id - UUID del usuario
-   * @param {string} data.tipo_reportante - 'victima' | 'testigo'
-   * @param {string} data.fecha_incidente - Fecha ISO del incidente
-   * @param {string} data.franja_horaria - Franja horaria
-   * @param {number} data.latitud - Latitud
-   * @param {number} data.longitud - Longitud
-   * @param {string|null} data.direccion - Dirección (opcional)
-   * @param {string} data.tipo_hurto - Tipo de hurto
-   * @param {string|null} data.descripcion - Descripción (opcional)
-   * @param {string|null} data.objeto_hurtado - Objeto hurtado (opcional)
-   * @param {string|null} data.numero_agresores - Número de agresores (opcional)
-   * @param {string} data.barrio_ingresado - Barrio ingresado por el usuario
-   * @param {number|null} data.zona_id - ID de zona validada (opcional)
-   * @returns {Promise<Object>} El reporte creado
+   * Los campos opcionales se normalizan a 'null' si no vienen en el objeto.
    */
   async create(data) {
     const { data: newRow, error } = await supabase
@@ -34,24 +25,24 @@ export default class ReportRepositoryImpl {
         franja_horaria:   data.franja_horaria,
         latitud:          data.latitud,
         longitud:         data.longitud,
-        direccion:        data.direccion,
+        direccion:        data.direccion        ?? null,
         tipo_hurto:       data.tipo_hurto,
-        descripcion:      data.descripcion,
-        objeto_hurtado:   data.objeto_hurtado,
-        numero_agresores: data.numero_agresores,
+        descripcion:      data.descripcion      ?? null,
+        objeto_hurtado:   data.objeto_hurtado   ?? null,
+        numero_agresores: data.numero_agresores ?? null,
+        estado:           data.estado           ?? 'activo',
         barrio_ingresado: data.barrio_ingresado,
-        zona_id:          data.zona_id ?? null,
-        estado:           'activo'
+        zona_id:          data.zona_id          ?? null
       }])
       .select();
 
-    if (error) throw error;
+    if (error) throw new Error(`Error al crear reporte: ${error.message}`);
     return newRow[0];
   }
 
   /**
-   * Obtiene todos los reportes no eliminados con datos de zona.
-   * @returns {Promise<Array>} Lista de reportes ordenados por fecha_creacion DESC
+   * Obtiene todos los reportes no eliminados con datos de zona incluidos.
+   * @throws {Error} Si Supabase retorna un error en la consulta
    */
   async findAll() {
     const { data, error } = await supabase
@@ -60,24 +51,39 @@ export default class ReportRepositoryImpl {
       .neq('estado', 'eliminado')
       .order('fecha_creacion', { ascending: false });
 
-    if (error) throw error;
+    if (error) throw new Error(`Error al obtener reportes: ${error.message}`);
     return data;
   }
 
   /**
-   * Obtiene un reporte por su UUID con datos de zona.
+   * Busca un reporte por su UUID con datos de zona incluidos.
    * @param {string} id - UUID del reporte
    * @returns {Promise<Object>} El reporte encontrado
+   * @throws {Error} Si el reporte no existe o Supabase retorna un error
    */
   async findById(id) {
     const { data, error } = await supabase
       .from('reportes')
       .select('*, zonas(barrio, comuna)')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (!data) throw new Error(`Reporte con id ${id} no encontrado`);
+    if (error) throw new Error(`Error al buscar reporte: ${error.message}`);
     return data;
   }
 
+  /**
+ * Busca barrios similares usando una función RPC en Supabase.
+ * @param {string} textoUsuario - Barrio ingresado por el usuario
+ * @returns {Promise<Array>} Lista de hasta 5 barrios similares ordenados por coincidencia
+ * @throws {Error} Si ocurre un error en la consulta
+ */
+  async buscarBarrioSimilar(textoUsuario) {
+    const { data, error } = await supabase
+      .rpc('buscar_barrio_similar', { texto_usuario: textoUsuario });
+
+    if (error) throw new Error(`Error en búsqueda difusa: ${error.message}`);
+    return data;
+  }
 }

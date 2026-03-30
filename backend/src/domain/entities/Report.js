@@ -1,31 +1,38 @@
+// src/domain/entities/Report.js
+
 /**
- * Entidad de dominio que representa un reporte de hurto.
  * @class Report
+ * @classdesc
+ * Representa la entidad de dominio "Reporte de Hurto" dentro del sistema.
+ * Contiene toda la información relacionada con un incidente reportado por un usuario,
+ * incluyendo ubicación, tipo de hurto, detalles descriptivos y estado del reporte.
  */
+
 class Report {
 
   /**
-   * Constructor de la entidad Report.
-   * @param {Object} data - Datos del reporte
-   * @param {string} data.id - Identificador único UUID del reporte
-   * @param {string} data.usuario_id - UUID del usuario que crea el reporte
-   * @param {string} data.tipo_reportante - Tipo de reportante ('victima' | 'testigo')
-   * @param {Date} data.fecha_incidente - Fecha en la que ocurrió el incidente
-   * @param {string} data.franja_horaria - Franja horaria del incidente ('00:00-05:59' | '06:00-11:59' | '12:00-17:59' | '18:00-23:59')
-   * @param {number} data.latitud - Coordenada geográfica latitud
-   * @param {number} data.longitud - Coordenada geográfica longitud
-   * @param {string|null} data.direccion - Dirección del incidente (opcional)
-   * @param {string} data.tipo_hurto - Tipo de hurto ('atraco' | 'raponazo' | 'cosquilleo' | 'fleteo')
-   * @param {string|null} data.descripcion - Descripción detallada del incidente (máx. 300 caracteres)
-   * @param {string|null} data.objeto_hurtado - Tipo de objeto hurtado ('celular' | 'dinero' | 'tarjetas_documentos' | 'articulos_personales' | 'dispositivos_electronicos')
-   * @param {string|null} data.numero_agresores - Número de agresores ('1' | '2' | '3+' | 'desconocido')
-   * @param {Date} data.fecha_creacion - Fecha de creación del registro
-   * @param {Date|null} data.fecha_actualizacion - Fecha de última actualización
-   * @param {string|null} data.actualizado_por - UUID del usuario que actualizó el reporte
-   * @param {string} data.estado - Estado del reporte ('activo' | 'oculto' | 'eliminado')
-   * @param {string} data.barrio_ingresado - Barrio ingresado manualmente por el usuario
-   * @param {number|null} data.zona_id - ID de la zona validada (null si no hay coincidencia en la tabla zonas)
+   * Constructor de la entidad Report
+   * @param {Object}      data                   - Datos del reporte
+   * @param {string}      data.id                - UUID único del reporte (generado por la BD)
+   * @param {string}      data.usuario_id        - UUID del usuario que crea el reporte
+   * @param {string}      data.tipo_reportante   - Tipo de reportante ('victima' | 'testigo')
+   * @param {Date|string} data.fecha_incidente   - Fecha en la que ocurrió el incidente
+   * @param {string}      data.franja_horaria    - Franja horaria del incidente (puede ser '00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59')
+   * @param {number}      data.latitud           - Coordenada geográfica (latitud)
+   * @param {number}      data.longitud          - Coordenada geográfica (longitud)
+   * @param {string}      [data.direccion]       - Dirección del incidente (opcional)*
+   * @param {string}      data.tipo_hurto        - Tipo de hurto (Opciones: 'atraco', 'raponazo', 'cosquilleo', 'fleteo')
+   * @param {string}      [data.descripcion]     - Descripción detallada del incidente (opcional)*
+   * @param {string}      [data.objeto_hurtado]  - Tipo de objeto hurtado (opcional)*
+   * @param {string}      [data.numero_agresores]- Número de agresores (opcional)*
+   * @param {Date|string} data.fecha_creacion    - Fecha de creación del registro
+   * @param {Date|string} [data.fecha_actualizacion] - Fecha de última actualización (opcional)*
+   * @param {string|null} [data.actualizado_por] - UUID del usuario que actualizó (opcional)*
+   * @param {string}      data.estado            - Estado del reporte ('activo', 'oculto', 'eliminado')
+   * @param {string}      data.barrio_ingresado  - Barrio ingresado manualmente por el usuario
+   * @param {number|null} [data.zona_id]         - ID de la zona resuelta por búsqueda difusa, valor null si no hay coincidencia
    */
+
   constructor({
     id,
     usuario_id,
@@ -45,6 +52,7 @@ class Report {
     estado,
     barrio_ingresado,
     zona_id
+
   }) {
     this.id = id;
     this.usuario_id = usuario_id;
@@ -64,6 +72,43 @@ class Report {
     this.estado = estado;
     this.barrio_ingresado = barrio_ingresado;
     this.zona_id = zona_id;
+  }
+
+//Valores permitidos en BD
+//Tipo de reportantes
+static get tipo_reportante(){
+  return['victima', 'testigo'];
+  }
+
+//Franjas horarias
+static get franja_horaria(){
+ return ['00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59'];
+  }
+
+//Tipos de hurtos mencionados
+static get tipo_hurto(){
+ return ['atraco', 'raponazo', 'cosquilleo', 'fleteo'];
+  }
+
+//Tipos de objetos hurtados
+static get objeto_hurtado(){
+ return [
+  'celular',
+  'dinero',
+  'tarjetas_documentos',
+  'articulos personales',
+  'dispositivos_electronicos'
+   ];
+  }
+
+//Número de agresores
+static get numero_agresores(){
+ return ['1', '2', '3+', 'desconocido'];
+  }
+
+//Estado del reporte
+static get estado(){
+ return ['activo', 'oculto', 'eliminado'];
   }
 }
 
