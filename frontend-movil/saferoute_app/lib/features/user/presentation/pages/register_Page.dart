@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../../core/app_theme.dart';
+import '../../../../../core/app_dialog.dart';
 import '../widgets/input_field.dart';
 import '../widgets/submit_button.dart';
 import '../../data/datasources/user_remote_datasource.dart';
@@ -13,18 +16,20 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-
   final usernameController = TextEditingController();
   final emailController    = TextEditingController();
   final passwordController = TextEditingController();
   final confirmController  = TextEditingController();
+  final _formKey           = GlobalKey<FormState>();
+  bool isLoading           = false;
 
-  final _formKey = GlobalKey<FormState>();
-  bool isLoading = false;
+  void _mostrarError(String mensaje) => mostrarError(context, mensaje);
+
+  void _mostrarExito(String mensaje, {VoidCallback? alCerrar}) =>
+      mostrarExito(context, mensaje, alCerrar: alCerrar);
 
   void register() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => isLoading = true);
 
     try {
@@ -39,16 +44,13 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Cuenta creada. Bienvenido ${user.username}")),
+      _mostrarExito(
+        'Bienvenido, ${user.username}. Tu cuenta fue creada exitosamente.',
+        alCerrar: () => Navigator.pushReplacementNamed(context, '/login'),
       );
-      Navigator.pushReplacementNamed(context, '/login');
-
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
-      );
+      _mostrarError(e.toString().replaceAll('Exception: ', ''));
     }
 
     setState(() => isLoading = false);
@@ -57,78 +59,90 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear cuenta')),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
-                const Text(
-                  "SAFEROUTE",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
 
-                const SizedBox(height: 30),
+                Image.asset('assets/Logo_SafeRoute_Oficial_Color.png', height: 80),
+                const SizedBox(height: 12),
 
-                TextFormField(
-                  controller: usernameController,
-                  validator: (v) => (v == null || v.isEmpty) ? "Campo obligatorio" : null,
-                  decoration: InputDecoration(
-                    labelText: "Nombre de usuario",
-                    prefixIcon: const Icon(Icons.person),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                Text('SAFEROUTE', style: Theme.of(context).textTheme.displayLarge),
+                const SizedBox(height: 6),
+                Text('Crea tu cuenta', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSub)),
+                const SizedBox(height: 32),
+
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.07),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+
+                      InputField(
+                        controller: usernameController,
+                        label: 'Nombre de usuario',
+                        icon: Icons.person_outline,
+                      ),
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        controller: emailController,
+                        label: 'Correo',
+                        icon: Icons.email_outlined,
+                      ),
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        controller: passwordController,
+                        label: 'Contraseña',
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        isPasswordConfirm: true,
+                      ),
+                      const SizedBox(height: 16),
+
+                      InputField(
+                        controller: confirmController,
+                        label: 'Confirmar contraseña',
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        extraValidator: (v) {
+                          if (v != passwordController.text) return 'Las contraseñas no coinciden';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+
+                      SubmitButton(
+                        text: 'Registrarse',
+                        onPressed: register,
+                        isLoading: isLoading,
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: 15),
-
-                InputField(
-                  controller: emailController,
-                  label: "Correo",
-                  icon: Icons.email,
-                ),
-
-                const SizedBox(height: 15),
-
-                InputField(
-                  controller: passwordController,
-                  label: "Contraseña",
-                  icon: Icons.lock,
-                  isPassword: true,
-                ),
-
-                const SizedBox(height: 15),
-
-                TextFormField(
-                  controller: confirmController,
-                  obscureText: true,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return "Campo obligatorio";
-                    if (v != passwordController.text) return "Las contraseñas no coinciden";
-                    return null;
-                  },
-                  decoration: InputDecoration(
-                    labelText: "Confirmar contraseña",
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-
-                const SizedBox(height: 25),
-
-                SubmitButton(
-                  text: "Registrarse",
-                  onPressed: register,
-                  isLoading: isLoading,
-                ),
-
-                const SizedBox(height: 15),
+                const SizedBox(height: 20),
 
                 TextButton(
                   onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text("¿Ya tienes cuenta? Inicia sesión"),
+                  child: Text(
+                    '¿Ya tienes cuenta? Inicia sesión',
+                    style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w500),
+                  ),
                 ),
               ],
             ),

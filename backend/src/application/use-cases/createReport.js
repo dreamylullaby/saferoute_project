@@ -81,26 +81,10 @@ class CreateReport {
         `numero_agresores inválido. Valores permitidos: ${Report.numero_agresores.join(', ')}`
       );
 
-    //Resolución de barrio Campo opcional
-    let zona_id = null;
-
-    try {
-      const sugerencias = await this.reportRepository.buscarBarrioSimilar(
-        data.barrio_ingresado.trim()
-      );
-
-      if (sugerencias.length > 0 && sugerencias[0].similitud <= 3) {
-        zona_id = sugerencias[0].id;
-      }
-    } catch (_) {
-      console.warn('No se pudo resolver el barrio, se continuará sin zona_id');
-    }
-
-    //Persistencia
+    // zona_id lo asigna automáticamente el trigger en BD
     return await this.reportRepository.create({
       ...data,
       barrio_ingresado: data.barrio_ingresado.trim(),
-      zona_id,
       estado: 'activo'
     });
   }

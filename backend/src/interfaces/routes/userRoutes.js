@@ -4,7 +4,7 @@
  * @module userRoutes
  */
 import express from "express";
-import { loginLocal, loginGoogle, registerLocal, loginAdmin, logoutUser } from "../controllers/userController.js";
+import { loginLocal, loginGoogle, registerLocal, loginAdmin, logoutUser, updateUsername } from "../controllers/userController.js";
 import { authenticate, requireAdmin } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -23,5 +23,8 @@ router.post("/admin-login", loginAdmin);
 
 /** POST /api/auth/logout — Cierra sesión (requiere token válido) */
 router.post("/logout", authenticate, logoutUser);
+
+/** PATCH /api/auth/username — Actualiza el apodo del usuario (requiere token válido) */
+router.patch("/username", authenticate, updateUsername);
 
 export default router;

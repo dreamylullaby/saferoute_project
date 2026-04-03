@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../../core/app_theme.dart';
+import '../../../../../core/app_dialog.dart';
 import '../../../../services/auth_storage.dart';
 
 class ReportIncidentePage extends StatefulWidget {
@@ -129,21 +132,15 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
       if (!mounted) return;
 
       if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reporte enviado exitosamente")),
-        );
-        Navigator.pop(context);
+        mostrarExito(context, 'Tu reporte fue enviado exitosamente.',
+            alCerrar: () => Navigator.pop(context));
       } else {
         final data = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data["error"] ?? "Error al enviar reporte")),
-        );
+        mostrarError(context, data["error"] ?? "Error al enviar reporte");
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error de conexión")),
-      );
+      mostrarError(context, "Error de conexión. Verifica tu internet e intenta de nuevo.");
     }
 
     setState(() => isLoading = false);
@@ -155,19 +152,33 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     required List<T> items,
     required void Function(T?) onChanged,
     String Function(T)? display,
+    bool required = true,
   }) {
     return DropdownButtonFormField<T>(
       value: value,
+      menuMaxHeight: 260,
+      borderRadius: BorderRadius.circular(14),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        labelStyle: GoogleFonts.inter(color: AppColors.textSub),
+        prefixIcon: const Icon(Icons.list_alt_rounded, color: AppColors.primary),
       ),
-      items: items.map((e) => DropdownMenuItem(
-        value: e,
-        child: Text(display != null ? display(e) : e.toString()),
-      )).toList(),
+      items: items.map((e) {
+        final texto = display != null ? display(e) : e.toString();
+        return DropdownMenuItem(
+          value: e,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(
+              texto,
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMain),
+            ),
+          ),
+        );
+      }).toList(),
       onChanged: onChanged,
-      validator: (v) => v == null ? "Campo obligatorio" : null,
+      validator: required ? (v) => v == null ? 'Campo obligatorio' : null : null,
     );
   }
 
@@ -314,13 +325,17 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               // Objeto hurtado
               DropdownButtonFormField<String>(
                 value: objetoHurtado,
+                menuMaxHeight: 260,
+                borderRadius: BorderRadius.circular(14),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
                 decoration: InputDecoration(
-                  labelText: "Objeto hurtado (opcional)",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelText: 'Objeto hurtado (opcional)',
+                  labelStyle: GoogleFonts.inter(color: AppColors.textSub),
+                  prefixIcon: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
                 ),
                 items: _objetosHurtados.map((e) => DropdownMenuItem(
                   value: e,
-                  child: Text(e.replaceAll('_', ' ')),
+                  child: Text(e.replaceAll('_', ' '), style: GoogleFonts.inter(fontSize: 14)),
                 )).toList(),
                 onChanged: (v) => setState(() => objetoHurtado = v),
               ),
@@ -330,13 +345,17 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               // Número de agresores
               DropdownButtonFormField<String>(
                 value: numeroAgresores,
+                menuMaxHeight: 260,
+                borderRadius: BorderRadius.circular(14),
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
                 decoration: InputDecoration(
-                  labelText: "Número de agresores (opcional)",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  labelText: 'Número de agresores (opcional)',
+                  labelStyle: GoogleFonts.inter(color: AppColors.textSub),
+                  prefixIcon: const Icon(Icons.people_outline, color: AppColors.primary),
                 ),
                 items: _numAgresores.map((e) => DropdownMenuItem(
                   value: e,
-                  child: Text(e),
+                  child: Text(e, style: GoogleFonts.inter(fontSize: 14)),
                 )).toList(),
                 onChanged: (v) => setState(() => numeroAgresores = v),
               ),
