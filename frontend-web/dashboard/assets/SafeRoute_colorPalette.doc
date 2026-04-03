@@ -1,0 +1,62 @@
+SafeRoute Estilo de Diseño de Interfaz de Usuario.
+
+Paleta de colores:
+Splash Screen de la interfaz: Pantalla de carga donde se muestra el logotipo del aplicativo por un tiempo de 2 segundos máximo antes de redirigir a la página de login.
+Colores Seleccionados:
+•	#1E1E7C
+•	#333c87
+•	#6D6DF9
+Para formar el degradado: linear-gradient(135deg, #LELE7C, #333c87, #6D6DF9)
+Colores Principales de la Interfaz: Colores que se visualizan en botones principales, navbar/header, hover/Selección y elementos activos.
+Colores Seleccionados:
+•	#2563EB
+•	#1E3A8A
+•	#3B82F6
+•	#ECEEF0
+Colores Neutros de la Interfaz: Colores que se usan para mantener la interfaz de usuario limpia. Se visualizan en fondo base, cards/paneles, bordes, texto principal y texto secundario.
+Colores seleccionados:
+•	#FFFFFF
+•	#F1F5F9
+•	#CBD5E1
+•	#1E293B
+•	#64748B
+Colores para la señalización con el mapa de calor: Se visualizan como zonas dependiendo de que tan alta es la incidencia en la zona con más reportes.
+Colores seleccionados:
+•	#22C55E  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
+
+•	#FACC15  Bajo riesgo: Área geográfica que presenta baja densidad de reportes de incidentes, indicando ocurrencias poco frecuentes en relación con las demás zonas analizadas.
+
+•	#F97316  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
+
+•	#BE185D  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
+
+Colores para las estadísticas que se mostraran al usuario: Se utilizan colores en las gráficas y tarjetas (cards) para representar visualmente la incidencia del hurto por zona, facilitando una interpretación más clara, dinámica e intuitiva de la información estadística.
+Colores seleccionados:
+Colores funciones principales:
+•	#B91C1C  Hurto del tipo “Atraco”
+
+•	#9D174D  Hurto del tipo “Raponazo”
+
+•	#D946EF  Hurto del tipo “Fleteo”
+
+•	#8A2BE2  Hurto del tipo “Cosquilleo”
+
+•	#22C55E  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
+
+•	#FACC15  Bajo riesgo: Área geográfica que presenta baja densidad de reportes de incidentes, indicando ocurrencias poco frecuentes en relación con las demás zonas analizadas.
+
+•	#F97316  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
+
+•	#BE185D  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
+Comparativas por tiempo / tendencia:
+#10B981   Decremento en reportes o tendencias recientes.
+#F59E0B  Disminución o variación moderada entre periodos.
+#EF4444  Incremento fuerte o alerta de aumento.
+
+Comparativa por franja horaria (4 franjas): Se pueden usar tonos cálidos y distintos para diferenciar cada franja:
+#FBBF24  Mañana (6:00 – 11:59): (amarillo dorado)
+#F97316  Tarde (12:00 – 17:59): (naranja) (ya lo usamos para riesgo medio, pero si no se cruza visualmente en gráficos separados, sirve. Sino cambiar por una variante similar.)
+#BE185D  Noche (18:00 – 23:59): (magenta/rosa fuerte)
+#D946EF  Madrugada (00:00 – 5:59): (fucsia)
+Si hay conflicto visual con mapa de calor o tipos de hurto, se pueden aclarar con patrones o gradientes. La idea es que cada categoría tenga un color distinto de los riesgos/seguridad, pero aún armonice con todo.
+Nota importante: Hacer el estudio respectivo, el objetivo es mejorar el entendimiento de las estadísticas, pero no dejar cargado de calor el aplicativo.

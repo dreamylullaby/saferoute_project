@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'core/app_theme.dart';
+import 'features/user/presentation/pages/splash_page.dart';
 import 'features/user/presentation/pages/login_page.dart';
 import 'features/user/presentation/pages/register_page.dart';
 import 'features/user/presentation/pages/report_Incidente_page.dart';
 import 'features/user/presentation/pages/home_page.dart';
-import 'services/auth_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,50 +30,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'SafeRoute',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-      ),
-      home: const AuthGate(),
+      theme: AppTheme.theme,
+      home: const SplashPage(),
       routes: {
         '/login':    (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
         '/home':     (context) => const HomePage(),
         '/reportar': (context) => const ReportIncidentePage(),
       },
-    );
-  }
-}
-
-/// Verifica si hay token guardado y redirige a /home o /login.
-class AuthGate extends StatefulWidget {
-  const AuthGate({super.key});
-
-  @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  @override
-  void initState() {
-    super.initState();
-    _checkToken();
-  }
-
-  Future<void> _checkToken() async {
-    final token = await AuthStorage.getToken();
-    if (!mounted) return;
-    if (token != null) {
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Pantalla de carga mientras se verifica el token
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

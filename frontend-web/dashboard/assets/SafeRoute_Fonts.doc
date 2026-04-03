@@ -1,0 +1,40 @@
+1️⃣ Título del aplicativo
+
+Tipografía: Montserrat Bold o Poppins Bold
+Uso: Logo, splash screen, header principal.
+Por qué: Letras geométricas, modernas, fuertes, transmiten confianza y profesionalismo.
+
+2️⃣ Títulos principales (secciones, pantallas)
+
+Tipografía: Inter SemiBold o Roboto Bold
+Uso: Headers de páginas, títulos de gráficas o cards principales.
+Por qué: Alta legibilidad en tamaños medianos a grandes, buena en pantalla, se distingue del título de app.
+
+3️⃣ Títulos secundarios (subsecciones, cards)
+
+Tipografía: Inter Medium o Roboto Medium
+Uso: Subtítulos en tarjetas, secciones dentro de pantalla, filtros.
+Por qué: Contraste suficiente con títulos principales, mantiene jerarquía visual.
+
+4️⃣ Texto principal (cuerpo)
+
+Tipografía: Inter Regular o Roboto Regular
+Uso: Texto explicativo, descripciones, estadísticas dentro de cards y gráficos.
+Por qué: Legible a tamaños pequeños, neutra y limpia, no distrae de la información visual.
+
+5️⃣ Texto secundario / labels / detalles
+
+Tipografía: Inter Light / Roboto Light / Open Sans Regular
+Uso: Fechas, números secundarios, etiquetas en gráficos, leyendas.
+Por qué: Mantiene jerarquía sin competir con títulos ni información principal, ideal para info de soporte.
+
+6️⃣ Extras UI (botones, badges, indicadores)
+Tipografía: Montserrat Medium / Poppins Medium
+Uso: Botones principales, badges de alerta o categorías de riesgo.
+Por qué: Fácil de leer en tamaños pequeños, consistente con identidad moderna de la app.
+
+💡 Tip de diseño SafeRoute:
+
+Mantener 2-3 familias máximo.
+Usar peso y tamaño para jerarquía, no mezclar muchas familias.
+Para accesibilidad, asegúrate de contrastes altos entre fondo y texto (idealmente ratio ≥ 4.5:1).

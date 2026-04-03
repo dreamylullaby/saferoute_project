@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:saferoute_app/features/user/data/datasources/user_Remote_Datasource.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../../core/app_theme.dart';
+import '../../data/datasources/user_Remote_Datasource.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -16,34 +18,47 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("SafeRoute"),
+        title: const Text('SafeRoute'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Cerrar sesión",
+          TextButton.icon(
             onPressed: () => cerrarSesion(context),
+            icon: const Icon(Icons.logout, color: Colors.white),
+            label: const Text(
+              'Cerrar sesión',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
-      body: Center(
+      body: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              "Bienvenido a SafeRoute",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+
+            Image.asset('assets/Logo_SafeRoute_Oficial_Color.png', height: 80),
+            const SizedBox(height: 20),
+
+            Text(
+              'Bienvenido a SafeRoute',
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.report),
-              label: const Text("Registrar hurto"),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 8),
+            Text(
+              'Mantente seguro, mantente informado.',
+              style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSub),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.report_outlined),
+                label: const Text('Registrar hurto'),
+                onPressed: () => Navigator.pushNamed(context, '/reportar'),
               ),
-              onPressed: () => Navigator.pushNamed(context, '/reportar'),
             ),
           ],
         ),
