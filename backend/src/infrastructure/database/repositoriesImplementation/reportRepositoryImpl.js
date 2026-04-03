@@ -31,8 +31,8 @@ export default class ReportRepositoryImpl extends ReportRepository {
         objeto_hurtado:   data.objeto_hurtado   ?? null,
         numero_agresores: data.numero_agresores ?? null,
         estado:           data.estado           ?? 'activo',
-        barrio_ingresado: data.barrio_ingresado,
-        zona_id:          data.zona_id          ?? null
+        barrio_ingresado: data.barrio_ingresado
+        // zona_id lo asigna el trigger automáticamente
       }])
       .select();
 
@@ -47,7 +47,7 @@ export default class ReportRepositoryImpl extends ReportRepository {
   async findAll() {
     const { data, error } = await supabase
       .from('reportes')
-      .select('*, zonas(barrio, comuna)')
+      .select('*, zonas(barrio)')
       .neq('estado', 'eliminado')
       .order('fecha_creacion', { ascending: false });
 
@@ -64,7 +64,7 @@ export default class ReportRepositoryImpl extends ReportRepository {
   async findById(id) {
     const { data, error } = await supabase
       .from('reportes')
-      .select('*, zonas(barrio, comuna)')
+      .select('*, zonas(barrio)')
       .eq('id', id)
       .maybeSingle();
 

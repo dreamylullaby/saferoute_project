@@ -219,3 +219,45 @@ export const loginGoogle = async (req, res) => {
   }
 
 };
+
+/**
+ * Maneja PATCH /api/auth/username
+ * Actualiza el apodo de un usuario (usado tras login con Google).
+ * @param {import('express').Request} req - Body: { username }, req.user.id del token
+ * @param {import('express').Response} res
+ */
+export const updateUsername = async (req, res) => {
+
+  try {
+
+    const { username } = req.body;
+    const userId = req.user.id;
+
+    if (!username || username.trim().length < 3)
+      return res.status(400).json({ message: "El apodo debe tener al menos 3 caracteres" });
+
+    const { data: existing } = await db
+      .from("usuarios")
+      .select("id")
+      .eq("username", username.trim())
+      .single();
+
+    if (existing)
+      return res.status(409).json({ message: "Ese apodo ya está en uso, elige otro" });
+
+    const { data: updated, error } = await db
+      .from("usuarios")
+      .update({ username: username.trim() })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ user: { id: updated.id, username: updated.username, correo: updated.correo, rol: updated.rol } });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+
+};
