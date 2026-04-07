@@ -17,11 +17,11 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final usernameController = TextEditingController();
-  final emailController    = TextEditingController();
+  final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final confirmController  = TextEditingController();
-  final _formKey           = GlobalKey<FormState>();
-  bool isLoading           = false;
+  final confirmController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool isLoading = false;
 
   void _mostrarError(String mensaje) => mostrarError(context, mensaje);
 
@@ -66,13 +66,24 @@ class _RegisterPageState extends State<RegisterPage> {
             key: _formKey,
             child: Column(
               children: [
-
-                Image.asset('assets/Logo_SafeRoute_Oficial_Color.png', height: 80),
+                Image.asset(
+                  'assets/Logo_SafeRoute_Oficial_Color.png',
+                  height: 80,
+                ),
                 const SizedBox(height: 12),
 
-                Text('SAFEROUTE', style: Theme.of(context).textTheme.displayLarge),
+                Text(
+                  'SAFEROUTE',
+                  style: Theme.of(context).textTheme.displayLarge,
+                ),
                 const SizedBox(height: 6),
-                Text('Crea tu cuenta', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSub)),
+                Text(
+                  'Crea tu cuenta',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppColors.textSub,
+                  ),
+                ),
                 const SizedBox(height: 32),
 
                 Container(
@@ -90,11 +101,20 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   child: Column(
                     children: [
-
                       InputField(
                         controller: usernameController,
                         label: 'Nombre de usuario',
                         icon: Icons.person_outline,
+                        extraValidator: (v) {
+                          final value = v?.trim() ?? '';
+                          if (value.isEmpty) return 'Campo obligatorio';
+                          if (value.length < 3) return 'El apodo debe tener mínimo 3 caracteres';
+                          if (value.length > 20) return 'El apodo debe tener máximo 20 caracteres';
+                          if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(value)) {
+                            return 'Solo se permiten letras, números, punto y guion bajo';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -120,7 +140,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         icon: Icons.lock_outline,
                         isPassword: true,
                         extraValidator: (v) {
-                          if (v != passwordController.text) return 'Las contraseñas no coinciden';
+                          if (v != passwordController.text)
+                            return 'Las contraseñas no coinciden';
                           return null;
                         },
                       ),
@@ -138,10 +159,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
 
                 TextButton(
-                  onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                  onPressed: () =>
+                      Navigator.pushReplacementNamed(context, '/login'),
                   child: Text(
                     '¿Ya tienes cuenta? Inicia sesión',
-                    style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.w500),
+                    style: GoogleFonts.inter(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],

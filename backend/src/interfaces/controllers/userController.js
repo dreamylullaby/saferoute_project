@@ -18,6 +18,15 @@ export const registerLocal = async (req, res) => {
     if (!username || !correo || !password)
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
 
+    const { data: existingUsername } = await db
+      .from("usuarios")
+      .select("id")
+      .eq("username", username)
+      .single();
+
+    if (existingUsername)
+      return res.status(409).json({ message: "El apodo ya está en uso" });
+
     const { data: existing } = await db
       .from("usuarios")
       .select("id")
