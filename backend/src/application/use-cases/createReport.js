@@ -81,6 +81,9 @@ class CreateReport {
         `numero_agresores inválido. Valores permitidos: ${Report.numero_agresores.join(', ')}`
       );
 
+    if (data.descripcion && data.descripcion.trim().length > 300)
+      throw new Error('descripcion excede la longitud máxima de 300 caracteres');
+
     // zona_id lo asigna automáticamente el trigger en BD
     return await this.reportRepository.create({
       ...data,
