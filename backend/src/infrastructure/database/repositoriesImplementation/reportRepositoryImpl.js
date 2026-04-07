@@ -86,4 +86,54 @@ export default class ReportRepositoryImpl extends ReportRepository {
     if (error) throw new Error(`Error en búsqueda difusa: ${error.message}`);
     return data;
   }
+
+  /**
+   * Obtiene reportes activos con solo los campos necesarios para pintar el mapa.
+   * @returns {Promise<Array>} Lista reducida: id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado
+   */
+  async findForMap() {
+    const { data, error } = await supabase
+      .from('reportes')
+      .select('id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado, comuna')
+      .eq('estado', 'activo')
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) throw new Error(`Error al obtener reportes del mapa: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Obtiene reportes activos creados después del timestamp indicado.
+   * Usado para la actualización automática del mapa cada minuto.
+   * @param {string} desde - ISO 8601 timestamp
+   * @returns {Promise<Array>} Reportes nuevos desde esa fecha
+   */
+  async findNewSince(desde) {
+    const { data, error } = await supabase
+      .from('reportes')
+      .select('id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado, comuna')
+      .eq('estado', 'activo')
+      .gt('fecha_creacion', desde)
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) throw new Error(`Error al obtener reportes nuevos: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Busca barrios que contengan el texto ingresado (case insensitive).
+   * @param {string} texto - Texto parcial del barrio
+   * @returns {Promise<Array>} Lista de barrios que coinciden
+   */
+  async buscarBarrioPorTexto(texto) {
+    const { data, error } = await supabase
+      .from('zonas')
+      .select('id, barrio, comuna')
+      .ilike('barrio', `%${texto}%`)
+      .order('barrio', { ascending: true })
+      .limit(10);
+
+    if (error) throw new Error(`Error al buscar barrios: ${error.message}`);
+    return data;
+  }
 }
