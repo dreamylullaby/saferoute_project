@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/app_theme.dart';
 import 'features/user/presentation/pages/splash_page.dart';
 import 'features/user/presentation/pages/login_page.dart';
 import 'features/user/presentation/pages/register_page.dart';
 import 'features/user/presentation/pages/report_Incidente_page.dart';
 import 'features/user/presentation/pages/home_page.dart';
+import 'features/user/presentation/pages/mapa_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await Firebase.initializeApp(
     options: const FirebaseOptions(
       apiKey: "AIzaSyB-t6b7plOtez2YQGhSbJdYg3myQhH_JuI",
@@ -35,8 +38,9 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login':    (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        '/home':     (context) => const HomePage(),
+        '/home':     (context) => const MapaPage(),
         '/reportar': (context) => const ReportIncidentePage(),
+        '/mapa':     (context) => const MapaPage(),
       },
     );
   }

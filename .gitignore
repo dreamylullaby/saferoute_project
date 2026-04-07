@@ -89,3 +89,8 @@ GoogleService-Info.plist
 aws/
 src/infrastructure/config/*.json
 backend/src/config/firebase-key.json
+
+#############################
+# DATABASE METADATA
+#############################
+supabase/.temp

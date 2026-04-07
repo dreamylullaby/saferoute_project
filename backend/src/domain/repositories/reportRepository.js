@@ -24,6 +24,19 @@ class ReportRepository {
   async findById(id) {}
 
   async buscarBarrioSimilar(textoUsuario) {}
+
+  /**
+   * Obtiene reportes activos con solo los campos necesarios para el mapa.
+   * @returns {Promise<Array>} Lista de reportes para marcadores
+   */
+  async findForMap() {}
+
+  /**
+   * Obtiene reportes activos creados después de una fecha dada.
+   * @param {string} desde - ISO timestamp
+   * @returns {Promise<Array>} Reportes nuevos desde esa fecha
+   */
+  async findNewSince(desde) {}
 }
 
 export default ReportRepository;

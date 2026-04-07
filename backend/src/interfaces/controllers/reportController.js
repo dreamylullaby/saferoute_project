@@ -2,6 +2,8 @@
 
 import CreateReport from "../../application/use-cases/createReport.js";
 import GetReports from "../../application/use-cases/getReports.js";
+import GetMapReports from "../../application/use-cases/getMapReports.js";
+import GetNewMapReports from "../../application/use-cases/getNewMapReports.js";
 
 /**
  * @typedef {Object} Request  - Objeto de petición HTTP de Express
@@ -16,9 +18,11 @@ import GetReports from "../../application/use-cases/getReports.js";
 class ReportController {
 
   constructor(repository) {
-    this.repository     = repository;
-    this.CreateReportUC = new CreateReport(repository);
-    this.GetReportsUC   = new GetReports(repository);
+    this.repository       = repository;
+    this.CreateReportUC   = new CreateReport(repository);
+    this.GetReportsUC     = new GetReports(repository);
+    this.GetMapReportsUC  = new GetMapReports(repository);
+    this.GetNewMapReportsUC = new GetNewMapReports(repository);
   }
 
   /**
@@ -109,6 +113,62 @@ class ReportController {
         success: false,
         message: error.message
       });
+    }
+  }
+
+  /**
+   * Maneja GET /api/reportes/mapa — reportes activos para el mapa interactivo.
+   * Retorna solo los campos necesarios para pintar marcadores.
+   *
+   * Respuestas:
+   * - `200` Lista de reportes para el mapa
+   * - `500` Error interno
+   */
+  async getForMap(req, res) {
+    try {
+      const result = await this.GetMapReportsUC.execute();
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Maneja GET /api/reportes/mapa/nuevos?desde=<ISO timestamp>
+   * Retorna solo los reportes creados después del timestamp dado.
+   * Usado para actualización automática del mapa cada minuto.
+   *
+   * Respuestas:
+   * - `200` Reportes nuevos desde el timestamp
+   * - `400` Falta el parámetro `desde`
+   * - `500` Error interno
+   */
+  async getNewForMap(req, res) {
+    try {
+      const { desde } = req.query;
+      const result = await this.GetNewMapReportsUC.execute(desde);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      const status = error.message.includes('requerido') ? 400 : 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Maneja GET /api/reportes/barrios?q=<texto>
+   * Busca barrios similares al texto ingresado usando Levenshtein.
+   * Retorna hasta 5 coincidencias ordenadas por similitud.
+   */
+  async buscarBarrios(req, res) {
+    try {
+      const { q } = req.query;
+      if (!q || q.trim().length < 2)
+        return res.status(400).json({ success: false, message: 'Mínimo 2 caracteres' });
+
+      const result = await this.repository.buscarBarrioPorTexto(q.trim());
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
     }
   }
 }
