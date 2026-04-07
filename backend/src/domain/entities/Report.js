@@ -96,7 +96,7 @@ static get objeto_hurtado(){
   'celular',
   'dinero',
   'tarjetas_documentos',
-  'articulos personales',
+  'articulos_personales',
   'dispositivos_electronicos'
    ];
   }
