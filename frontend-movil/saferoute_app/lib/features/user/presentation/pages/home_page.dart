@@ -55,6 +55,15 @@ class HomePage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
+                icon: const Icon(Icons.map_outlined),
+                label: const Text('Ver mapa de incidentes'),
+                onPressed: () => Navigator.pushNamed(context, '/mapa'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 icon: const Icon(Icons.report_outlined),
                 label: const Text('Registrar hurto'),
                 onPressed: () => Navigator.pushNamed(context, '/reportar'),
