@@ -20,9 +20,16 @@ class _LoginPageState extends State<LoginPage> {
   final emailController    = TextEditingController();
   final passwordController = TextEditingController();
   final _formKey           = GlobalKey<FormState>();
+  final _passwordFocus     = FocusNode();
   bool isLoading           = false;
 
   void _mostrarError(String mensaje) => mostrarError(context, mensaje);
+
+  @override
+  void dispose() {
+    _passwordFocus.dispose();
+    super.dispose();
+  }
 
   void login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -133,6 +140,8 @@ class _LoginPageState extends State<LoginPage> {
                           controller: emailController,
                           label: 'Correo',
                           icon: Icons.email_outlined,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                         ),
                         const SizedBox(height: 16),
                         InputField(
@@ -140,6 +149,9 @@ class _LoginPageState extends State<LoginPage> {
                           label: 'Contraseña',
                           icon: Icons.lock_outline,
                           isPassword: true,
+                          focusNode: _passwordFocus,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => login(),
                         ),
                         const SizedBox(height: 24),
                         SubmitButton(
