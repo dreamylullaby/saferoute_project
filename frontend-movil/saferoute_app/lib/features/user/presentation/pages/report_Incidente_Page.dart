@@ -32,10 +32,12 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   List<String> _sugerenciasBarrio    = [];
   Timer?        _debounceBarrio;
   bool          _barrioSeleccionado  = false;
+  final FocusNode _barrioFocus       = FocusNode();
 
   // Autocomplete dirección
   List<String> _sugerenciasDireccion = [];
   Timer?        _debounceDireccion;
+  final FocusNode _direccionFocus    = FocusNode();
 
   String? tipoReportante;
   String? franjaHoraria;
@@ -50,9 +52,26 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   final _numAgresores    = ['1', '2', '3+', 'desconocido'];
 
   @override
+  void initState() {
+    super.initState();
+    _direccionFocus.addListener(() {
+      if (!_direccionFocus.hasFocus) {
+        setState(() => _sugerenciasDireccion = []);
+      }
+    });
+    _barrioFocus.addListener(() {
+      if (!_barrioFocus.hasFocus) {
+        setState(() => _sugerenciasBarrio = []);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _debounceBarrio?.cancel();
     _debounceDireccion?.cancel();
+    _direccionFocus.dispose();
+    _barrioFocus.dispose();
     super.dispose();
   }
 
@@ -181,7 +200,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
           height: MediaQuery.of(context).size.height * 0.75,
           child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
               child: Row(children: [
                 const Icon(Icons.touch_app_outlined, color: AppColors.primary),
                 const SizedBox(width: 8),
@@ -189,6 +208,11 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                   'Toca el mapa para marcar el lugar del incidente',
                   style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSub),
                 )),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSub),
+                  tooltip: 'Cancelar',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
               ]),
             ),
             Expanded(
@@ -432,6 +456,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             // ── Dirección con autocomplete ──
             TextFormField(
               controller: direccionController,
+              focusNode: _direccionFocus,
               onChanged: _onDireccionChanged,
               validator: _validarDireccion,
               decoration: InputDecoration(
@@ -480,6 +505,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             // ── Barrio con autocomplete desde BD ──
             TextFormField(
               controller: barrioController,
+              focusNode: _barrioFocus,
               onChanged: _onBarrioChanged,
               validator: _validarBarrio,
               decoration: InputDecoration(
