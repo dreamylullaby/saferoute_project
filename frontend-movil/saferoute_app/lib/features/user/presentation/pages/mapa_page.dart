@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../../../core/app_theme.dart';
 import '../../data/datasources/reporte_mapa_datasource.dart';
 import '../../data/models/reporte_mapa_model.dart';
+import '../widgets/heatmap_layer.dart';
 
 class MapaPage extends StatefulWidget {
   const MapaPage({super.key});
@@ -24,6 +25,7 @@ class _MapaPageState extends State<MapaPage> {
   List<ReporteMapaModel> _filtrados = [];
   bool _cargando = true;
   bool _modoCalor = false;
+  bool _modoOscuro = false;
   String _ultimaActualizacion = DateTime.now().toUtc().toIso8601String();
   Timer? _timer;
 
@@ -153,16 +155,20 @@ class _MapaPageState extends State<MapaPage> {
     _            => Icons.location_on,
   };
 
-  /// Color del heatmap según densidad local (cuántos reportes hay cerca)
-  Color _colorCalor(ReporteMapaModel r) {
-    const radio = 0.005; // ~500m
-    final cercanos = _filtrados.where((o) =>
-        (o.latitud  - r.latitud).abs()  < radio &&
-        (o.longitud - r.longitud).abs() < radio).length;
-    if (cercanos >= 8) return AppColors.altoRiesgo.withOpacity(0.55);
-    if (cercanos >= 4) return AppColors.riesgoMedio.withOpacity(0.50);
-    if (cercanos >= 2) return AppColors.bajoRiesgo.withOpacity(0.45);
-    return AppColors.zonaSegura.withOpacity(0.40);
+  /// Genera los puntos del heatmap con intensidad basada en la densidad
+  /// de reportes cercanos. Reportes en zonas con más incidentes tendrán
+  /// mayor intensidad, lo que produce manchas más cálidas (rojas).
+  List<HeatmapPoint> _buildHeatmapPoints() {
+    if (_filtrados.isEmpty) return [];
+    const radio = 0.005; // ~500m en grados
+    return _filtrados.map((r) {
+      final cercanos = _filtrados.where((o) =>
+          (o.latitud - r.latitud).abs() < radio &&
+          (o.longitud - r.longitud).abs() < radio).length;
+      // Normalizar: 1 reporte = 0.15, 10+ reportes = 1.0
+      final intensity = (cercanos / 10).clamp(0.15, 1.0);
+      return HeatmapPoint(LatLng(r.latitud, r.longitud), intensity);
+    }).toList();
   }
 
   // ── Detalle reporte ────────────────────────────────────────────────────────
@@ -460,22 +466,21 @@ class _MapaPageState extends State<MapaPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate:
-                        'https://api.mapbox.com/styles/v1/mapbox/streets-v12'
-                        '/tiles/{z}/{x}/{y}?access_token=$token',
+                    urlTemplate: _modoOscuro
+                        ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11'
+                          '/tiles/{z}/{x}/{y}?access_token=$token'
+                        : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12'
+                          '/tiles/{z}/{x}/{y}?access_token=$token',
                     userAgentPackageName: 'com.saferoute.app',
                   ),
 
-                  // Capa heatmap (círculos de densidad)
+                  // Capa heatmap real con gradiente de densidad
                   if (_modoCalor)
-                    CircleLayer(
-                      circles: _filtrados.map((r) => CircleMarker(
-                        point: LatLng(r.latitud, r.longitud),
-                        radius: 40,
-                        useRadiusInMeter: true,
-                        color: _colorCalor(r),
-                        borderStrokeWidth: 0,
-                      )).toList(),
+                    HeatmapLayer(
+                      points: _buildHeatmapPoints(),
+                      radius: 35,
+                      maxOpacity: 0.55,
+                      blur: 20,
                     ),
 
                   // Capa marcadores con íconos
@@ -628,12 +633,33 @@ class _MapaPageState extends State<MapaPage> {
               // ── Botón mi ubicación ──
               Positioned(
                 bottom: 90, right: 16,
-                child: _botonFlotante(
-                  icon: Icons.my_location,
-                  color: Colors.white,
-                  iconColor: AppColors.primary,
-                  onTap: _obtenerUbicacion,
-                  tooltip: 'Mi ubicación',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _botonFlotante(
+                      icon: _modoOscuro
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                      color: _modoOscuro
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
+                      iconColor: _modoOscuro
+                          ? Colors.amber
+                          : AppColors.textMain,
+                      onTap: () => setState(() => _modoOscuro = !(_modoOscuro == true)),
+                      tooltip: _modoOscuro
+                          ? 'Modo claro'
+                          : 'Modo oscuro',
+                    ),
+                    const SizedBox(height: 10),
+                    _botonFlotante(
+                      icon: Icons.my_location,
+                      color: Colors.white,
+                      iconColor: AppColors.primary,
+                      onTap: _obtenerUbicacion,
+                      tooltip: 'Mi ubicación',
+                    ),
+                  ],
                 ),
               ),
             ]),
@@ -693,10 +719,10 @@ class _MapaPageState extends State<MapaPage> {
   Widget _leyendaCalor() {
     return _contenedorLeyenda(
       children: [
-        _filaLeyenda(AppColors.zonaSegura,  'Baja densidad'),
-        _filaLeyenda(AppColors.bajoRiesgo,  'Densidad baja-media'),
-        _filaLeyenda(AppColors.riesgoMedio, 'Densidad media'),
-        _filaLeyenda(AppColors.altoRiesgo,  'Alta densidad'),
+        _filaLeyenda(const Color(0xFF22C55E), 'Zona segura'),
+        _filaLeyenda(const Color(0xFFFACC15), 'Bajo riesgo'),
+        _filaLeyenda(const Color(0xFFF97316), 'Riesgo medio'),
+        _filaLeyenda(const Color(0xFFBE185D), 'Alto riesgo'),
       ],
     );
   }

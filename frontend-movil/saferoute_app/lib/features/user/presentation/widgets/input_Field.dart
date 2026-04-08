@@ -11,6 +11,9 @@ class InputField extends StatefulWidget {
   final bool isPassword;
   final bool isPasswordConfirm; // activa validación de contraseña fuerte
   final String? Function(String?)? extraValidator;
+  final TextInputAction? textInputAction;
+  final void Function(String)? onFieldSubmitted;
+  final FocusNode? focusNode;
 
   const InputField({
     super.key,
@@ -20,6 +23,9 @@ class InputField extends StatefulWidget {
     this.isPassword        = false,
     this.isPasswordConfirm = false,
     this.extraValidator,
+    this.textInputAction,
+    this.onFieldSubmitted,
+    this.focusNode,
   });
 
   @override
@@ -61,7 +67,10 @@ class _InputFieldState extends State<InputField> {
       },
       child: TextFormField(
         controller: widget.controller,
+        focusNode: widget.focusNode,
         obscureText: widget.isPassword && _obscure,
+        textInputAction: widget.textInputAction,
+        onFieldSubmitted: widget.onFieldSubmitted,
         keyboardType: widget.label == 'Correo'
             ? TextInputType.emailAddress
             : TextInputType.text,
