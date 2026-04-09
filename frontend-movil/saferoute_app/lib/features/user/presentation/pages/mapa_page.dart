@@ -8,7 +8,9 @@ import 'package:latlong2/latlong.dart';
 import '../../../../../core/app_theme.dart';
 import '../../data/datasources/reporte_mapa_datasource.dart';
 import '../../data/models/reporte_mapa_model.dart';
+import '../../data/datasources/user_remote_datasource.dart';
 import '../widgets/heatmap_layer.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MapaPage extends StatefulWidget {
   const MapaPage({super.key});
@@ -173,6 +175,13 @@ class _MapaPageState extends State<MapaPage> {
 
   // ── Detalle reporte ────────────────────────────────────────────────────────
 
+  void _cerrarSesion() async {
+    await FirebaseAuth.instance.signOut();
+    await UserRemoteDatasource().logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+  }
+
   void _verDetalle(ReporteMapaModel r) {
     showModalBottomSheet(
       context: context,
@@ -200,20 +209,30 @@ class _MapaPageState extends State<MapaPage> {
     );
   }
 
-  Widget _fila(IconData ic, String txt) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(children: [
-      Icon(ic, size: 16, color: AppColors.textSub),
-      const SizedBox(width: 8),
-      Expanded(child: Text(txt, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMain))),
-    ]),
-  );
+  Widget _fila(IconData ic, String txt) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(children: [
+        Icon(ic, size: 16, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub),
+        const SizedBox(width: 8),
+        Expanded(child: Text(txt, style: GoogleFonts.inter(
+            fontSize: 14,
+            color: isDark ? const Color(0xFFE2E8F0) : AppColors.textMain))),
+      ]),
+    );
+  }
 
   // ── Panel de filtros (Drawer izquierdo) ───────────────────────────────────
 
   void _abrirFiltros() => _scaffoldKey.currentState?.openDrawer();
 
   Widget _buildDrawer() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final chipBg = isDark ? const Color(0xFF334155) : Colors.white;
+    final chipText = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final chipBorder = isDark ? const Color(0xFF475569) : AppColors.border;
+
     return Drawer(
       width: 300,
       child: SafeArea(
@@ -251,7 +270,7 @@ class _MapaPageState extends State<MapaPage> {
                 // ── Comunas ──
                 Text('Comuna', style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600, fontSize: 14,
-                    color: AppColors.textMain)),
+                    color: chipText)),
                 const SizedBox(height: 10),
                 GridView.count(
                   crossAxisCount: 4, shrinkWrap: true,
@@ -268,15 +287,15 @@ class _MapaPageState extends State<MapaPage> {
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         decoration: BoxDecoration(
-                          color: sel ? AppColors.primary : Colors.white,
+                          color: sel ? AppColors.primary : chipBg,
                           border: Border.all(
-                              color: sel ? AppColors.primary : AppColors.border),
+                              color: sel ? AppColors.primary : chipBorder),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
                         child: Text('$n', style: GoogleFonts.inter(
                             fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : AppColors.textMain)),
+                            color: sel ? Colors.white : chipText)),
                       ),
                     );
                   }),
@@ -286,7 +305,7 @@ class _MapaPageState extends State<MapaPage> {
                 // ── Franja horaria ──
                 Text('Rango horario', style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600, fontSize: 14,
-                    color: AppColors.textMain)),
+                    color: chipText)),
                 const SizedBox(height: 10),
                 ..._franjas.map((f) {
                   final sel = _franjasSeleccionadas.contains(f);
@@ -301,14 +320,14 @@ class _MapaPageState extends State<MapaPage> {
                           horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: sel
-                            ? AppColors.primary.withOpacity(0.08)
-                            : Colors.white,
+                            ? AppColors.primary.withOpacity(0.15)
+                            : chipBg,
                         border: Border.all(
-                            color: sel ? AppColors.primary : AppColors.border),
+                            color: sel ? AppColors.primary : chipBorder),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(f, style: GoogleFonts.inter(
-                          color: sel ? AppColors.primary : AppColors.textMain,
+                          color: sel ? AppColors.primary : chipText,
                           fontWeight: sel
                               ? FontWeight.w600
                               : FontWeight.normal)),
@@ -320,7 +339,7 @@ class _MapaPageState extends State<MapaPage> {
                 // ── Tipo de hurto ──
                 Text('Tipo de hurto', style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600, fontSize: 14,
-                    color: AppColors.textMain)),
+                    color: chipText)),
                 const SizedBox(height: 10),
                 Wrap(spacing: 8, runSpacing: 8,
                   children: _tipos.map((t) {
@@ -335,15 +354,15 @@ class _MapaPageState extends State<MapaPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
-                          color: sel ? color : Colors.white,
+                          color: sel ? color : chipBg,
                           border: Border.all(
-                              color: sel ? color : AppColors.border),
+                              color: sel ? color : chipBorder),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           t[0].toUpperCase() + t.substring(1),
                           style: GoogleFonts.inter(
-                              color: sel ? Colors.white : AppColors.textMain,
+                              color: sel ? Colors.white : chipText,
                               fontWeight: FontWeight.w500, fontSize: 13),
                         ),
                       ),
@@ -355,7 +374,7 @@ class _MapaPageState extends State<MapaPage> {
                 // ── Fecha ──
                 Text('Fecha del incidente', style: GoogleFonts.inter(
                     fontWeight: FontWeight.w600, fontSize: 14,
-                    color: AppColors.textMain)),
+                    color: chipText)),
                 const SizedBox(height: 10),
                 Row(children: [
                   Expanded(child: _campoFecha(ctx, 'Desde', _fechaDesde,
@@ -369,7 +388,7 @@ class _MapaPageState extends State<MapaPage> {
 
             // Botones fijos al fondo
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Row(children: [
                 Expanded(
                   child: OutlinedButton(
@@ -383,6 +402,9 @@ class _MapaPageState extends State<MapaPage> {
                       });
                       _aplicarFiltros();
                     },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                     child: const Text('Limpiar'),
                   ),
                 ),
@@ -399,6 +421,20 @@ class _MapaPageState extends State<MapaPage> {
                 ),
               ]),
             ),
+            // Cerrar sesión
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: _cerrarSesion,
+                  icon: const Icon(Icons.logout, color: AppColors.error, size: 18),
+                  label: Text('Cerrar sesión',
+                      style: GoogleFonts.inter(
+                          color: AppColors.error, fontWeight: FontWeight.w500)),
+                ),
+              ),
+            ),
           ]),
         ),
       ),
@@ -407,6 +443,7 @@ class _MapaPageState extends State<MapaPage> {
 
   Widget _campoFecha(BuildContext ctx, String label, DateTime? valor,
       void Function(DateTime) onPick) {
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
     return GestureDetector(
       onTap: () async {
         final picked = await showDatePicker(
@@ -420,13 +457,13 @@ class _MapaPageState extends State<MapaPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: AppColors.border),
+          color: isDark ? const Color(0xFF334155) : Colors.white,
+          border: Border.all(color: isDark ? const Color(0xFF475569) : AppColors.border),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: GoogleFonts.inter(
-              fontSize: 11, color: AppColors.textSub)),
+              fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
           const SizedBox(height: 2),
           Text(
             valor != null
@@ -436,7 +473,9 @@ class _MapaPageState extends State<MapaPage> {
                 : 'dd/mm/aaaa',
             style: GoogleFonts.inter(
                 fontSize: 12,
-                color: valor != null ? AppColors.textMain : AppColors.textSub),
+                color: valor != null
+                    ? (isDark ? const Color(0xFFE2E8F0) : AppColors.textMain)
+                    : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
           ),
         ]),
       ),
@@ -448,6 +487,9 @@ class _MapaPageState extends State<MapaPage> {
   @override
   Widget build(BuildContext context) {
     final token = dotenv.env['MAPBOX_TOKEN'] ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final barBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final barText = isDark ? Colors.white : AppColors.textMain;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -523,7 +565,7 @@ class _MapaPageState extends State<MapaPage> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: barBg,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: const [BoxShadow(
                                 color: Colors.black12, blurRadius: 6)],
@@ -539,13 +581,13 @@ class _MapaPageState extends State<MapaPage> {
                                   decoration: BoxDecoration(
                                     color: _hayFiltros
                                         ? AppColors.primary
-                                        : AppColors.background,
+                                        : (isDark ? const Color(0xFF334155) : AppColors.background),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(Icons.menu,
                                       color: _hayFiltros
                                           ? Colors.white
-                                          : AppColors.textMain,
+                                          : barText,
                                       size: 20),
                                 ),
                                 if (_hayFiltros)
@@ -560,14 +602,14 @@ class _MapaPageState extends State<MapaPage> {
                                   ),
                               ]),
                             ),
-                            const Icon(Icons.location_on,
+                            Icon(Icons.location_on,
                                 color: AppColors.primary, size: 18),
                             const SizedBox(width: 6),
                             Text('SafeRoute',
                                 style: GoogleFonts.montserrat(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
-                                    color: AppColors.primaryDark)),
+                                    color: isDark ? Colors.white : AppColors.primaryDark)),
                             const Spacer(),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -586,23 +628,6 @@ class _MapaPageState extends State<MapaPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-
-                      // Toggle mapa de calor / marcadores
-                      _botonFlotante(
-                        icon: _modoCalor
-                            ? Icons.location_on
-                            : Icons.whatshot_rounded,
-                        color: _modoCalor
-                            ? AppColors.altoRiesgo
-                            : Colors.white,
-                        iconColor: _modoCalor
-                            ? Colors.white
-                            : AppColors.textMain,
-                        onTap: () => setState(() => _modoCalor = !_modoCalor),
-                        tooltip: _modoCalor
-                            ? 'Ver marcadores'
-                            : 'Ver mapa de calor',
-                      ),
                     ]),
                   ),
                 ),
@@ -630,24 +655,44 @@ class _MapaPageState extends State<MapaPage> {
                 ),
               ),
 
-              // ── Botón mi ubicación ──
+              // ── Botones laterales derechos ──
               Positioned(
                 bottom: 90, right: 16,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Toggle mapa de calor / marcadores
                     _botonFlotante(
-                      icon: _modoOscuro
+                      icon: _modoCalor
+                          ? Icons.location_on
+                          : Icons.whatshot_rounded,
+                      color: _modoCalor
+                          ? AppColors.altoRiesgo
+                          : Colors.white,
+                      iconColor: _modoCalor
+                          ? Colors.white
+                          : AppColors.textMain,
+                      onTap: () => setState(() => _modoCalor = !_modoCalor),
+                      tooltip: _modoCalor
+                          ? 'Ver marcadores'
+                          : 'Ver mapa de calor',
+                    ),
+                    const SizedBox(height: 10),
+                    _botonFlotante(
+                      icon: darkModeNotifier.value
                           ? Icons.light_mode_rounded
                           : Icons.dark_mode_rounded,
-                      color: _modoOscuro
+                      color: darkModeNotifier.value
                           ? const Color(0xFF1E293B)
                           : Colors.white,
-                      iconColor: _modoOscuro
+                      iconColor: darkModeNotifier.value
                           ? Colors.amber
                           : AppColors.textMain,
-                      onTap: () => setState(() => _modoOscuro = !(_modoOscuro == true)),
-                      tooltip: _modoOscuro
+                      onTap: () => setState(() {
+                        _modoOscuro = !(_modoOscuro == true);
+                        darkModeNotifier.value = _modoOscuro;
+                      }),
+                      tooltip: darkModeNotifier.value
                           ? 'Modo claro'
                           : 'Modo oscuro',
                     ),
@@ -727,27 +772,36 @@ class _MapaPageState extends State<MapaPage> {
     );
   }
 
-  Widget _contenedorLeyenda({required List<Widget> children}) =>
-      Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.93),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
-        ),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: children),
-      );
+  Widget _contenedorLeyenda({required List<Widget> children}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF1E293B).withOpacity(0.93)
+            : Colors.white.withOpacity(0.93),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
+      ),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: children),
+    );
+  }
 
-  Widget _filaLeyenda(Color color, String label) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 2),
-    child: Row(mainAxisSize: MainAxisSize.min, children: [
-      Container(width: 12, height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-      const SizedBox(width: 6),
-      Text(label, style: GoogleFonts.inter(fontSize: 11)),
-    ]),
-  );
+  Widget _filaLeyenda(Color color, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 12, height: 12,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.inter(
+            fontSize: 11,
+            color: isDark ? Colors.white : AppColors.textMain)),
+      ]),
+    );
+  }
 }

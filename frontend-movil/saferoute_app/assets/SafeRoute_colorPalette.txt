@@ -65,3 +65,32 @@ Comparativa por franja horaria (4 franjas): Se pueden usar tonos cálidos y dist
 
 Si hay conflicto visual con mapa de calor o tipos de hurto, se pueden aclarar con patrones o gradientes. La idea es que cada categoría tenga un color distinto de los riesgos/seguridad, pero aún armonice con todo.
 Nota importante: Hacer el estudio respectivo, el objetivo es mejorar el entendimiento de las estadísticas, pero no dejar cargado de calor el aplicativo.
+
+═
+══════════════════════════════════════════════════════════════════
+MODO OSCURO — Paleta de colores
+═══════════════════════════════════════════════════════════════════
+
+Fondo y superficies:
+•	#0F172A  Fondo principal (scaffold)
+•	#1E293B  Superficies, cards, paneles, navbar flotante, leyenda del mapa, dropdowns
+•	#334155  Botones/chips no seleccionados (comunas, franjas, tipos de hurto)
+
+Bordes:
+•	#475569  Bordes de campos, chips y contenedores
+
+Texto:
+•	#E2E8F0  Texto principal (reemplaza #1E293B del modo claro)
+•	#94A3B8  Texto secundario / labels (reemplaza #64748B del modo claro)
+
+Colores principales (se mantienen):
+•	#3B82F6  Primary light (botones, acentos)
+•	#2563EB  Primary (se conserva para elementos activos)
+
+AppBar:
+•	#1E293B  Fondo del AppBar en modo oscuro
+
+Mapa:
+•	Estilo Mapbox: dark-v11 (reemplaza streets-v12 del modo claro)
+
+Nota: Los colores del mapa de calor, tipos de hurto, tendencias y franjas horarias se mantienen iguales en ambos modos. Solo cambian los fondos, bordes y textos para garantizar contraste y legibilidad.
