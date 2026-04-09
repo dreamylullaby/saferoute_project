@@ -109,11 +109,10 @@ class _HeatmapPainter extends CustomPainter {
       final center = screenPoints[i];
       final normalizedIntensity = intensities[i] / maxIntensity;
 
-      // Opacidad equilibrada: suficiente para verse pero sin tapar el mapa.
-      // El centro tiene opacidad moderada, se desvanece hacia los bordes.
-      final centerOpacity = (maxOpacity * 0.45 * normalizedIntensity)
-          .clamp(0.08, 0.35);
-      final midOpacity = (centerOpacity * 0.5).clamp(0.04, 0.18);
+      // Opacidad equilibrada: visible sin tapar el mapa (~65-75%).
+      final centerOpacity = (maxOpacity * normalizedIntensity)
+          .clamp(0.15, 0.75);
+      final midOpacity = (centerOpacity * 0.55).clamp(0.08, 0.40);
 
       final gradient = ui.Gradient.radial(
         center,
