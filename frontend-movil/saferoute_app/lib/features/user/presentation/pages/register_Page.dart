@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
-import '../widgets/input_field.dart';
-import '../widgets/submit_button.dart';
-import '../../data/datasources/user_remote_datasource.dart';
+import '../widgets/input_Field.dart';
+import '../widgets/submit_Button.dart';
+import '../../data/datasources/user_Remote_Datasource.dart';
 import '../../data/repositories/user_repository.impl.dart';
-import '../../domain/usecases/register_user.dart';
+import '../../domain/usecases/register_User.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
