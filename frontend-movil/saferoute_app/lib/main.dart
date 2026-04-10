@@ -30,18 +30,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SafeRoute',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
-      home: const SplashPage(),
-      routes: {
-        '/login':    (context) => const LoginPage(),
-        '/register': (context) => const RegisterPage(),
-        '/home':     (context) => const MapaPage(),
-        '/reportar': (context) => const ReportIncidentePage(),
-        '/mapa':     (context) => const MapaPage(),
-      },
+    return ValueListenableBuilder<bool>(
+      valueListenable: darkModeNotifier,
+      builder: (context, isDark, _) => MaterialApp(
+        title: 'SafeRoute',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+        home: const SplashPage(),
+        routes: {
+          '/login':    (context) => const LoginPage(),
+          '/register': (context) => const RegisterPage(),
+          '/home':     (context) => const MapaPage(),
+          '/reportar': (context) => const ReportIncidentePage(),
+          '/mapa':     (context) => const MapaPage(),
+        },
+      ),
     );
   }
 }

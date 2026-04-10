@@ -127,4 +127,86 @@ class AppTheme {
       ),
     ),
   );
+
+  static ThemeData get darkTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+      primary: AppColors.primaryLight,
+      surface: const Color(0xFF1E293B),
+      error: AppColors.error,
+    ),
+    textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+      displayLarge: GoogleFonts.montserrat(
+        fontSize: 26,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+        letterSpacing: 2,
+      ),
+      titleLarge: GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+      bodyMedium: GoogleFonts.inter(
+        fontSize: 14,
+        color: const Color(0xFFE2E8F0),
+      ),
+      labelMedium: GoogleFonts.inter(
+        fontSize: 14,
+        color: const Color(0xFF94A3B8),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: false,
+      prefixIconColor: AppColors.primaryLight,
+      labelStyle: GoogleFonts.inter(color: const Color(0xFF94A3B8)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primaryLight, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.error, width: 2),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primaryLight,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(vertical: 15),
+        textStyle: GoogleFonts.montserrat(fontWeight: FontWeight.w500, fontSize: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: const Color(0xFF1E293B),
+      foregroundColor: Colors.white,
+      elevation: 0,
+      titleTextStyle: GoogleFonts.montserrat(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+    ),
+  );
 }
+
+/// Notifier global para el modo oscuro, accesible desde cualquier página.
+final ValueNotifier<bool> darkModeNotifier = ValueNotifier(false);

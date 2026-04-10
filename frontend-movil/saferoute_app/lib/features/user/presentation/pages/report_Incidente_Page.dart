@@ -56,12 +56,17 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     super.initState();
     _direccionFocus.addListener(() {
       if (!_direccionFocus.hasFocus) {
-        setState(() => _sugerenciasDireccion = []);
+        // Delay para permitir que el tap en la sugerencia se registre primero
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _sugerenciasDireccion = []);
+        });
       }
     });
     _barrioFocus.addListener(() {
       if (!_barrioFocus.hasFocus) {
-        setState(() => _sugerenciasBarrio = []);
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _sugerenciasBarrio = []);
+        });
       }
     });
   }
@@ -180,6 +185,10 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
 
   Future<void> _abrirSelectorMapa() async {
     final token = dotenv.env['MAPBOX_TOKEN'] ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mapStyle = isDark
+        ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=$token'
+        : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=$token';
     LatLng centro = const LatLng(1.2136, -77.2811);
     try {
       final pos = await Geolocator.getCurrentPosition();
@@ -225,9 +234,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate:
-                        'https://api.mapbox.com/styles/v1/mapbox/streets-v12'
-                        '/tiles/{z}/{x}/{y}?access_token=$token',
+                    urlTemplate: mapStyle,
                     userAgentPackageName: 'com.saferoute.app',
                   ),
                   if (puntoSeleccionado != null)
@@ -360,22 +367,28 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     String Function(T)? display,
     bool required = true,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final subColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+
     return DropdownButtonFormField<T>(
       value: value,
       menuMaxHeight: 260,
       borderRadius: BorderRadius.circular(14),
+      dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(color: AppColors.textSub),
+        labelStyle: GoogleFonts.inter(color: subColor),
         prefixIcon: const Icon(Icons.list_alt_rounded, color: AppColors.primary),
       ),
+      style: GoogleFonts.inter(fontSize: 14, color: textColor),
       items: items.map((e) {
         final texto = display != null ? display(e) : e.toString();
         return DropdownMenuItem(
           value: e,
           child: Text(texto,
-              style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMain)),
+              style: GoogleFonts.inter(fontSize: 14, color: textColor)),
         );
       }).toList(),
       onChanged: onChanged,
@@ -385,11 +398,12 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
 
   Widget _listaSugerencias(List<String> items, void Function(String) onSelect) {
     if (items.isEmpty) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(top: 2),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.border),
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border.all(color: isDark ? const Color(0xFF475569) : AppColors.border),
         borderRadius: BorderRadius.circular(10),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
@@ -400,10 +414,12 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(children: [
-              const Icon(Icons.place_outlined, size: 16, color: AppColors.textSub),
+              Icon(Icons.place_outlined, size: 16,
+                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub),
               const SizedBox(width: 8),
               Expanded(child: Text(s,
-                  style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMain))),
+                  style: GoogleFonts.inter(fontSize: 13,
+                      color: isDark ? const Color(0xFFE2E8F0) : AppColors.textMain))),
             ]),
           ),
         )).toList(),
@@ -463,11 +479,6 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                 labelText: 'Dirección (opcional)',
                 prefixIcon: const Icon(Icons.location_on),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.map_outlined, color: AppColors.primary),
-                  tooltip: 'Buscar en el mapa',
-                  onPressed: _abrirSelectorMapa,
-                ),
               ),
             ),
             _listaSugerencias(_sugerenciasDireccion, (s) {
@@ -540,11 +551,12 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               value: objetoHurtado,
               menuMaxHeight: 260,
               borderRadius: BorderRadius.circular(14),
+              dropdownColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B) : Colors.white,
               icon: const Icon(Icons.keyboard_arrow_down_rounded,
                   color: AppColors.primary),
               decoration: InputDecoration(
                 labelText: 'Objeto hurtado (opcional)',
-                labelStyle: GoogleFonts.inter(color: AppColors.textSub),
                 prefixIcon: const Icon(Icons.inventory_2_outlined,
                     color: AppColors.primary),
               ),
@@ -563,11 +575,12 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               value: numeroAgresores,
               menuMaxHeight: 260,
               borderRadius: BorderRadius.circular(14),
+              dropdownColor: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B) : Colors.white,
               icon: const Icon(Icons.keyboard_arrow_down_rounded,
                   color: AppColors.primary),
               decoration: InputDecoration(
                 labelText: 'Número de agresores (opcional)',
-                labelStyle: GoogleFonts.inter(color: AppColors.textSub),
                 prefixIcon:
                     const Icon(Icons.people_outline, color: AppColors.primary),
               ),
