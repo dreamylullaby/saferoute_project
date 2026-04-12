@@ -59,7 +59,20 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.gradientStart,
+              AppColors.gradientMid,
+              AppColors.gradientEnd,
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
           child: Form(
@@ -74,14 +87,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 Text(
                   'SAFEROUTE',
-                  style: Theme.of(context).textTheme.displayLarge,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 2,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Crea tu cuenta',
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    color: AppColors.textSub,
+                    color: Colors.white70,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -164,7 +182,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   child: Text(
                     '¿Ya tienes cuenta? Inicia sesión',
                     style: GoogleFonts.inter(
-                      color: AppColors.primary,
+                      color: Colors.white,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -172,6 +190,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ],
             ),
           ),
+        ),
         ),
       ),
     );
