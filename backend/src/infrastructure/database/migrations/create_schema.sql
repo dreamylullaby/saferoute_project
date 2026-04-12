@@ -43,7 +43,8 @@ CREATE TABLE public.usuarios (
 
     CONSTRAINT usuarios_rol_check           CHECK (rol           IN ('usuario', 'admin')),
     CONSTRAINT usuarios_auth_provider_check CHECK (auth_provider IN ('local', 'google')),
-    CONSTRAINT usuarios_estado_check        CHECK (estado        IN ('activo', 'bloqueado'))
+    CONSTRAINT usuarios_estado_check        CHECK (estado        IN ('activo', 'bloqueado')),
+    fcm_token       TEXT
 );
 
 

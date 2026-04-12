@@ -334,7 +334,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   // ── Validaciones ───────────────────────────────────────────────────────────
 
   String? _validarDireccion(String? v) {
-    if (v == null || v.trim().isEmpty) return null; // opcional
+    if (v == null || v.trim().isEmpty) return 'Campo obligatorio';
     final s = v.trim();
     if (s.length < 5)
       return 'La dirección debe tener al menos 5 caracteres';
@@ -440,7 +440,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
           child: Column(children: [
 
             _dropdown<String>(
-              label: '¿Eres víctima o testigo?',
+              label: '¿Eres víctima o testigo? *',
               value: tipoReportante,
               items: _tiposReportante,
               display: (e) => e[0].toUpperCase() + e.substring(1),
@@ -454,7 +454,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               onTap: _seleccionarFecha,
               validator: (v) => (v == null || v.isEmpty) ? 'Campo obligatorio' : null,
               decoration: InputDecoration(
-                labelText: 'Fecha del incidente',
+                labelText: 'Fecha del incidente *',
                 prefixIcon: const Icon(Icons.calendar_today),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -462,7 +462,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             const SizedBox(height: 15),
 
             _dropdown<String>(
-              label: 'Franja horaria',
+              label: 'Franja horaria *',
               value: franjaHoraria,
               items: _franjasHorarias,
               onChanged: (v) => setState(() => franjaHoraria = v),
@@ -476,8 +476,15 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               onChanged: _onDireccionChanged,
               validator: _validarDireccion,
               decoration: InputDecoration(
-                labelText: 'Dirección (opcional)',
+                labelText: 'Dirección *',
                 prefixIcon: const Icon(Icons.location_on),
+                suffixIcon: _latitud != null
+                    ? const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 20)
+                    : IconButton(
+                        icon: const Icon(Icons.map_outlined, color: AppColors.primary),
+                        tooltip: 'Buscar en el mapa',
+                        onPressed: isLoading ? null : _abrirSelectorMapa,
+                      ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -487,30 +494,6 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                 _sugerenciasDireccion    = [];
               });
             }),
-            const SizedBox(height: 6),
-
-            if (_latitud != null)
-              Row(children: [
-                const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 16),
-                const SizedBox(width: 6),
-                Text('Ubicación seleccionada en el mapa',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: Color(0xFF22C55E))),
-              ])
-            else
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: isLoading ? null : _abrirSelectorMapa,
-                  icon: const Icon(Icons.map_outlined),
-                  label: const Text('Buscar en el mapa'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
             const SizedBox(height: 15),
 
             // ── Barrio con autocomplete desde BD ──
@@ -520,7 +503,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               onChanged: _onBarrioChanged,
               validator: _validarBarrio,
               decoration: InputDecoration(
-                labelText: 'Barrio donde ocurrió',
+                labelText: 'Barrio donde ocurrió *',
                 prefixIcon: const Icon(Icons.map),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 suffixIcon: _barrioSeleccionado
@@ -539,7 +522,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             const SizedBox(height: 15),
 
             _dropdown<String>(
-              label: 'Tipo de hurto',
+              label: 'Tipo de hurto *',
               value: tipoHurto,
               items: _tiposHurto,
               display: (e) => e[0].toUpperCase() + e.substring(1),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/app_theme.dart';
+import 'services/auth_storage.dart';
 import 'features/user/presentation/pages/splash_page.dart';
 import 'features/user/presentation/pages/login_page.dart';
 import 'features/user/presentation/pages/register_page.dart';
@@ -23,6 +24,10 @@ void main() async {
       appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
     ),
   );
+
+  // Borrar token al iniciar la app para forzar login siempre
+  await AuthStorage.clear();
+
   runApp(const MyApp());
 }
 

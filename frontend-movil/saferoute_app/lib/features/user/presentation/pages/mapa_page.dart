@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../../core/app_theme.dart';
+import '../../../../../services/auth_storage.dart';
 import '../../data/datasources/reporte_mapa_datasource.dart';
 import '../../data/models/reporte_mapa_model.dart';
 import '../../data/datasources/user_remote_datasource.dart';
@@ -30,6 +31,7 @@ class _MapaPageState extends State<MapaPage> {
   bool _modoOscuro = false;
   String _ultimaActualizacion = DateTime.now().toUtc().toIso8601String();
   Timer? _timer;
+  Timer? _inactivityTimer;
 
   // Filtros activos
   final Set<int>    _comunasSeleccionadas  = {};
@@ -47,13 +49,26 @@ class _MapaPageState extends State<MapaPage> {
     _obtenerUbicacion();
     _cargarTodos();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _actualizarNuevos());
+    _resetInactivityTimer();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _inactivityTimer?.cancel();
     _mapController.dispose();
     super.dispose();
+  }
+
+  /// Reinicia el temporizador de inactividad. Si pasan 30 min sin
+  /// interacción, cierra sesión automáticamente.
+  void _resetInactivityTimer() {
+    _inactivityTimer?.cancel();
+    AuthStorage.refreshActivity();
+    _inactivityTimer = Timer(
+      Duration(minutes: AuthStorage.inactivityTimeoutMinutes),
+      () => _cerrarSesion(),
+    );
   }
 
   // ── Datos ──────────────────────────────────────────────────────────────────
@@ -523,7 +538,11 @@ class _MapaPageState extends State<MapaPage> {
     final barBg = isDark ? const Color(0xFF1E293B) : Colors.white;
     final barText = isDark ? Colors.white : AppColors.textMain;
 
-    return Scaffold(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: _resetInactivityTimer,
+      onPanDown: (_) => _resetInactivityTimer(),
+      child: Scaffold(
       key: _scaffoldKey,
       drawer: _buildDrawer(),
       body: _cargando
@@ -740,6 +759,7 @@ class _MapaPageState extends State<MapaPage> {
                 ),
               ),
             ]),
+    ),
     );
   }
 

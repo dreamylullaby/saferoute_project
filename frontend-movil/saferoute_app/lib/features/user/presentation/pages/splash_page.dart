@@ -33,7 +33,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
   }
 
   Future<void> _navigate() async {
-    final token = await AuthStorage.getToken();
+    final token = await AuthStorage.getValidToken();
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, token != null ? '/home' : '/login');
   }
