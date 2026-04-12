@@ -121,7 +121,36 @@ export default class ReportRepositoryImpl extends ReportRepository {
   }
 
   /**
-   * Busca barrios que contengan el texto ingresado (case insensitive).
+   * Obtiene reportes activos del mapa aplicando filtros combinados.
+   * Todos los filtros son opcionales y se combinan con AND.
+   * @param {Object}   filtros
+   * @param {number[]} [filtros.comunas]    - Comunas a incluir
+   * @param {string[]} [filtros.franjas]    - Franjas horarias a incluir
+   * @param {string[]} [filtros.tipos]      - Tipos de hurto a incluir
+   * @param {string}   [filtros.fechaDesde] - Fecha mínima del incidente (YYYY-MM-DD)
+   * @param {string}   [filtros.fechaHasta] - Fecha máxima del incidente (YYYY-MM-DD)
+   * @returns {Promise<Array>} Reportes filtrados para el mapa
+   */
+  async findForMapFiltered({ comunas, franjas, tipos, fechaDesde, fechaHasta } = {}) {
+    let query = supabase
+      .from('reportes')
+      .select('id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado, comuna')
+      .eq('estado', 'activo')
+      .order('fecha_creacion', { ascending: false });
+
+    if (comunas?.length)    query = query.in('comuna', comunas);
+    if (franjas?.length)    query = query.in('franja_horaria', franjas);
+    if (tipos?.length)      query = query.in('tipo_hurto', tipos);
+    if (fechaDesde)         query = query.gte('fecha_incidente', fechaDesde);
+    if (fechaHasta)         query = query.lte('fecha_incidente', fechaHasta);
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Error al obtener reportes filtrados: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Busca barrios que contengan el texto ingresado.
    * @param {string} texto - Texto parcial del barrio
    * @returns {Promise<Array>} Lista de barrios que coinciden
    */

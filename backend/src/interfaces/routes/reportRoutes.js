@@ -19,6 +19,9 @@ router.get('/mapa',           authenticate, (req, res) => controller.getForMap(r
 /** GET /api/reportes/mapa/nuevos?desde= — Reportes nuevos desde timestamp (requiere autenticación) */
 router.get('/mapa/nuevos',    authenticate, (req, res) => controller.getNewForMap(req, res));
 
+/** GET /api/reportes/mapa/filtros?comunas=&franjas=&tipos=&fechaDesde=&fechaHasta= — Reportes filtrados para el mapa */
+router.get('/mapa/filtros',   authenticate, (req, res) => controller.getFiltered(req, res));
+
 /** GET /api/reportes/barrios?q= — Busca barrios similares al texto ingresado */
 router.get('/barrios',        authenticate, (req, res) => controller.buscarBarrios(req, res));
 

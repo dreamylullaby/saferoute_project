@@ -29,6 +29,38 @@ class ReporteMapaDatasource {
     throw Exception('Error al cargar reportes del mapa');
   }
 
+  /// Obtiene reportes filtrados desde el backend.
+  /// Envía los filtros activos como query params para que la BD haga el trabajo.
+  Future<List<ReporteMapaModel>> getReportesFiltrados({
+    List<int>?    comunas,
+    List<String>? franjas,
+    List<String>? tipos,
+    DateTime?     fechaDesde,
+    DateTime?     fechaHasta,
+  }) async {
+    final params = <String, String>{};
+    if (comunas    != null && comunas.isNotEmpty)
+      params['comunas']    = comunas.join(',');
+    if (franjas    != null && franjas.isNotEmpty)
+      params['franjas']    = franjas.join(',');
+    if (tipos      != null && tipos.isNotEmpty)
+      params['tipos']      = tipos.join(',');
+    if (fechaDesde != null)
+      params['fechaDesde'] = fechaDesde.toIso8601String().substring(0, 10);
+    if (fechaHasta != null)
+      params['fechaHasta'] = fechaHasta.toIso8601String().substring(0, 10);
+
+    final uri = Uri.parse('$baseUrl/mapa/filtros').replace(queryParameters: params);
+    final response = await http.get(uri, headers: await _authHeaders);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return (data['data'] as List)
+          .map((e) => ReporteMapaModel.fromJson(e))
+          .toList();
+    }
+    throw Exception('Error al cargar reportes filtrados');
+  }
+
   /// Obtiene reportes nuevos desde [desde] (ISO 8601).
   /// Usado para actualización automática cada minuto.
   Future<List<ReporteMapaModel>> getReportesNuevos(String desde) async {

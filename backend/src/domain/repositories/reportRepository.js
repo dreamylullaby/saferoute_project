@@ -1,7 +1,7 @@
 // src/domain/repositories/ReportRepository.js
 
 /**
- * Repositorio de reportes (contrato).
+ * Repositorio de reportes.
  * Define las operaciones que se pueden hacer con los reportes.
  * La implementación real se hace en infraestructura.
  */
@@ -10,13 +10,13 @@ class ReportRepository {
   /**
    * Crea un nuevo reporte en la base de datos.
    * @param {Object} report - Datos del reporte a crear
-   * @returns {Promise<Object>} El reporte creado
+   * @returns El reporte creado
    */
   async create(report) {}
 
   /**
    * Obtiene todos los reportes que no estén eliminados.
-   * @returns {Promise<Array>} Lista de reportes
+   * @returns Lista de reportes
    */
   async findAll() {}
 
@@ -27,7 +27,7 @@ class ReportRepository {
 
   /**
    * Obtiene reportes activos con solo los campos necesarios para el mapa.
-   * @returns {Promise<Array>} Lista de reportes para marcadores
+   * @returns Lista de reportes para marcadores
    */
   async findForMap() {}
 
@@ -37,6 +37,18 @@ class ReportRepository {
    * @returns {Promise<Array>} Reportes nuevos desde esa fecha
    */
   async findNewSince(desde) {}
+
+  /**
+   * Obtiene reportes activos del mapa aplicando filtros combinados.
+   * @param {Object}   filtros
+   * @param {number[]} [filtros.comunas]    - Comunas a incluir
+   * @param {string[]} [filtros.franjas]    - Franjas horarias a incluir
+   * @param {string[]} [filtros.tipos]      - Tipos de hurto a incluir
+   * @param {string}   [filtros.fechaDesde] - Fecha mínima del incidente (YYYY-MM-DD)
+   * @param {string}   [filtros.fechaHasta] - Fecha máxima del incidente (YYYY-MM-DD)
+   * @returns {Promise<Array>} Reportes filtrados para el mapa
+   */
+  async findForMapFiltered(filtros) {}
 }
 
 export default ReportRepository;

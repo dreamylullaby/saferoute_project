@@ -8,6 +8,7 @@ import 'features/user/presentation/pages/register_page.dart';
 import 'features/user/presentation/pages/report_Incidente_page.dart';
 import 'features/user/presentation/pages/home_page.dart';
 import 'features/user/presentation/pages/mapa_page.dart';
+import 'features/user/presentation/pages/alerta_config_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
           '/home':     (context) => const MapaPage(),
           '/reportar': (context) => const ReportIncidentePage(),
           '/mapa':     (context) => const MapaPage(),
+          '/alertas':  (context) => const AlertaConfigPage(),
         },
       ),
     );
