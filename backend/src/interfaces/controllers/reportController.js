@@ -5,6 +5,7 @@ import GetReports from "../../application/use-cases/getReports.js";
 import GetMapReports from "../../application/use-cases/getMapReports.js";
 import GetNewMapReports from "../../application/use-cases/getNewMapReports.js";
 import GetFilteredMapReports from "../../application/use-cases/getFilteredMapReports.js";
+import AlertRepositoryImpl from "../../infrastructure/database/repositoriesImplementation/alertRepositoryImpl.js";
 
 /**
  * @typedef {Object} Request  - Objeto de petición HTTP de Express
@@ -19,11 +20,11 @@ import GetFilteredMapReports from "../../application/use-cases/getFilteredMapRep
 class ReportController {
 
   constructor(repository) {
-    this.repository             = repository;
-    this.CreateReportUC         = new CreateReport(repository);
-    this.GetReportsUC           = new GetReports(repository);
-    this.GetMapReportsUC        = new GetMapReports(repository);
-    this.GetNewMapReportsUC     = new GetNewMapReports(repository);
+    this.repository              = repository;
+    this.CreateReportUC          = new CreateReport(repository, new AlertRepositoryImpl());
+    this.GetReportsUC            = new GetReports(repository);
+    this.GetMapReportsUC         = new GetMapReports(repository);
+    this.GetNewMapReportsUC      = new GetNewMapReports(repository);
     this.GetFilteredMapReportsUC = new GetFilteredMapReports(repository);
   }
 

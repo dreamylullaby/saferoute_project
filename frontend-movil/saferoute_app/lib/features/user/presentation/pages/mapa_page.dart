@@ -2,11 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../services/auth_storage.dart';
+import '../../../../../main.dart' show notificacionPendiente;
 import '../../data/datasources/reporte_mapa_datasource.dart';
 import '../../data/models/reporte_mapa_model.dart';
 import '../../data/datasources/user_remote_datasource.dart';
@@ -50,6 +52,7 @@ class _MapaPageState extends State<MapaPage> {
     _cargarTodos();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _actualizarNuevos());
     _resetInactivityTimer();
+    _configurarNotificaciones();
   }
 
   @override
@@ -57,6 +60,7 @@ class _MapaPageState extends State<MapaPage> {
     _timer?.cancel();
     _inactivityTimer?.cancel();
     _mapController.dispose();
+    notificacionPendiente.removeListener(_onNotificacionPendiente);
     super.dispose();
   }
 
@@ -69,6 +73,76 @@ class _MapaPageState extends State<MapaPage> {
       Duration(minutes: AuthStorage.inactivityTimeoutMinutes),
       () => _cerrarSesion(),
     );
+  }
+
+  // ── Notificaciones ─────────────────────────────────────────────────────────
+
+  void _configurarNotificaciones() {
+    // Foreground: banner cuando la app está abierta
+    FirebaseMessaging.onMessage.listen((message) {
+      if (!mounted) return;
+      _mostrarBannerNotificacion(message);
+    });
+
+    // Background tap: centrar mapa en el reporte
+    FirebaseMessaging.onMessageOpenedApp.listen(_navegarAReporteDesdeNotificacion);
+
+    // App cerrada tap
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) _navegarAReporteDesdeNotificacion(message);
+    });
+
+    notificacionPendiente.addListener(_onNotificacionPendiente);
+  }
+
+  void _onNotificacionPendiente() {
+    final msg = notificacionPendiente.value;
+    if (msg != null) {
+      _navegarAReporteDesdeNotificacion(msg);
+      notificacionPendiente.value = null;
+    }
+  }
+
+  void _mostrarBannerNotificacion(RemoteMessage message) {
+    final tipo   = message.data['tipo_hurto'] ?? 'hurto';
+    final barrio = message.data['barrio']     ?? 'zona cercana';
+    final lat    = double.tryParse(message.data['latitud']  ?? '');
+    final lng    = double.tryParse(message.data['longitud'] ?? '');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppColors.altoRiesgo,
+        duration: const Duration(seconds: 6),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Row(children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${tipo[0].toUpperCase()}${tipo.substring(1)} en $barrio',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ]),
+        action: lat != null && lng != null
+            ? SnackBarAction(
+                label: 'Ver',
+                textColor: Colors.white,
+                onPressed: () => _mapController.move(LatLng(lat, lng), 16),
+              )
+            : null,
+      ),
+    );
+  }
+
+  void _navegarAReporteDesdeNotificacion(RemoteMessage message) {
+    final lat = double.tryParse(message.data['latitud']  ?? '');
+    final lng = double.tryParse(message.data['longitud'] ?? '');
+    if (lat != null && lng != null && mounted) {
+      _mapController.move(LatLng(lat, lng), 16);
+    }
   }
 
   // ── Datos ──────────────────────────────────────────────────────────────────

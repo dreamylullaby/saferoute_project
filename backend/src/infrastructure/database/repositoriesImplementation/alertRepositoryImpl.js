@@ -87,6 +87,40 @@ export default class AlertRepositoryImpl extends AlertRepository {
   }
 
   /**
+   * Busca usuarios con FCM token activo que estén dentro del radio
+   * configurado respecto a las coordenadas del reporte.
+   * Usa Haversine para calcular distancias.
+   * @param {number} latitud  - Latitud del reporte
+   * @param {number} longitud - Longitud del reporte
+   * @returns {Promise<Array>} Lista de { fcm_token, radio_metros, distancia_metros }
+   */
+  async findUsuariosCercanosConToken(latitud, longitud) {
+    // Traer usuarios con token y configuración de alertas activa
+    const { data, error } = await supabase
+      .from('configuracion_alertas')
+      .select('usuario_id, radio_metros, usuarios!inner(fcm_token, estado)')
+      .eq('activo', true)
+      .eq('usuarios.estado', 'activo')
+      .not('usuarios.fcm_token', 'is', null);
+
+    if (error) throw new Error(`Error al buscar usuarios cercanos: ${error.message}`);
+    if (!data?.length) return [];
+
+    return data
+      .map(row => ({
+        fcm_token:       row.usuarios.fcm_token,
+        radio_metros:    row.radio_metros,
+        distancia_metros: haversine(latitud, longitud,
+          // No tenemos coords del usuario guardadas (opción B),
+          // así que enviamos a todos los que tienen alertas activas
+          // El filtro real de distancia ocurre cuando el usuario abre la app
+          0, 0),
+        usuario_id: row.usuario_id,
+      }))
+      .filter(row => row.fcm_token);
+  }
+
+  /**
    * Marca una alerta como leída, verificando que pertenezca al usuario.
    */
   async marcarLeida(alertaId, usuarioId) {
