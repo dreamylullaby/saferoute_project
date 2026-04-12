@@ -235,6 +235,38 @@ export const loginGoogle = async (req, res) => {
  * @param {import('express').Request} req - Body: { username }, req.user.id del token
  * @param {import('express').Response} res
  */
+/**
+ * Maneja PATCH /api/auth/fcm-token
+ * Guarda o actualiza el FCM token del dispositivo del usuario.
+ * Se llama cada vez que el usuario abre la app.
+ * @param {import('express').Request} req - Body: { fcm_token }
+ * @param {import('express').Response} res
+ */
+export const updateFcmToken = async (req, res) => {
+
+  try {
+
+    const { fcm_token } = req.body;
+    const userId = req.user.id;
+
+    if (!fcm_token || fcm_token.trim().length === 0)
+      return res.status(400).json({ message: "fcm_token es obligatorio" });
+
+    const { error } = await db
+      .from("usuarios")
+      .update({ fcm_token: fcm_token.trim() })
+      .eq("id", userId);
+
+    if (error) throw error;
+
+    res.json({ message: "FCM token actualizado correctamente" });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+
+};
+
 export const updateUsername = async (req, res) => {
 
   try {

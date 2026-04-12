@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../models/user_model.dart';
 import '../../../../services/auth_storage.dart';
@@ -82,5 +83,28 @@ class UserRemoteDatasource {
       );
     }
     await AuthStorage.clear();
+  }
+
+  /// Obtiene el FCM token del dispositivo y lo registra en el backend.
+  /// Se llama después de cada login exitoso.
+  Future<void> registrarFcmToken() async {
+    try {
+      final jwtToken = await AuthStorage.getToken();
+      if (jwtToken == null) return;
+
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken == null) return;
+
+      await http.patch(
+        Uri.parse("$baseUrl/fcm-token"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $jwtToken",
+        },
+        body: jsonEncode({"fcm_token": fcmToken}),
+      );
+    } catch (_) {
+      // Silencioso — no interrumpe el flujo de login
+    }
   }
 }

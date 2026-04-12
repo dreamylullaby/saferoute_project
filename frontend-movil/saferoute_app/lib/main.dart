@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'core/app_theme.dart';
 import 'services/auth_storage.dart';
@@ -10,6 +11,16 @@ import 'features/user/presentation/pages/report_Incidente_page.dart';
 import 'features/user/presentation/pages/home_page.dart';
 import 'features/user/presentation/pages/mapa_page.dart';
 import 'features/user/presentation/pages/alerta_config_page.dart';
+
+/// Handler de mensajes en background/terminated (debe ser top-level)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Firebase muestra la notificación automáticamente en background
+}
+
+/// Notifier global para pasar datos de notificación al mapa
+final ValueNotifier<RemoteMessage?> notificacionPendiente = ValueNotifier(null);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +35,9 @@ void main() async {
       appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
     ),
   );
+
+  // Registrar handler de background
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Borrar token al iniciar la app para forzar login siempre
   await AuthStorage.clear();

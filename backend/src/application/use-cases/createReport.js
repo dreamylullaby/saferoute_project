@@ -1,18 +1,22 @@
 // src/application/use-cases/createReport.js
 
 import Report from '../../domain/entities/Report.js';
+import admin from '../../infrastructure/firebase/firebase.js';
 
 /**
  * Caso de uso para crear un reporte de hurto.
- * Se encarga de validar los datos, resolver el barrio (si es posible) y delegar la persistencia al repositorio.
+ * Se encarga de validar los datos, resolver el barrio (si es posible),
+ * delegar la persistencia al repositorio y enviar notificaciones push.
  */
 class CreateReport {
 
   /**
-   * @param {ReportRepository} reportRepository
+   * @param {ReportRepository}  reportRepository
+   * @param {AlertRepository}   [alertRepository] - Opcional, para envío de push
    */
-  constructor(reportRepository) {
+  constructor(reportRepository, alertRepository = null) {
     this.reportRepository = reportRepository;
+    this.alertRepository  = alertRepository;
   }
 
   /**
@@ -85,11 +89,63 @@ class CreateReport {
       throw new Error('descripcion excede la longitud máxima de 300 caracteres');
 
     // zona_id lo asigna automáticamente el trigger en BD
-    return await this.reportRepository.create({
+    const reporte = await this.reportRepository.create({
       ...data,
       barrio_ingresado: data.barrio_ingresado.trim(),
       estado: 'activo'
     });
+
+    // Enviar notificaciones push (fire and forget — no bloquea la respuesta)
+    this._enviarPushCercanos(reporte).catch(() => {});
+
+    return reporte;
+  }
+
+  /**
+   * Envía notificaciones push a usuarios con alertas activas.
+   * No lanza errores para no interrumpir la creación del reporte.
+   */
+  async _enviarPushCercanos(reporte) {
+    if (!this.alertRepository) return;
+
+    try {
+      const usuarios = await this.alertRepository.findUsuariosCercanosConToken(
+        reporte.latitud,
+        reporte.longitud
+      );
+
+      if (!usuarios.length) return;
+
+      const tipo = reporte.tipo_hurto[0].toUpperCase() + reporte.tipo_hurto.slice(1);
+      const barrio = reporte.barrio_ingresado || 'zona cercana';
+
+      const mensajes = usuarios.map(u => ({
+        token: u.fcm_token,
+        notification: {
+          title: `⚠️ Alerta de hurto cercano`,
+          body:  `${tipo} reportado en ${barrio}`,
+        },
+        data: {
+          reporte_id: reporte.id,
+          tipo_hurto: reporte.tipo_hurto,
+          latitud:    String(reporte.latitud),
+          longitud:   String(reporte.longitud),
+          barrio:     barrio,
+        },
+        android: {
+          priority: 'high',
+          notification: { channelId: 'alertas_hurto' },
+        },
+      }));
+
+      // Enviar en lotes de 500 (límite de FCM)
+      for (let i = 0; i < mensajes.length; i += 500) {
+        const lote = mensajes.slice(i, i + 500);
+        await admin.messaging().sendEach(lote);
+      }
+    } catch (_) {
+      
+    }
   }
 }
 
