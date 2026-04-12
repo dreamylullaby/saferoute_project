@@ -4,6 +4,7 @@ import CreateReport from "../../application/use-cases/createReport.js";
 import GetReports from "../../application/use-cases/getReports.js";
 import GetMapReports from "../../application/use-cases/getMapReports.js";
 import GetNewMapReports from "../../application/use-cases/getNewMapReports.js";
+import GetFilteredMapReports from "../../application/use-cases/getFilteredMapReports.js";
 
 /**
  * @typedef {Object} Request  - Objeto de petición HTTP de Express
@@ -18,11 +19,12 @@ import GetNewMapReports from "../../application/use-cases/getNewMapReports.js";
 class ReportController {
 
   constructor(repository) {
-    this.repository       = repository;
-    this.CreateReportUC   = new CreateReport(repository);
-    this.GetReportsUC     = new GetReports(repository);
-    this.GetMapReportsUC  = new GetMapReports(repository);
-    this.GetNewMapReportsUC = new GetNewMapReports(repository);
+    this.repository             = repository;
+    this.CreateReportUC         = new CreateReport(repository);
+    this.GetReportsUC           = new GetReports(repository);
+    this.GetMapReportsUC        = new GetMapReports(repository);
+    this.GetNewMapReportsUC     = new GetNewMapReports(repository);
+    this.GetFilteredMapReportsUC = new GetFilteredMapReports(repository);
   }
 
   /**
@@ -150,6 +152,38 @@ class ReportController {
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
       const status = error.message.includes('requerido') ? 400 : 500;
+      return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
+   * Maneja GET /api/reportes/mapa/filtros
+   * Acepta query params opcionales: comunas, franjas, tipos, fechaDesde, fechaHasta
+   * Todos los arrays se pasan como valores separados por coma.
+   *
+   * Ejemplo: /api/reportes/mapa/filtros?comunas=1,3&franjas=06:00-11:59&tipos=atraco
+   *
+   * Respuestas:
+   * - `200` Reportes filtrados
+   * - `400` Parámetros inválidos
+   * - `500` Error interno
+   */
+  async getFiltered(req, res) {
+    try {
+      const { comunas, franjas, tipos, fechaDesde, fechaHasta } = req.query;
+
+      const filtros = {
+        comunas:    comunas    ? comunas.split(',').map(Number) : undefined,
+        franjas:    franjas    ? franjas.split(',')             : undefined,
+        tipos:      tipos      ? tipos.split(',')               : undefined,
+        fechaDesde: fechaDesde || undefined,
+        fechaHasta: fechaHasta || undefined,
+      };
+
+      const result = await this.GetFilteredMapReportsUC.execute(filtros);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      const status = error.message.includes('inválid') ? 400 : 500;
       return res.status(status).json({ success: false, message: error.message });
     }
   }

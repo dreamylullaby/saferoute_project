@@ -100,25 +100,57 @@ class _MapaPageState extends State<MapaPage> {
   // ── Filtros ────────────────────────────────────────────────────────────────
 
   void _aplicarFiltros() {
-    setState(() {
-      _filtrados = _todos.where((r) {
-        if (_comunasSeleccionadas.isNotEmpty &&
-            !_comunasSeleccionadas.contains(r.comuna)) return false;
-        if (_franjasSeleccionadas.isNotEmpty &&
-            !_franjasSeleccionadas.contains(r.franjaHoraria)) return false;
-        if (_tiposSeleccionados.isNotEmpty &&
-            !_tiposSeleccionados.contains(r.tipoHurto)) return false;
-        if (_fechaDesde != null) {
-          final f = DateTime.tryParse(r.fechaIncidente);
-          if (f != null && f.isBefore(_fechaDesde!)) return false;
-        }
-        if (_fechaHasta != null) {
-          final f = DateTime.tryParse(r.fechaIncidente);
-          if (f != null && f.isAfter(_fechaHasta!)) return false;
-        }
-        return true;
-      }).toList();
-    });
+    // Si no hay filtros activos, mostrar todos los reportes en memoria
+    if (!_hayFiltros) {
+      setState(() => _filtrados = List.from(_todos));
+      return;
+    }
+    // Con filtros activos, delegar al backend para mejor rendimiento
+    _aplicarFiltrosBackend();
+  }
+
+  Future<void> _aplicarFiltrosBackend() async {
+    setState(() => _cargando = true);
+    try {
+      final resultado = await _datasource.getReportesFiltrados(
+        comunas:    _comunasSeleccionadas.isNotEmpty
+            ? _comunasSeleccionadas.toList() : null,
+        franjas:    _franjasSeleccionadas.isNotEmpty
+            ? _franjasSeleccionadas.toList() : null,
+        tipos:      _tiposSeleccionados.isNotEmpty
+            ? _tiposSeleccionados.toList() : null,
+        fechaDesde: _fechaDesde,
+        fechaHasta: _fechaHasta,
+      );
+      if (!mounted) return;
+      setState(() {
+        _filtrados = resultado;
+        _cargando  = false;
+      });
+    } catch (_) {
+      // Si falla el backend, caer en filtrado local como fallback
+      if (!mounted) return;
+      setState(() {
+        _filtrados = _todos.where((r) {
+          if (_comunasSeleccionadas.isNotEmpty &&
+              !_comunasSeleccionadas.contains(r.comuna)) return false;
+          if (_franjasSeleccionadas.isNotEmpty &&
+              !_franjasSeleccionadas.contains(r.franjaHoraria)) return false;
+          if (_tiposSeleccionados.isNotEmpty &&
+              !_tiposSeleccionados.contains(r.tipoHurto)) return false;
+          if (_fechaDesde != null) {
+            final f = DateTime.tryParse(r.fechaIncidente);
+            if (f != null && f.isBefore(_fechaDesde!)) return false;
+          }
+          if (_fechaHasta != null) {
+            final f = DateTime.tryParse(r.fechaIncidente);
+            if (f != null && f.isAfter(_fechaHasta!)) return false;
+          }
+          return true;
+        }).toList();
+        _cargando = false;
+      });
+    }
   }
 
   void _limpiarFiltros() {
