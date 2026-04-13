@@ -114,10 +114,15 @@ class CreateReport {
         reporte.longitud
       );
 
-      if (!usuarios.length) return;
+      if (!usuarios.length) {
+        console.log(`[Push] No hay usuarios con token activo para notificar.`);
+        return;
+      }
 
-      const tipo = reporte.tipo_hurto[0].toUpperCase() + reporte.tipo_hurto.slice(1);
+      const tipo   = reporte.tipo_hurto[0].toUpperCase() + reporte.tipo_hurto.slice(1);
       const barrio = reporte.barrio_ingresado || 'zona cercana';
+
+      console.log(`[Push] Enviando notificación a ${usuarios.length} usuario(s) — ${tipo} en ${barrio}`);
 
       const mensajes = usuarios.map(u => ({
         token: u.fcm_token,
@@ -141,10 +146,11 @@ class CreateReport {
       // Enviar en lotes de 500 (límite de FCM)
       for (let i = 0; i < mensajes.length; i += 500) {
         const lote = mensajes.slice(i, i + 500);
-        await admin.messaging().sendEach(lote);
+        const resultado = await admin.messaging().sendEach(lote);
+        console.log(`[Push] Lote ${Math.floor(i/500) + 1}: ${resultado.successCount} enviados, ${resultado.failureCount} fallidos`);
       }
-    } catch (_) {
-      
+    } catch (err) {
+      console.warn(`[Push] Error al enviar notificaciones: ${err.message}`);
     }
   }
 }
