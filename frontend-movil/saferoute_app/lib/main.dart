@@ -45,6 +45,36 @@ void main() async {
   runApp(const MyApp());
 }
 
+/// Widget que protege rutas: verifica que exista un token válido
+/// antes de mostrar la página. Si no hay token, redirige al login.
+class AuthGuard extends StatelessWidget {
+  final Widget child;
+  const AuthGuard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: AuthStorage.getToken(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.data == null) {
+          // Sin token → redirigir al login
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/login', (_) => false);
+          });
+          return const SizedBox.shrink();
+        }
+        return child;
+      },
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -62,10 +92,10 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login':    (context) => const LoginPage(),
           '/register': (context) => const RegisterPage(),
-          '/home':     (context) => const MapaPage(),
-          '/reportar': (context) => const ReportIncidentePage(),
-          '/mapa':     (context) => const MapaPage(),
-          '/alertas':  (context) => const AlertaConfigPage(),
+          '/home':     (context) => AuthGuard(child: const MapaPage()),
+          '/reportar': (context) => AuthGuard(child: const ReportIncidentePage()),
+          '/mapa':     (context) => AuthGuard(child: const MapaPage()),
+          '/alertas':  (context) => AuthGuard(child: const AlertaConfigPage()),
         },
       ),
     );
