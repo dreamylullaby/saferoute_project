@@ -5,7 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../services/auth_storage.dart';
-import '../../../../../features/user/data/datasources/user_remote_datasource.dart';
+import '../../../../../features/user/data/datasources/user_Remote_Datasource.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
