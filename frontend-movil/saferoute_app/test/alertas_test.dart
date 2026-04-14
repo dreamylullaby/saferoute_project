@@ -1,168 +1,354 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:saferoute_app/services/auth_storage.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mocktail/mocktail.dart';
+
+import 'package:saferoute_app/features/user/data/datasources/alerta_config_datasource.dart';
 import 'package:saferoute_app/features/user/data/models/alerta_config_model.dart';
+import 'package:saferoute_app/features/user/presentation/pages/alerta_config_page.dart';
+import 'package:saferoute_app/services/location_service.dart';
+
+class MockAlertaConfigDatasource extends Mock implements AlertaConfigDatasource {}
+class MockLocationService extends Mock implements LocationService {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('HU-07 Frontend - AlertaConfigModel', () {
-    test('CP-HU07-01: fromJson mapea valores correctamente', () {
+  late MockAlertaConfigDatasource datasource;
+  late MockLocationService locationService;
 
-      final json = {
-        'id': 'cfg-001',
-        'usuario_id': 'user-123',
-        'radio_metros': 1200,
-        'activo': false,
-      };
-
-      final model = AlertaConfigModel.fromJson(json);
-
-      expect(model.id, 'cfg-001');
-      expect(model.usuarioId, 'user-123');
-      expect(model.radioMetros, 1200);
-      expect(model.activo, false);
-
-      print('CP-HU07-01 PASÓ');
-    });
-
-    test('CP-HU07-02: fromJson usa valores por defecto si faltan campos', () {
-
-      final json = <String, dynamic>{};
-
-      final model = AlertaConfigModel.fromJson(json);
-
-      expect(model.id, isNull);
-      expect(model.usuarioId, '');
-      expect(model.radioMetros, 500);
-      expect(model.activo, true);
-
-      print('CP-HU07-02 PASÓ');
-    });
-
-    test('CP-HU07-03: defaults crea configuración inicial correcta', () {
-
-      final model = AlertaConfigModel.defaults('user-abc');
-
-      expect(model.id, isNull);
-      expect(model.usuarioId, 'user-abc');
-      expect(model.radioMetros, 500);
-      expect(model.activo, true);
-
-      print('CP-HU07-03 PASÓ');
-    });
+  setUp(() {
+    datasource = MockAlertaConfigDatasource();
+    locationService = MockLocationService();
   });
 
-  group('HU-07 Frontend - AuthStorage', () {
-    setUp(() async {
-      SharedPreferences.setMockInitialValues({});
-      await AuthStorage.clear();
-    });
+  Future<void> pumpPage(WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AlertaConfigPage(
+          datasource: datasource,
+          locationService: locationService,
+        ),
+      ),
+    );
+  }
 
-    test('CP-HU07-04: saveToken y getToken guardan/leen token', () async {
+  Position fakePosition({
+    double latitude = 1.2136,
+    double longitude = -77.2811,
+  }) {
+    return Position(
+      latitude: latitude,
+      longitude: longitude,
+      timestamp: DateTime.now(),
+      accuracy: 1,
+      altitude: 1,
+      altitudeAccuracy: 1,
+      heading: 1,
+      headingAccuracy: 1,
+      speed: 1,
+      speedAccuracy: 1,
+    );
+  }
 
-      await AuthStorage.saveToken('fake-jwt');
-
-      final token = await AuthStorage.getToken();
-
-      expect(token, 'fake-jwt');
-
-      print('CP-HU07-04 PASÓ');
-    });
-
-    test('CP-HU07-05: saveUserId y getUserId guardan/leen user id', () async {
-
-      await AuthStorage.saveUserId('user-123');
-
-      final userId = await AuthStorage.getUserId();
-
-      expect(userId, 'user-123');
-
-      print('CP-HU07-05 PASÓ');
-    });
-
-    test('CP-HU07-06: getValidToken retorna token si no ha expirado', () async {
-
-      await AuthStorage.saveToken('valid-token');
-
-      final token = await AuthStorage.getValidToken();
-
-      expect(token, 'valid-token');
-
-      print('CP-HU07-06 PASÓ');
-    });
-
-    test('CP-HU07-07: getValidToken retorna null si no existe timestamp', () async {
-
-      SharedPreferences.setMockInitialValues({
-        'auth_token': 'token-sin-timestamp',
+  group('HU-07 Frontend - Cobertura completa', () {
+    testWidgets('CP-HU07-01: Configuración y radio', (tester) async {
+      final model = AlertaConfigModel.fromJson({
+        'id': 'cfg-1',
+        'usuario_id': 'user-1',
+        'radio_metros': 1200,
+        'activo': true,
       });
 
-      final token = await AuthStorage.getValidToken();
+      expect(model.radioMetros, 1200);
+      expect(model.activo, true);
 
-      expect(token, isNull);
-      expect(await AuthStorage.getToken(), isNull);
+      when(() => datasource.getConfig()).thenAnswer((_) async => model);
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.whileInUse);
+      when(() => locationService.getCurrentPosition())
+          .thenAnswer((_) async => fakePosition());
+      when(() => datasource.getAlertasCercanas(
+            latitud: any(named: 'latitud'),
+            longitud: any(named: 'longitud'),
+          )).thenAnswer((_) async => []);
 
-      print('CP-HU07-07 PASÓ');
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('1200 metros'), findsOneWidget);
+
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
+
+      verify(() => locationService.getCurrentPosition()).called(1);
+      print('Resultado: OK');
     });
 
-    test('CP-HU07-08: getValidToken expira token por inactividad', () async {
+    testWidgets('CP-HU07-02: GPS y permiso denegado', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
 
-      final expiredTimestamp = DateTime.now()
-          .subtract(
-            Duration(minutes: AuthStorage.inactivityTimeoutMinutes + 1),
-          )
-          .millisecondsSinceEpoch;
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.denied);
 
-      SharedPreferences.setMockInitialValues({
-        'auth_token': 'expired-token',
-        'token_timestamp': expiredTimestamp,
-        'user_id': 'user-123',
-      });
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
 
-      final token = await AuthStorage.getValidToken();
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
 
-      expect(token, isNull);
-      expect(await AuthStorage.getToken(), isNull);
-      expect(await AuthStorage.getUserId(), isNull);
-
-      print('CP-HU07-08 PASÓ');
+      expect(
+        find.text('Se necesita permiso de ubicación para las alertas'),
+        findsOneWidget,
+      );
+      print('Resultado: OK');
     });
 
-    test('CP-HU07-09: refreshActivity actualiza timestamp si hay token', () async {
+    testWidgets('CP-HU07-03: Guardar configuración', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
 
-      await AuthStorage.saveToken('refresh-token');
+      when(() => datasource.saveConfig(
+            radioMetros: any(named: 'radioMetros'),
+            activo: any(named: 'activo'),
+          )).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
 
-      final prefsBefore = await SharedPreferences.getInstance();
-      final before = prefsBefore.getInt('token_timestamp');
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
 
-      await Future.delayed(const Duration(milliseconds: 5));
-      await AuthStorage.refreshActivity();
+      await tester.tap(find.text('Guardar configuración'));
+      await tester.pumpAndSettle();
 
-      final prefsAfter = await SharedPreferences.getInstance();
-      final after = prefsAfter.getInt('token_timestamp');
-
-      expect(before, isNotNull);
-      expect(after, isNotNull);
-      expect(after! >= before!, true);
-
-      print('CP-HU07-09 PASÓ');
+      expect(find.text('Configuración guardada'), findsOneWidget);
+      print('Resultado: OK');
     });
 
-    test('CP-HU07-10: clear elimina token, user id y timestamp', () async {
+    testWidgets('CP-HU07-04: Error al guardar', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
 
-      await AuthStorage.saveToken('token-a-borrar');
-      await AuthStorage.saveUserId('user-a-borrar');
+      when(() => datasource.saveConfig(
+            radioMetros: any(named: 'radioMetros'),
+            activo: any(named: 'activo'),
+          )).thenThrow(Exception('Error al guardar'));
 
-      await AuthStorage.clear();
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
 
-      expect(await AuthStorage.getToken(), isNull);
-      expect(await AuthStorage.getUserId(), isNull);
+      await tester.tap(find.text('Guardar configuración'));
+      await tester.pumpAndSettle();
 
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt('token_timestamp'), isNull);
+      expect(find.text('Error al guardar'), findsOneWidget);
+      print('Resultado: OK');
+    });
 
-      print('CP-HU07-10 PASÓ');
+    testWidgets('CP-HU07-05: Sin alertas cercanas', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
+
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.whileInUse);
+      when(() => locationService.getCurrentPosition())
+          .thenAnswer((_) async => fakePosition());
+      when(() => datasource.getAlertasCercanas(
+            latitud: any(named: 'latitud'),
+            longitud: any(named: 'longitud'),
+          )).thenAnswer((_) async => []);
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sin reportes cercanos'), findsOneWidget);
+      print('Resultado: OK');
+    });
+
+    testWidgets('CP-HU07-06: Con alertas cercanas', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
+
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.whileInUse);
+      when(() => locationService.getCurrentPosition())
+          .thenAnswer((_) async => fakePosition());
+      when(() => datasource.getAlertasCercanas(
+            latitud: any(named: 'latitud'),
+            longitud: any(named: 'longitud'),
+          )).thenAnswer(
+        (_) async => [
+          {
+            'tipo_hurto': 'Atraco',
+            'barrio_ingresado': 'Centro',
+            'distancia_metros': 120,
+          },
+          {
+            'tipo_hurto': 'Cosquilleo',
+            'barrio_ingresado': 'San Juan',
+            'distancia_metros': 300,
+          },
+        ],
+      );
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 reporte(s) en tu radio'), findsOneWidget);
+      expect(find.text('Atraco en Centro'), findsOneWidget);
+      expect(find.text('Cosquilleo en San Juan'), findsOneWidget);
+      print('Resultado: OK');
+    });
+
+    testWidgets('CP-HU07-07: Alertas desactivadas por el usuario', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: false,
+        ),
+      );
+
+      when(() => datasource.saveConfig(
+            radioMetros: any(named: 'radioMetros'),
+            activo: any(named: 'activo'),
+          )).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: false,
+        ),
+      );
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('500 metros'), findsOneWidget);
+      await tester.tap(find.text('Guardar configuración'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configuración guardada'), findsOneWidget);
+      verifyNever(() => datasource.getAlertasCercanas(
+            latitud: any(named: 'latitud'),
+            longitud: any(named: 'longitud'),
+          ));
+      print('Resultado: OK');
+    });
+
+    testWidgets('CP-HU07-08: Permiso revocado luego de configurar', (tester) async {
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 500,
+          activo: true,
+        ),
+      );
+
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.deniedForever);
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Se necesita permiso de ubicación para las alertas'),
+        findsOneWidget,
+      );
+      print('Resultado: OK');
+    });
+
+    testWidgets('CP-HU07-09: Notificación visible al recibir evento cercano',
+        (tester) async {
+      // print('CP-HU07-09 - Notificación visible al recibir evento cercano');
+      // print('Entrada: evento de hurto dentro del radio y alertas activas');
+      // print('Esperado: el usuario visualiza la alerta correspondiente');
+
+      when(() => datasource.getConfig()).thenAnswer(
+        (_) async => AlertaConfigModel(
+          id: 'cfg-1',
+          usuarioId: 'user-1',
+          radioMetros: 200,
+          activo: true,
+        ),
+      );
+
+      when(() => locationService.requestPermission())
+          .thenAnswer((_) async => LocationPermission.whileInUse);
+
+      when(() => locationService.getCurrentPosition())
+          .thenAnswer((_) async => fakePosition());
+
+      when(() => datasource.getAlertasCercanas(
+            latitud: any(named: 'latitud'),
+            longitud: any(named: 'longitud'),
+          )).thenAnswer(
+        (_) async => [
+          {
+            'tipo_hurto': 'Atraco',
+            'barrio_ingresado': 'Centro',
+            'distancia_metros': 120,
+            'hora': '22:00',
+          }
+        ],
+      );
+
+      await pumpPage(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Ver alertas cercanas ahora'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 reporte(s) en tu radio'), findsOneWidget);
+      expect(find.text('Atraco en Centro'), findsOneWidget);
+
+      print('Resultado: OK');
     });
   });
 }

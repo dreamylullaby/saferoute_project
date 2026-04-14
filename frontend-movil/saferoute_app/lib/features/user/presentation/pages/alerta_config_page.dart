@@ -4,31 +4,41 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/app_theme.dart';
 import '../../data/datasources/alerta_config_datasource.dart';
 import '../../data/models/alerta_config_model.dart';
+import '../../../../services/location_service.dart';
 
 /// Pantalla de configuración de alertas por proximidad.
 /// Permite al usuario ajustar el radio de alerta y activar/desactivar notificaciones.
 class AlertaConfigPage extends StatefulWidget {
-  const AlertaConfigPage({super.key});
+  final AlertaConfigDatasource? datasource;
+  final LocationService? locationService;
+
+  const AlertaConfigPage({
+    super.key,
+    this.datasource,
+    this.locationService,
+  });
 
   @override
   State<AlertaConfigPage> createState() => _AlertaConfigPageState();
 }
 
 class _AlertaConfigPageState extends State<AlertaConfigPage> {
-  final _datasource = AlertaConfigDatasource();
+  late final AlertaConfigDatasource _datasource;
+  late final LocationService _locationService;
 
   AlertaConfigModel? _config;
-  bool _cargando   = true;
-  bool _guardando  = false;
+  bool _cargando = true;
+  bool _guardando = false;
   String? _error;
 
-  // Valores editables en pantalla
-  late int    _radioMetros;
-  late bool   _activo;
+  late int _radioMetros;
+  late bool _activo;
 
   @override
   void initState() {
     super.initState();
+    _datasource = widget.datasource ?? AlertaConfigDatasource();
+    _locationService = widget.locationService ?? const LocationService();
     _cargarConfig();
   }
 
@@ -39,19 +49,19 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
       final config = await _datasource.getConfig();
       if (!mounted) return;
       setState(() {
-        _config      = config;
+        _config = config;
         _radioMetros = config.radioMetros;
-        _activo      = config.activo;
-        _cargando    = false;
+        _activo = config.activo;
+        _cargando = false;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error    = e.toString();
+        _error = e.toString();
         _cargando = false;
         // Usar defaults si falla la carga
         _radioMetros = 500;
-        _activo      = true;
+        _activo = true;
       });
     }
   }
@@ -61,10 +71,13 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
     try {
       final updated = await _datasource.saveConfig(
         radioMetros: _radioMetros,
-        activo:      _activo,
+        activo: _activo,
       );
       if (!mounted) return;
-      setState(() { _config = updated; _guardando = false; });
+      setState(() {
+        _config = updated;
+        _guardando = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Configuración guardada'),
@@ -87,7 +100,7 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
 
   Future<void> _probarAlertas() async {
     try {
-      final permiso = await Geolocator.requestPermission();
+      final permiso = await _locationService.requestPermission();
       if (permiso == LocationPermission.denied ||
           permiso == LocationPermission.deniedForever) {
         if (!mounted) return;
@@ -100,9 +113,9 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition();
+      final pos = await _locationService.getCurrentPosition();
       final alertas = await _datasource.getAlertasCercanas(
-        latitud:  pos.latitude,
+        latitud: pos.latitude,
         longitud: pos.longitude,
       );
 
@@ -111,7 +124,11 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString().replaceFirst('Exception: ', '')}')),
+        SnackBar(
+          content: Text(
+            'Error: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
       );
     }
   }
@@ -233,11 +250,11 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
                             Text('100m', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSub)),
                             Expanded(
                               child: Slider(
-                                value:    _radioMetros.toDouble(),
-                                min:      100,
-                                max:      5000,
+                                value: _radioMetros.toDouble(),
+                                min: 100,
+                                max: 5000,
                                 divisions: 49,
-                                activeColor:   AppColors.primary,
+                                activeColor: AppColors.primary,
                                 inactiveColor: AppColors.border,
                                 label: '${_radioMetros}m',
                                 onChanged: _activo
@@ -269,8 +286,11 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
                       child: _guardando
                           ? const SizedBox(
                               height: 20,
-                              width:  20,
-                              child:  CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Text('Guardar configuración'),
                     ),
@@ -280,13 +300,15 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: _probarAlertas,
-                      icon:  const Icon(Icons.location_on_outlined),
+                      icon: const Icon(Icons.location_on_outlined),
                       label: const Text('Ver alertas cercanas ahora'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
                         side: const BorderSide(color: AppColors.primary),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -333,8 +355,8 @@ class _AlertaTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final distancia = (alerta['distancia_metros'] as num?)?.toStringAsFixed(0) ?? '?';
-    final tipo      = alerta['tipo_hurto'] ?? 'hurto';
-    final barrio    = alerta['barrio_ingresado'] ?? '';
+    final tipo = alerta['tipo_hurto'] ?? 'hurto';
+    final barrio = alerta['barrio_ingresado'] ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

@@ -6,7 +6,14 @@ import '../../../../services/auth_storage.dart';
 /// Datasource para el módulo de alertas por proximidad.
 /// Consume los endpoints de /api/alertas
 class AlertaConfigDatasource {
-  final String _base = 'http://localhost:3000/api/alertas';
+  final String _base;
+  final http.Client _client;
+
+  AlertaConfigDatasource({
+    String base = 'http://localhost:3000/api/alertas',
+    http.Client? client,
+  })  : _base = base,
+        _client = client ?? http.Client();
 
   Future<Map<String, String>> get _headers async {
     final token = await AuthStorage.getToken();
@@ -19,7 +26,7 @@ class AlertaConfigDatasource {
   /// GET /api/alertas/configuracion
   /// Retorna la configuración actual o los valores por defecto.
   Future<AlertaConfigModel> getConfig() async {
-    final response = await http.get(
+    final response = await _client.get(
       Uri.parse('$_base/configuracion'),
       headers: await _headers,
     );
@@ -36,10 +43,13 @@ class AlertaConfigDatasource {
     required int radioMetros,
     required bool activo,
   }) async {
-    final response = await http.put(
+    final response = await _client.put(
       Uri.parse('$_base/configuracion'),
       headers: await _headers,
-      body: jsonEncode({'radio_metros': radioMetros, 'activo': activo}),
+      body: jsonEncode({
+        'radio_metros': radioMetros,
+        'activo': activo,
+      }),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -59,7 +69,9 @@ class AlertaConfigDatasource {
       'lat': latitud.toString(),
       'lng': longitud.toString(),
     });
-    final response = await http.get(uri, headers: await _headers);
+
+    final response = await _client.get(uri, headers: await _headers);
+
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return List<Map<String, dynamic>>.from(data['data']['alertas']);
