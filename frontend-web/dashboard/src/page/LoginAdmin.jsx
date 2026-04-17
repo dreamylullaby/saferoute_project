@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { loginAdmin } from "../services/authService";
 import "./LoginAdmin.css";
 
+/**
+ * Formulario de login para administradores.
+ * Valida correo y contraseña en el cliente antes de enviar al backend.
+ * Redirige al dashboard si la autenticación es exitosa.
+ */
 export default function LoginAdmin() {
   const navigate = useNavigate();
 

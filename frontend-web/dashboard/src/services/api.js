@@ -1,3 +1,8 @@
+/**
+ * Cliente HTTP Axios preconfigurado para el panel de administración.
+ * Inyecta automáticamente el token JWT en cada petición.
+ * @module api
+ */
 import axios from "axios";
 
 const api = axios.create({

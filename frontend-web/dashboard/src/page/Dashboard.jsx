@@ -1,6 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { logoutAdmin } from "../services/authService";
 
+/**
+ * Pantalla principal del panel de administración.
+ * Muestra información del admin autenticado y permite cerrar sesión.
+ */
 export default function Dashboard() {
   const navigate = useNavigate();
   const admin = JSON.parse(sessionStorage.getItem("admin") || "{}");

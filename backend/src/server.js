@@ -4,6 +4,17 @@
  * @module server
  * @description Punto de entrada del servidor Express.
  * Configura middlewares globales (CORS, JSON) y registra las rutas principales.
+ *
+ * Rutas registradas:
+ * - /api/auth      → Autenticación (registro, login, Google, logout)
+ * - /api/reportes  → CRUD de reportes de hurto y consultas de mapa
+ * - /api/alertas   → Configuración y consulta de alertas por proximidad
+ *
+ * Variables de entorno requeridas:
+ * - PORT           → Puerto del servidor (default: 3000)
+ * - SUPABASE_URL   → URL del proyecto Supabase
+ * - SUPABASE_ANON_KEY → Clave anónima de Supabase
+ * - JWT_SECRET     → Secreto para firmar tokens JWT
  */
 
 import express from "express";

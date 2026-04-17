@@ -5,10 +5,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/user_model.dart';
 import '../../../../services/auth_storage.dart';
 
+/// Datasource remoto para autenticación de usuarios.
+/// Consume los endpoints de /api/auth del backend.
 class UserRemoteDatasource {
 
   final String baseUrl = "http://localhost:3000/api/auth";
 
+  /// Autentica un usuario local con correo y contraseña.
+  /// Guarda el token JWT y el userId en almacenamiento local.
+  /// Retorna [UserModel] con los datos del usuario autenticado.
   Future<UserModel> login({
     required String correo,
     required String password
@@ -30,6 +35,9 @@ class UserRemoteDatasource {
     }
   }
 
+  /// Autentica un usuario mediante Google Sign-In.
+  /// Recibe el idToken de Firebase Auth y lo envía al backend.
+  /// Guarda el token JWT y el userId en almacenamiento local.
   Future<UserModel> loginWithGoogle({required String idToken}) async {
 
     final response = await http.post(
@@ -48,6 +56,9 @@ class UserRemoteDatasource {
     }
   }
 
+  /// Registra un nuevo usuario local con username, correo y contraseña.
+  /// Guarda el token JWT y el userId en almacenamiento local.
+  /// Lanza excepción con el mensaje del backend si falla.
   Future<UserModel> register({
     required String username,
     required String correo,
@@ -71,9 +82,24 @@ class UserRemoteDatasource {
     }
   }
 
+  /// Cierra sesión del usuario.
+  /// Limpia el FCM token en el backend para dejar de recibir push,
+  /// llama al endpoint de logout y limpia el almacenamiento local.
   Future<void> logout() async {
     final token = await AuthStorage.getToken();
     if (token != null) {
+      // Limpiar FCM token en la BD antes de cerrar sesión
+      try {
+        await http.patch(
+          Uri.parse("$baseUrl/fcm-token"),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+          body: jsonEncode({"fcm_token": ""}),
+        );
+      } catch (_) {}
+
       await http.post(
         Uri.parse("$baseUrl/logout"),
         headers: {
