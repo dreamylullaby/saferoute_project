@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 const _primaryColor = Color(0xFF2563EB);
 const _darkColor    = Color(0xFF1E3A8A);
 
+/// Botón de envío reutilizable con soporte para estado de carga
+/// y variante de Google Sign-In.
 class SubmitButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;

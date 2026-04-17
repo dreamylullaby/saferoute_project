@@ -8,6 +8,8 @@ import '../../data/datasources/user_Remote_Datasource.dart';
 import '../../data/repositories/user_repository.impl.dart';
 import '../../domain/usecases/register_User.dart';
 
+/// Pantalla de registro de nuevo usuario.
+/// Valida username, correo, contraseña y confirmación antes de enviar.
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 

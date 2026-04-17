@@ -9,6 +9,9 @@ import '../../data/datasources/user_Remote_Datasource.dart';
 import '../../domain/usecases/login_User.dart';
 import '../../data/repositories/user_repository.impl.dart';
 
+/// Pantalla de inicio de sesión.
+/// Permite login con correo/contraseña o con Google Sign-In.
+/// Usa clean architecture: datasource → repository → use case.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -45,6 +48,9 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text.trim(),
       );
 
+      // Registrar FCM token después del login exitoso (fire and forget)
+      datasource.registrarFcmToken();
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
@@ -65,6 +71,9 @@ class _LoginPageState extends State<LoginPage> {
       final datasource     = UserRemoteDatasource();
 
       await datasource.loginWithGoogle(idToken: idToken!);
+
+      // Registrar FCM token después del login exitoso (fire and forget)
+      datasource.registrarFcmToken();
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');

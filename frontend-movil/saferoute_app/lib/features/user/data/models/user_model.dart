@@ -1,5 +1,7 @@
 import '../../domain/entities/user_Entity.dart';
 
+/// Modelo de datos del usuario que extiende la entidad de dominio.
+/// Maneja la serialización desde JSON (respuesta del backend).
 class UserModel extends UserEntity {
 
   UserModel({
@@ -11,6 +13,8 @@ class UserModel extends UserEntity {
 
   });
 
+  /// Crea una instancia de [UserModel] a partir del JSON del backend.
+  /// Espera las claves: id, username, correo, rol.
   factory UserModel.fromJson(Map<String,dynamic> json){
 
     return UserModel(

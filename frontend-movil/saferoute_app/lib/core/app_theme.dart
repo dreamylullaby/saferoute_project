@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Paleta de colores del sistema SafeRoute.
+/// Incluye colores primarios, gradientes, mapa de calor,
+/// tipos de hurto, tendencias y franjas horarias.
 class AppColors {
   // Colores principales
   static const primary      = Color(0xFF2563EB);
@@ -50,6 +53,8 @@ class AppColors {
   static const franjaMadrugada = Color(0xFFD946EF);
 }
 
+/// Configuración de temas claro y oscuro de la aplicación.
+/// Usa Material 3 con Google Fonts (Inter + Montserrat).
 class AppTheme {
   static ThemeData get theme => ThemeData(
     useMaterial3: true,

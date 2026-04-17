@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
 import '../../data/datasources/user_Remote_Datasource.dart';
 
+/// Pantalla principal con accesos directos al mapa y al formulario de reporte.
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  /// Cierra sesión de Firebase y del backend, luego redirige al login.
   void cerrarSesion(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
     await UserRemoteDatasource().logout();

@@ -13,8 +13,12 @@ import '../../data/datasources/reporte_mapa_datasource.dart';
 import '../../data/models/reporte_mapa_model.dart';
 import '../../data/datasources/user_remote_datasource.dart';
 import '../widgets/heatmap_layer.dart';
+import '../widgets/permission_modal.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// Mapa interactivo de incidentes de hurto.
+/// Muestra marcadores y heatmap, soporta filtros por comuna/franja/tipo/fecha,
+/// actualización automática cada 60s y notificaciones push en tiempo real.
 class MapaPage extends StatefulWidget {
   const MapaPage({super.key});
   @override
@@ -53,6 +57,11 @@ class _MapaPageState extends State<MapaPage> {
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _actualizarNuevos());
     _resetInactivityTimer();
     _configurarNotificaciones();
+
+    // Mostrar modales de permisos después de que el mapa cargue (post-login)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) PermissionModals.mostrarSiNecesario(context);
+    });
   }
 
   @override

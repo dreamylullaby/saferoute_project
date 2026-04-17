@@ -11,6 +11,9 @@ import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
 import '../../../../services/auth_storage.dart';
 
+/// Formulario de registro de incidente de hurto.
+/// Incluye selección de ubicación en mapa, autocomplete de barrio y dirección,
+/// validaciones de campos y envío al backend.
 class ReportIncidentePage extends StatefulWidget {
   const ReportIncidentePage({super.key});
   @override

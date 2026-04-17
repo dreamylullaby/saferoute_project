@@ -1,3 +1,10 @@
+/**
+ * @module userController
+ * @description Controlador HTTP para autenticación y gestión de usuarios.
+ * Maneja registro local, login local/admin, login con Google, logout,
+ * actualización de username y gestión de FCM tokens.
+ */
+
 import bcrypt from "bcrypt";
 import admin from "../../infrastructure/firebase/firebase.js";
 import db from "../../infrastructure/database/dbScript/db.js";
@@ -235,10 +242,11 @@ export const loginGoogle = async (req, res) => {
  * @param {import('express').Request} req - Body: { username }, req.user.id del token
  * @param {import('express').Response} res
  */
+
 /**
  * Maneja PATCH /api/auth/fcm-token
- * Guarda o actualiza el FCM token del dispositivo del usuario.
- * Se llama cada vez que el usuario abre la app.
+ * Guarda, actualiza o limpia el FCM token del dispositivo del usuario.
+ * Se llama al abrir la app (guardar) y al cerrar sesión (limpiar con string vacío).
  * @param {import('express').Request} req - Body: { fcm_token }
  * @param {import('express').Response} res
  */
@@ -249,17 +257,20 @@ export const updateFcmToken = async (req, res) => {
     const { fcm_token } = req.body;
     const userId = req.user.id;
 
-    if (!fcm_token || fcm_token.trim().length === 0)
+    if (fcm_token === undefined || fcm_token === null)
       return res.status(400).json({ message: "fcm_token es obligatorio" });
+
+    // String vacío = limpiar token (logout), string con contenido = guardar
+    const tokenValue = fcm_token.trim().length === 0 ? null : fcm_token.trim();
 
     const { error } = await db
       .from("usuarios")
-      .update({ fcm_token: fcm_token.trim() })
+      .update({ fcm_token: tokenValue })
       .eq("id", userId);
 
     if (error) throw error;
 
-    res.json({ message: "FCM token actualizado correctamente" });
+    res.json({ message: tokenValue ? "FCM token actualizado correctamente" : "FCM token eliminado" });
 
   } catch (error) {
     res.status(500).json({ message: error.message });

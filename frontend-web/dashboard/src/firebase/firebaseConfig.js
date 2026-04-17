@@ -1,3 +1,8 @@
+/**
+ * Configuración de Firebase para el panel de administración.
+ * Inicializa la app y exporta las instancias de Auth y GoogleAuthProvider.
+ * @module firebaseConfig
+ */
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 

@@ -2,6 +2,8 @@ import '../../domain/entities/user_Entity.dart';
 import '../../domain/repositories/user_Repository.dart';
 import '../datasources/user_Remote_Datasource.dart';
 
+/// Implementación concreta del repositorio de usuarios.
+/// Delega las operaciones al datasource remoto (API REST).
 class UserRepositoryImpl implements UserRepository {
 
   final UserRemoteDatasource remoteDatasource;

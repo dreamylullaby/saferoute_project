@@ -20,9 +20,19 @@ class ReportRepository {
    */
   async findAll() {}
 
-  //Buscar un reporte por id
+  /**
+   * Busca un reporte por su UUID.
+   * @param {string} id - UUID del reporte
+   * @returns {Promise<Object>} El reporte encontrado con datos de zona
+   * @throws {Error} Si el reporte no existe
+   */
   async findById(id) {}
 
+  /**
+   * Busca barrios similares al texto ingresado usando distancia Levenshtein.
+   * @param {string} textoUsuario - Texto del barrio ingresado por el usuario
+   * @returns {Promise<Array>} Lista de hasta 5 barrios ordenados por similitud
+   */
   async buscarBarrioSimilar(textoUsuario) {}
 
   /**

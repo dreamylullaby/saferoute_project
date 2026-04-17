@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import '../models/reporte_mapa_model.dart';
 import '../../../../services/auth_storage.dart';
 
+/// Datasource remoto para reportes del mapa interactivo.
+/// Consume los endpoints de /api/reportes/mapa del backend.
 class ReporteMapaDatasource {
   final String baseUrl = 'http://localhost:3000/api/reportes';
 
