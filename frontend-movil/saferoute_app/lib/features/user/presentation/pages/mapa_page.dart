@@ -14,6 +14,8 @@ import '../../data/models/reporte_mapa_model.dart';
 import '../../data/datasources/user_remote_datasource.dart';
 import '../widgets/heatmap_layer.dart';
 import '../widgets/permission_modal.dart';
+import '../widgets/filter_chip_group.dart';
+import '../widgets/filter_date_field.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 /// Mapa interactivo de incidentes de hurto.
@@ -34,7 +36,6 @@ class _MapaPageState extends State<MapaPage> {
   List<ReporteMapaModel> _filtrados = [];
   bool _cargando = true;
   bool _modoCalor = false;
-  bool _modoOscuro = false;
   String _ultimaActualizacion = DateTime.now().toUtc().toIso8601String();
   Timer? _timer;
   Timer? _inactivityTimer;
@@ -269,6 +270,14 @@ class _MapaPageState extends State<MapaPage> {
       _fechaDesde != null               ||
       _fechaHasta != null;
 
+  /// Número total de filtros activos para mostrar en el badge.
+  int get _conteoFiltros =>
+      _comunasSeleccionadas.length +
+      _franjasSeleccionadas.length +
+      _tiposSeleccionados.length +
+      (_fechaDesde != null ? 1 : 0) +
+      (_fechaHasta != null ? 1 : 0);
+
   // ── Colores / íconos ───────────────────────────────────────────────────────
 
   Color _colorTipo(String tipo) => switch (tipo) {
@@ -359,16 +368,15 @@ class _MapaPageState extends State<MapaPage> {
 
   Widget _buildDrawer() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final chipBg = isDark ? const Color(0xFF334155) : Colors.white;
-    final chipText = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
-    final chipBorder = isDark ? const Color(0xFF475569) : AppColors.border;
+    final sectionText = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final dividerColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
 
     return Drawer(
       width: 300,
       child: SafeArea(
         child: StatefulBuilder(
           builder: (ctx, setDrawer) => Column(children: [
-            // Cabecera
+            // ── Cabecera con gradiente ──
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 20, 12, 16),
@@ -385,6 +393,20 @@ class _MapaPageState extends State<MapaPage> {
                 Text('Filtros', style: GoogleFonts.montserrat(
                     fontSize: 18, fontWeight: FontWeight.bold,
                     color: Colors.white)),
+                if (_hayFiltros) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text('$_conteoFiltros',
+                        style: GoogleFonts.inter(
+                            fontSize: 12, fontWeight: FontWeight.w700,
+                            color: Colors.white)),
+                  ),
+                ],
                 const Spacer(),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white),
@@ -393,134 +415,151 @@ class _MapaPageState extends State<MapaPage> {
               ]),
             ),
 
-            // Contenido scrollable
+            // ── Contenido scrollable con fade inferior ──
             Expanded(
-              child: ListView(padding: const EdgeInsets.all(20), children: [
+              child: Stack(children: [
+                ListView(padding: const EdgeInsets.all(20), children: [
 
-                // ── Comunas ──
-                Text('Comuna', style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 14,
-                    color: chipText)),
-                const SizedBox(height: 10),
-                GridView.count(
-                  crossAxisCount: 4, shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8, crossAxisSpacing: 8,
-                  childAspectRatio: 1.3,
-                  children: List.generate(12, (i) {
-                    final n = i + 1;
-                    final sel = _comunasSeleccionadas.contains(n);
-                    return GestureDetector(
-                      onTap: () => setDrawer(() => sel
-                          ? _comunasSeleccionadas.remove(n)
-                          : _comunasSeleccionadas.add(n)),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        decoration: BoxDecoration(
-                          color: sel ? AppColors.primary : chipBg,
-                          border: Border.all(
-                              color: sel ? AppColors.primary : chipBorder),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text('$n', style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            color: sel ? Colors.white : chipText)),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 20),
+                  // ── Comunas ──
+                  _sectionTitle('Comuna', Icons.map_outlined, sectionText),
+                  const SizedBox(height: 10),
+                  FilterChipGroup<int>(
+                    items: List.generate(12, (i) => i + 1),
+                    selected: _comunasSeleccionadas,
+                    onToggle: (n) => setDrawer(() => _comunasSeleccionadas.contains(n)
+                        ? _comunasSeleccionadas.remove(n)
+                        : _comunasSeleccionadas.add(n)),
+                    labelBuilder: (n) => '$n',
+                    useGrid: true,
+                    gridColumns: 4,
+                  ),
+                  const SizedBox(height: 20),
 
-                // ── Franja horaria ──
-                Text('Rango horario', style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 14,
-                    color: chipText)),
-                const SizedBox(height: 10),
-                ..._franjas.map((f) {
-                  final sel = _franjasSeleccionadas.contains(f);
-                  return GestureDetector(
-                    onTap: () => setDrawer(() => sel
-                        ? _franjasSeleccionadas.remove(f)
-                        : _franjasSeleccionadas.add(f)),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: sel
-                            ? AppColors.primary.withOpacity(0.15)
-                            : chipBg,
-                        border: Border.all(
-                            color: sel ? AppColors.primary : chipBorder),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(f, style: GoogleFonts.inter(
-                          color: sel ? AppColors.primary : chipText,
-                          fontWeight: sel
-                              ? FontWeight.w600
-                              : FontWeight.normal)),
-                    ),
-                  );
-                }),
-                const SizedBox(height: 20),
+                  Divider(color: dividerColor, height: 1),
+                  const SizedBox(height: 20),
 
-                // ── Tipo de hurto ──
-                Text('Tipo de hurto', style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 14,
-                    color: chipText)),
-                const SizedBox(height: 10),
-                Wrap(spacing: 8, runSpacing: 8,
-                  children: _tipos.map((t) {
-                    final sel = _tiposSeleccionados.contains(t);
-                    final color = _colorTipo(t);
-                    return GestureDetector(
-                      onTap: () => setDrawer(() => sel
-                          ? _tiposSeleccionados.remove(t)
-                          : _tiposSeleccionados.add(t)),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: sel ? color : chipBg,
-                          border: Border.all(
-                              color: sel ? color : chipBorder),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          t[0].toUpperCase() + t.substring(1),
-                          style: GoogleFonts.inter(
-                              color: sel ? Colors.white : chipText,
-                              fontWeight: FontWeight.w500, fontSize: 13),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
+                  // ── Franja horaria ──
+                  _sectionTitle('Rango horario', Icons.access_time_rounded, sectionText),
+                  const SizedBox(height: 10),
+                  FilterChipGroup<String>(
+                    items: _franjas,
+                    selected: _franjasSeleccionadas,
+                    onToggle: (f) => setDrawer(
+                        () => _franjasSeleccionadas.contains(f)
+                            ? _franjasSeleccionadas.remove(f)
+                            : _franjasSeleccionadas.add(f)),
+                    labelBuilder: (f) => f,
+                    iconBuilder: (_) => Icons.schedule_rounded,
+                    useGrid: true,
+                    gridColumns: 2,
+                    gridAspectRatio: 2.8,
+                  ),
+                  const SizedBox(height: 20),
 
-                // ── Fecha ──
-                Text('Fecha del incidente', style: GoogleFonts.inter(
-                    fontWeight: FontWeight.w600, fontSize: 14,
-                    color: chipText)),
-                const SizedBox(height: 10),
-                Row(children: [
-                  Expanded(child: _campoFecha(ctx, 'Desde', _fechaDesde,
-                      (d) => setDrawer(() => _fechaDesde = d))),
-                  const SizedBox(width: 10),
-                  Expanded(child: _campoFecha(ctx, 'Hasta', _fechaHasta,
-                      (d) => setDrawer(() => _fechaHasta = d))),
+                  Divider(color: dividerColor, height: 1),
+                  const SizedBox(height: 20),
+
+                  // ── Tipo de hurto ──
+                  _sectionTitle(
+                      'Tipo de hurto', Icons.local_police_rounded, sectionText),
+                  const SizedBox(height: 10),
+                  FilterChipGroup<String>(
+                    items: _tipos,
+                    selected: _tiposSeleccionados,
+                    onToggle: (t) => setDrawer(
+                        () => _tiposSeleccionados.contains(t)
+                            ? _tiposSeleccionados.remove(t)
+                            : _tiposSeleccionados.add(t)),
+                    labelBuilder: (t) => t[0].toUpperCase() + t.substring(1),
+                    iconBuilder: (t) => _iconoTipo(t),
+                    useGrid: true,
+                    gridColumns: 2,
+                    gridAspectRatio: 2.8,
+                  ),
+                  const SizedBox(height: 20),
+
+                  Divider(color: dividerColor, height: 1),
+                  const SizedBox(height: 20),
+
+                  // ── Fecha ──
+                  _sectionTitle('Fecha del incidente', Icons.calendar_today_rounded, sectionText),
+                  const SizedBox(height: 10),
+                  FilterDateField(
+                    label: 'Desde',
+                    value: _fechaDesde,
+                    onPicked: (d) => setDrawer(() => _fechaDesde = d),
+                  ),
+                  const SizedBox(height: 12),
+                  FilterDateField(
+                    label: 'Hasta',
+                    value: _fechaHasta,
+                    onPicked: (d) => setDrawer(() => _fechaHasta = d),
+                  ),
+                  const SizedBox(height: 24),
                 ]),
+
+                // Fade gradient inferior para indicar scroll
+                Positioned(
+                  bottom: 0, left: 0, right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: 32,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            (isDark ? const Color(0xFF1E293B) : Colors.white).withOpacity(0),
+                            isDark ? const Color(0xFF1E293B) : Colors.white,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ]),
             ),
 
-            // Botones fijos al fondo
+            // ── Botones fijos: Aplicar arriba, Restablecer abajo ──
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(children: [
-                Expanded(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _aplicarFiltros();
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            _hayFiltros
+                                ? '$_conteoFiltros filtro(s) aplicado(s)'
+                                : 'Filtros limpiados',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('Aplicar filtros',
+                        style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
                       setDrawer(() {
@@ -533,37 +572,61 @@ class _MapaPageState extends State<MapaPage> {
                       _aplicarFiltros();
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      side: BorderSide(
+                        color: isDark
+                            ? const Color(0xFF475569)
+                            : AppColors.border,
+                      ),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Limpiar'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _aplicarFiltros();
-                      Navigator.pop(ctx);
-                    },
-                    child: const Text('Aplicar'),
+                    child: Text('Restablecer filtros',
+                        style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: isDark
+                                ? const Color(0xFF94A3B8)
+                                : AppColors.textSub)),
                   ),
                 ),
               ]),
             ),
-            // Cerrar sesión
+
+            // ── Zona 3: Navegación global ──
+            Divider(
+              color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+              height: 1,
+              thickness: 0.5,
+            ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: _cerrarSesion,
-                  icon: const Icon(Icons.logout, color: AppColors.error, size: 18),
-                  label: Text('Cerrar sesión',
-                      style: GoogleFonts.inter(
-                          color: AppColors.error, fontWeight: FontWeight.w500)),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+              child: Column(children: [
+                // Estadísticas (placeholder — sin ruta aún)
+                _drawerNavItem(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Estadísticas',
+                  enabled: false,
+                  isDark: isDark,
                 ),
-              ),
+                // Reportes (placeholder — sin ruta aún)
+                _drawerNavItem(
+                  icon: Icons.description_outlined,
+                  label: 'Reportes',
+                  enabled: false,
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 4),
+                // Cerrar sesión
+                _drawerNavItem(
+                  icon: Icons.logout_rounded,
+                  label: 'Cerrar sesión',
+                  enabled: true,
+                  isDark: isDark,
+                  isDestructive: true,
+                  onTap: _cerrarSesion,
+                ),
+              ]),
             ),
           ]),
         ),
@@ -571,45 +634,66 @@ class _MapaPageState extends State<MapaPage> {
     );
   }
 
-  Widget _campoFecha(BuildContext ctx, String label, DateTime? valor,
-      void Function(DateTime) onPick) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: ctx,
-          initialDate: valor ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-        );
-        if (picked != null) onPick(picked);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF334155) : Colors.white,
-          border: Border.all(color: isDark ? const Color(0xFF475569) : AppColors.border),
-          borderRadius: BorderRadius.circular(10),
+  /// Ítem de navegación del drawer con ícono + texto.
+  /// [enabled] controla si es interactivo. [isDestructive] lo pinta en rojo.
+  Widget _drawerNavItem({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+    bool enabled = true,
+    bool isDestructive = false,
+    VoidCallback? onTap,
+  }) {
+    final activeColor = isDestructive
+        ? AppColors.error
+        : (isDark ? const Color(0xFFE2E8F0) : AppColors.textMain);
+    final disabledColor = isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8);
+    final color = enabled ? activeColor : disabledColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: color)),
+            ),
+            if (!enabled)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (isDark ? const Color(0xFF475569) : const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('Pronto',
+                    style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: disabledColor)),
+              ),
+          ]),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: GoogleFonts.inter(
-              fontSize: 11, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
-          const SizedBox(height: 2),
-          Text(
-            valor != null
-                ? '${valor.day.toString().padLeft(2, '0')}/'
-                  '${valor.month.toString().padLeft(2, '0')}/'
-                  '${valor.year}'
-                : 'dd/mm/aaaa',
-            style: GoogleFonts.inter(
-                fontSize: 12,
-                color: valor != null
-                    ? (isDark ? const Color(0xFFE2E8F0) : AppColors.textMain)
-                    : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
-          ),
-        ]),
       ),
     );
+  }
+
+  /// Título de sección del drawer con ícono.
+  Widget _sectionTitle(String text, IconData icon, Color color) {
+    return Row(children: [
+      Icon(icon, size: 16, color: AppColors.primary),
+      const SizedBox(width: 6),
+      Text(text, style: GoogleFonts.inter(
+          fontWeight: FontWeight.w600, fontSize: 14, color: color)),
+    ]);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -642,7 +726,8 @@ class _MapaPageState extends State<MapaPage> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: _modoOscuro
+                    key: ValueKey('tiles_${darkModeNotifier.value}'),
+                    urlTemplate: darkModeNotifier.value
                         ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11'
                           '/tiles/{z}/{x}/{y}?access_token=$token'
                         : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12'
@@ -726,12 +811,18 @@ class _MapaPageState extends State<MapaPage> {
                                 ),
                                 if (_hayFiltros)
                                   Positioned(
-                                    top: 2, right: 6,
+                                    top: 0, right: 4,
                                     child: Container(
-                                      width: 8, height: 8,
+                                      width: 16, height: 16,
                                       decoration: const BoxDecoration(
                                           color: AppColors.error,
                                           shape: BoxShape.circle),
+                                      alignment: Alignment.center,
+                                      child: Text('$_conteoFiltros',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.white)),
                                     ),
                                   ),
                               ]),
@@ -823,8 +914,7 @@ class _MapaPageState extends State<MapaPage> {
                           ? Colors.amber
                           : AppColors.textMain,
                       onTap: () => setState(() {
-                        _modoOscuro = !(_modoOscuro == true);
-                        darkModeNotifier.value = _modoOscuro;
+                        darkModeNotifier.value = !darkModeNotifier.value;
                       }),
                       tooltip: darkModeNotifier.value
                           ? 'Modo claro'

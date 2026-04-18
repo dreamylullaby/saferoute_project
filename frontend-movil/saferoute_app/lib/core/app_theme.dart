@@ -51,6 +51,9 @@ class AppColors {
   static const franjaTarde     = Color(0xFFF97316);
   static const franjaNoche     = Color(0xFFBE185D);
   static const franjaMadrugada = Color(0xFFD946EF);
+
+  // Estado activo de filtros (índigo del header)
+  static const filterActive    = Color(0xFF333C87);
 }
 
 /// Configuración de temas claro y oscuro de la aplicación.
