@@ -1,14 +1,16 @@
 -- =============================================================
 -- SafeRoute — Script completo de base de datos
 -- Base: PostgreSQL 17 (Supabase)
--- Extensiones requeridas: uuid-ossp, unaccent, fuzzystrmatch
+-- Extensiones requeridas: uuid-ossp, unaccent, fuzzystrmatch, postgis
 -- Sprint 3: HU-10, HU-11, HU-12, HU-13 + zonas de riesgo
+-- Sprint 4: Geolocalización de barrios (PostGIS + secciones DANE)
 -- =============================================================
 
 -- Extensiones
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp"    WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS unaccent       WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS fuzzystrmatch  WITH SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS postgis;
 
 
 -- =============================================================
@@ -19,11 +21,32 @@ CREATE TABLE public.zonas (
     id      SERIAL      PRIMARY KEY,
     barrio  VARCHAR(80) NOT NULL,
     comuna  INTEGER     NOT NULL,
+    geom    GEOMETRY(MULTIPOLYGON, 4326),
 
     CONSTRAINT chk_barrio_not_empty  CHECK (barrio <> ''),
     CONSTRAINT zonas_comuna_check    CHECK (comuna >= 1 AND comuna <= 12),
     CONSTRAINT uniq_barrio_comuna    UNIQUE (barrio, comuna)
 );
+
+CREATE INDEX idx_zonas_geom ON public.zonas USING GIST(geom);
+
+
+-- =============================================================
+-- TABLA: secciones_dane
+-- Polígonos del DANE por sección urbana (geolocalización)
+-- Se pobla con: node --env-file=.env cargar_secciones.js
+-- (ejecutar una sola vez desde la raíz del backend,
+--  con pasto_secciones.geojson en la misma carpeta)
+-- =============================================================
+CREATE TABLE public.secciones_dane (
+    id          SERIAL PRIMARY KEY,
+    secu_ccdgo  VARCHAR(10),
+    setu_ccdgo  VARCHAR(10),
+    comuna      INTEGER,
+    geom        GEOMETRY(MULTIPOLYGON, 4326)
+);
+
+CREATE INDEX idx_secciones_geom ON public.secciones_dane USING GIST(geom);
 
 
 -- =============================================================
@@ -190,50 +213,56 @@ LANGUAGE sql AS $
     LIMIT 5;
 $;
 
--- Asigna zona por similitud (trigger, solo si zona_id es NULL)
-CREATE OR REPLACE FUNCTION public.asignar_zona_automatica()
-RETURNS TRIGGER LANGUAGE plpgsql AS $
-DECLARE
-    zona_encontrada INTEGER;
-BEGIN
-    SELECT id INTO zona_encontrada
-    FROM public.buscar_barrio_similar(NEW.barrio_ingresado)
+-- Obtiene comuna y barrios a partir de coordenadas (geolocalización)
+CREATE OR REPLACE FUNCTION public.get_zona_por_coordenadas(
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION
+)
+RETURNS TABLE(comuna INTEGER, barrios TEXT[])
+LANGUAGE sql AS $$
+    SELECT
+        s.comuna,
+        ARRAY_AGG(z.barrio ORDER BY z.barrio) AS barrios
+    FROM public.secciones_dane s
+    JOIN public.zonas z ON z.comuna = s.comuna
+    WHERE ST_Contains(
+        s.geom,
+        ST_SetSRID(ST_MakePoint(lng, lat), 4326)
+    )
+    GROUP BY s.comuna
     LIMIT 1;
+$$;
 
-    NEW.zona_id = zona_encontrada;
-    RETURN NEW;
-END;
-$;
-
--- Asigna zona y comuna por coincidencia exacta (trigger)
+-- Asigna zona y comuna usando coordenadas (primero) y nombre como fallback
 CREATE OR REPLACE FUNCTION public.asignar_zona_y_comuna()
 RETURNS TRIGGER LANGUAGE plpgsql AS $
+DECLARE
+    zona_encontrada  INTEGER;
+    comuna_encontrada INTEGER;
 BEGIN
-    IF NEW.barrio_ingresado IS NOT NULL THEN
-        SELECT z.id INTO NEW.zona_id
-        FROM zonas z
+    -- Intento 1: coordenadas + nombre de barrio
+    IF NEW.latitud IS NOT NULL AND NEW.longitud IS NOT NULL THEN
+        SELECT z.id, z.comuna INTO zona_encontrada, comuna_encontrada
+        FROM public.secciones_dane s
+        JOIN public.zonas z ON z.comuna = s.comuna
+        WHERE ST_Contains(
+            s.geom,
+            ST_SetSRID(ST_MakePoint(NEW.longitud::float8, NEW.latitud::float8), 4326)
+        )
+        AND unaccent(lower(z.barrio)) = unaccent(lower(NEW.barrio_ingresado))
+        LIMIT 1;
+    END IF;
+
+    -- Intento 2 (fallback): solo por nombre de barrio
+    IF zona_encontrada IS NULL AND NEW.barrio_ingresado IS NOT NULL THEN
+        SELECT z.id, z.comuna INTO zona_encontrada, comuna_encontrada
+        FROM public.zonas z
         WHERE unaccent(lower(z.barrio)) = unaccent(lower(NEW.barrio_ingresado))
         LIMIT 1;
     END IF;
 
-    IF NEW.zona_id IS NOT NULL THEN
-        NEW.comuna := CASE
-            WHEN NEW.zona_id BETWEEN 1   AND 21  THEN 1
-            WHEN NEW.zona_id BETWEEN 22  AND 53  THEN 2
-            WHEN NEW.zona_id BETWEEN 54  AND 81  THEN 3
-            WHEN NEW.zona_id BETWEEN 82  AND 114 THEN 4
-            WHEN NEW.zona_id BETWEEN 115 AND 148 THEN 5
-            WHEN NEW.zona_id BETWEEN 149 AND 191 THEN 6
-            WHEN NEW.zona_id BETWEEN 192 AND 216 THEN 7
-            WHEN NEW.zona_id BETWEEN 217 AND 263 THEN 8
-            WHEN NEW.zona_id BETWEEN 264 AND 317 THEN 9
-            WHEN NEW.zona_id BETWEEN 318 AND 356 THEN 10
-            WHEN NEW.zona_id BETWEEN 357 AND 380 THEN 11
-            WHEN NEW.zona_id BETWEEN 381 AND 408 THEN 12
-            ELSE NULL
-        END;
-    END IF;
-
+    NEW.zona_id := zona_encontrada;
+    NEW.comuna  := comuna_encontrada;
     RETURN NEW;
 END;
 $;
@@ -255,12 +284,6 @@ $$;
 -- =============================================================
 -- TRIGGERS sobre reportes
 -- =============================================================
-CREATE TRIGGER trigger_asignar_zona
-    BEFORE INSERT OR UPDATE ON public.reportes
-    FOR EACH ROW
-    WHEN (NEW.zona_id IS NULL)
-    EXECUTE FUNCTION public.asignar_zona_automatica();
-
 CREATE TRIGGER trigger_asignar_zona_comuna
     BEFORE INSERT OR UPDATE ON public.reportes
     FOR EACH ROW

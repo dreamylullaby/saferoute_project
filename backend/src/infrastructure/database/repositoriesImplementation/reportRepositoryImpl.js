@@ -88,6 +88,22 @@ export default class ReportRepositoryImpl extends ReportRepository {
   }
 
   /**
+   * Busca barrios por coordenadas usando la función RPC get_zona_por_coordenadas.
+   * Detecta la comuna a partir de los polígonos DANE y retorna sus barrios.
+   * @param {number} lat - Latitud del punto
+   * @param {number} lng - Longitud del punto
+   * @returns {Promise<Object|null>} { comuna, barrios } o null si no hay cobertura
+   */
+  async buscarBarriosPorCoordenadas(lat, lng) {
+    const { data, error } = await supabase
+      .rpc('get_zona_por_coordenadas', { lat, lng });
+
+    if (error) throw new Error(`Error al buscar barrios por coordenadas: ${error.message}`);
+    if (!data || data.length === 0) return null;
+    return { comuna: data[0].comuna, barrios: data[0].barrios };
+  }
+
+  /**
    * Obtiene reportes activos con solo los campos necesarios para pintar el mapa.
    * @returns {Promise<Array>} Lista reducida: id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado
    */

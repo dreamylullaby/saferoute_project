@@ -78,7 +78,8 @@ export const registerLocal = async (req, res) => {
 
 /**
  * Maneja POST /api/auth/login
- * Autentica un usuario local verificando correo, estado activo y contraseña.
+ * Autentica un usuario local verificando correo o username, estado activo y contraseña.
+ * El campo "correo" del body acepta tanto correo como username (case-insensitive).
  * @param {import('express').Request} req - Body: { correo, password }
  * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
  */
@@ -87,15 +88,34 @@ export const loginLocal = async (req, res) => {
   try {
 
     const { correo, password } = req.body;
+    const input = correo?.trim().toLowerCase();
 
-    const { data, error } = await db
-      .from("usuarios")
-      .select("*")
-      .eq("correo", correo)
-      .eq("estado", "activo")
-      .single();
+    if (!input || !password)
+      return res.status(400).json({ message: "Correo/usuario y contraseña son requeridos" });
 
-    if (error || !data)
+    // Determinar si es correo o username
+    const isEmail = input.includes('@');
+
+    let data;
+    if (isEmail) {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("correo", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    } else {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("username", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    }
+
+    if (!data)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
     const passwordValida = await bcrypt.compare(password, data.password_hash);
@@ -122,6 +142,7 @@ export const loginLocal = async (req, res) => {
 /**
  * Maneja POST /api/auth/admin-login
  * Login exclusivo para administradores. Verifica rol antes de responder.
+ * Acepta correo o username (case-insensitive).
  * @param {import('express').Request} req - Body: { correo, password }
  * @param {import('express').Response} res
  */
@@ -130,15 +151,33 @@ export const loginAdmin = async (req, res) => {
   try {
 
     const { correo, password } = req.body;
+    const input = correo?.trim().toLowerCase();
 
-    const { data, error } = await db
-      .from("usuarios")
-      .select("*")
-      .eq("correo", correo)
-      .eq("estado", "activo")
-      .single();
+    if (!input || !password)
+      return res.status(400).json({ message: "Correo/usuario y contraseña son requeridos" });
 
-    if (error || !data)
+    const isEmail = input.includes('@');
+
+    let data;
+    if (isEmail) {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("correo", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    } else {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("username", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    }
+
+    if (!data)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
     if (data.rol !== "admin")
