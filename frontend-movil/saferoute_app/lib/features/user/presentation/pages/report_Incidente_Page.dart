@@ -6,14 +6,13 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
 import '../../../../services/auth_storage.dart';
 
 /// Formulario de registro de incidente de hurto.
-/// Incluye selección de ubicación en mapa, autocomplete de barrio y dirección,
-/// validaciones de campos y envío al backend.
 class ReportIncidentePage extends StatefulWidget {
   const ReportIncidentePage({super.key});
   @override
@@ -31,11 +30,21 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   double? _latitud;
   double? _longitud;
 
-  // Autocomplete barrio
+  // Almacena la fecha en ISO para enviar al backend
+  String? _fechaISO;
+
+  // Autocomplete barrio (modo texto libre — Caso B)
   List<String> _sugerenciasBarrio    = [];
   Timer?        _debounceBarrio;
   bool          _barrioSeleccionado  = false;
   final FocusNode _barrioFocus       = FocusNode();
+
+  // Barrios por coordenadas (modo lista filtrable — Caso A)
+  List<String> _barriosCoordenadas   = [];
+  List<String> _barriosFiltrados     = [];
+  int?         _comunaDetectada;
+  bool         _sinCobertura         = false;
+  final TextEditingController _filtroBusquedaController = TextEditingController();
 
   // Autocomplete dirección
   List<String> _sugerenciasDireccion = [];
@@ -54,12 +63,14 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   final _objetosHurtados = ['celular', 'dinero', 'tarjetas_documentos', 'articulos_personales', 'dispositivos_electronicos'];
   final _numAgresores    = ['1', '2', '3+', 'desconocido'];
 
+  /// Indica si estamos en modo lista filtrable (Caso A con barrios detectados)
+  bool get _modoListaBarrios => _barriosCoordenadas.isNotEmpty && !_sinCobertura;
+
   @override
   void initState() {
     super.initState();
     _direccionFocus.addListener(() {
       if (!_direccionFocus.hasFocus) {
-        // Delay para permitir que el tap en la sugerencia se registre primero
         Future.delayed(const Duration(milliseconds: 200), () {
           if (mounted) setState(() => _sugerenciasDireccion = []);
         });
@@ -68,7 +79,10 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     _barrioFocus.addListener(() {
       if (!_barrioFocus.hasFocus) {
         Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) setState(() => _sugerenciasBarrio = []);
+          if (mounted) setState(() {
+            _sugerenciasBarrio = [];
+            if (_modoListaBarrios) _barriosFiltrados = [];
+          });
         });
       }
     });
@@ -80,6 +94,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     _debounceDireccion?.cancel();
     _direccionFocus.dispose();
     _barrioFocus.dispose();
+    _filtroBusquedaController.dispose();
     super.dispose();
   }
 
@@ -91,17 +106,53 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      locale: const Locale('es'),
     );
     if (picked != null) {
-      fechaController.text = picked.toIso8601String().split('T')[0];
+      _fechaISO = picked.toIso8601String().split('T')[0];
+      fechaController.text = DateFormat('dd/MM/yyyy').format(picked);
     }
   }
 
-  // ── Geocodificación inversa — solo dirección corta ─────────────────────────
+  // ── Normalización de direcciones colombianas ───────────────────────────────
+
+  /// Normaliza una dirección de Mapbox al formato colombiano abreviado.
+  /// Entrada: "Carrera 27 12-34" → Salida: "Cra 27 #12-34"
+  String _normalizarDireccion(String texto, String numero) {
+    if (texto.isEmpty) return '';
+
+    String resultado = texto;
+
+    // Abreviar tipos de vía
+    final abreviaturas = {
+      r'(?i)\bcarrera\b': 'Cra',
+      r'(?i)\bcalle\b': 'Cl',
+      r'(?i)\bdiagonal\b': 'Diag',
+      r'(?i)\btransversal\b': 'Tv',
+      r'(?i)\bavenida\b': 'Av',
+    };
+
+    for (final entry in abreviaturas.entries) {
+      resultado = resultado.replaceAll(RegExp(entry.key), entry.value);
+    }
+
+    // Agregar número con formato #N1-N2
+    if (numero.isNotEmpty) {
+      // Si el número ya tiene guión (ej: "12-34"), agregar #
+      if (numero.contains('-')) {
+        resultado = '$resultado #$numero';
+      } else {
+        resultado = '$resultado #$numero';
+      }
+    }
+
+    return resultado.trim();
+  }
+
+  // ── Geocodificación inversa ──────────────────────────────────────────────
 
   Future<String> _geocodificarInverso(double lat, double lng) async {
     final token = dotenv.env['MAPBOX_TOKEN'] ?? '';
-    // types=address limita a solo direcciones, sin ciudad/país
     final url = Uri.parse(
       'https://api.mapbox.com/geocoding/v5/mapbox.places/$lng,$lat.json'
       '?access_token=$token&language=es&limit=1&types=address',
@@ -112,11 +163,10 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
         final data     = jsonDecode(res.body);
         final features = data['features'] as List;
         if (features.isNotEmpty) {
-          // text = nombre de la calle, address = número
           final f       = features[0];
           final texto   = f['text'] as String? ?? '';
-          final numero  = f['address'] as String? ?? '';
-          return numero.isNotEmpty ? '$texto $numero' : texto;
+          final numero  = (f['address'] as String? ?? '').replaceAll(' ', '-');
+          return numero.isNotEmpty ? '$texto #$numero' : texto;
         }
       }
     } catch (_) {}
@@ -137,7 +187,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
       final url   = Uri.parse(
         'https://api.mapbox.com/geocoding/v5/mapbox.places/$query.json'
         '?access_token=$token&language=es&limit=4&types=address'
-        '&proximity=-77.2811,1.2136', // centrado en Pasto
+        '&proximity=-77.2811,1.2136',
       );
       try {
         final res = await http.get(url);
@@ -146,8 +196,8 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
           final features = data['features'] as List;
           final sugs     = features.map<String>((f) {
             final texto  = f['text'] as String? ?? '';
-            final numero = f['address'] as String? ?? '';
-            return numero.isNotEmpty ? '$texto $numero' : texto;
+            final numero = (f['address'] as String? ?? '').replaceAll(' ', '-');
+            return numero.isNotEmpty ? '$texto #$numero' : texto;
           }).toList();
           setState(() => _sugerenciasDireccion = sugs);
         }
@@ -155,9 +205,78 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     });
   }
 
-  // ── Autocomplete barrio (backend) ──────────────────────────────────────────
+  // ── Buscar barrios por coordenadas (Caso A) ───────────────────────────────
+
+  Future<void> _buscarBarriosPorCoordenadas(double lat, double lng) async {
+    try {
+      final token = await AuthStorage.getToken();
+      final uri = Uri.parse(
+        'http://localhost:3000/api/reportes/barrios-por-coordenadas'
+      ).replace(queryParameters: {'lat': lat.toString(), 'lng': lng.toString()});
+      final res = await http.get(uri, headers: {
+        'Authorization': 'Bearer $token',
+      });
+      if (res.statusCode == 200 && mounted) {
+        final body = jsonDecode(res.body);
+        if (body['data'] != null) {
+          final comuna  = body['data']['comuna'] as int;
+          final barrios = (body['data']['barrios'] as List).cast<String>();
+          setState(() {
+            _comunaDetectada    = comuna;
+            _barriosCoordenadas = barrios;
+            _barriosFiltrados   = [];
+            _sinCobertura       = false;
+            barrioController.clear();
+            _barrioSeleccionado = false;
+            _filtroBusquedaController.clear();
+          });
+        } else {
+          setState(() {
+            _comunaDetectada    = null;
+            _barriosCoordenadas = [];
+            _barriosFiltrados   = [];
+            _sinCobertura       = true;
+            barrioController.clear();
+            _barrioSeleccionado = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _sinCobertura       = true;
+          _barriosCoordenadas = [];
+          _barriosFiltrados   = [];
+          _comunaDetectada    = null;
+        });
+      }
+    }
+  }
+
+  // ── Filtrar barrios localmente (Caso A) ────────────────────────────────────
+
+  void _filtrarBarriosLocalmente(String texto) {
+    if (texto.trim().isEmpty) {
+      setState(() => _barriosFiltrados = []);
+      return;
+    }
+    final lower = texto.trim().toLowerCase();
+    final filtrados = _barriosCoordenadas
+        .where((b) => b.toLowerCase().contains(lower))
+        .take(8)
+        .toList();
+    setState(() => _barriosFiltrados = filtrados);
+  }
+
+  // ── Autocomplete barrio por texto (Caso B — sin coordenadas) ───────────────
 
   void _onBarrioChanged(String valor) {
+    if (_modoListaBarrios) {
+      _filtrarBarriosLocalmente(valor);
+      setState(() => _barrioSeleccionado = false);
+      return;
+    }
+
     _debounceBarrio?.cancel();
     setState(() => _barrioSeleccionado = false);
     if (valor.trim().length < 2) {
@@ -283,6 +402,8 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
         }
         isLoading = false;
       });
+      await _buscarBarriosPorCoordenadas(
+        puntoSeleccionado!.latitude, puntoSeleccionado!.longitude);
     }
   }
 
@@ -307,7 +428,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
         body: jsonEncode({
           'usuario_id':       userId,
           'tipo_reportante':  tipoReportante,
-          'fecha_incidente':  fechaController.text,
+          'fecha_incidente':  _fechaISO,
           'franja_horaria':   franjaHoraria,
           'latitud':          _latitud,
           'longitud':         _longitud,
@@ -342,7 +463,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     if (s.length < 5)
       return 'La dirección debe tener al menos 5 caracteres';
     if (!RegExp(r'\d').hasMatch(s))
-      return 'Incluye un número en la dirección (ej: Calle 15 22B)';
+      return 'Incluye un número en la dirección (ej: Cra 15 #22-10)';
     if (RegExp(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s#\-\.]').hasMatch(s))
       return 'Solo letras, números, #, - y puntos';
     return null;
@@ -380,6 +501,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
       borderRadius: BorderRadius.circular(14),
       dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.inter(color: subColor),
@@ -390,8 +512,11 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
         final texto = display != null ? display(e) : e.toString();
         return DropdownMenuItem(
           value: e,
-          child: Text(texto,
-              style: GoogleFonts.inter(fontSize: 14, color: textColor)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(texto,
+                style: GoogleFonts.inter(fontSize: 14, color: textColor)),
+          ),
         );
       }).toList(),
       onChanged: onChanged,
@@ -430,27 +555,116 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
     );
   }
 
+  /// Widget de lista filtrable para barrios detectados por coordenadas (Caso A)
+  Widget _listaBarriosFiltrable() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final items = _barriosFiltrados.isNotEmpty
+        ? _barriosFiltrados
+        : _barriosCoordenadas;
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      constraints: const BoxConstraints(maxHeight: 260),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        border: Border.all(color: isDark ? const Color(0xFF475569) : AppColors.border),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: items.length,
+        itemBuilder: (_, i) => InkWell(
+          onTap: () {
+            setState(() {
+              barrioController.text   = items[i];
+              _barriosFiltrados       = [];
+              _barrioSeleccionado     = true;
+            });
+            _barrioFocus.unfocus();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(children: [
+              Icon(Icons.place_outlined, size: 16,
+                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub),
+              const SizedBox(width: 8),
+              Expanded(child: Text(items[i],
+                  style: GoogleFonts.inter(fontSize: 13,
+                      color: isDark ? const Color(0xFFE2E8F0) : AppColors.textMain))),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar hurto')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
         child: Form(
           key: _formKey,
-          child: Column(children: [
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
-            _dropdown<String>(
-              label: '¿Eres víctima o testigo? *',
-              value: tipoReportante,
-              items: _tiposReportante,
-              display: (e) => e[0].toUpperCase() + e.substring(1),
-              onChanged: (v) => setState(() => tipoReportante = v),
+            // ── Banner de contexto ──
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1E3A5F).withValues(alpha: 0.4)
+                    : const Color(0xFFFFF8E1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border(
+                  left: BorderSide(
+                    color: isDark
+                        ? AppColors.primaryLight
+                        : const Color(0xFFF59E0B),
+                    width: 4,
+                  ),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.shield_outlined,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.primaryLight
+                        : const Color(0xFFF59E0B),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tu reporte es completamente anónimo. La información que compartes '
+                      'nos ayuda a identificar zonas de riesgo y mejorar la seguridad en la ciudad.\n'
+                      'Cada reporte cuenta y puede ayudar a prevenir que otras personas pasen por lo mismo.',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: isDark
+                            ? const Color(0xFFE2E8F0)
+                            : const Color(0xFF92400E),
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 15),
 
+            // 1. Fecha del incidente
             TextFormField(
               controller: fechaController,
               readOnly: true,
@@ -464,6 +678,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             ),
             const SizedBox(height: 15),
 
+            // 2. Franja horaria
             _dropdown<String>(
               label: 'Franja horaria *',
               value: franjaHoraria,
@@ -472,7 +687,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             ),
             const SizedBox(height: 15),
 
-            // ── Dirección con autocomplete ──
+            // 3. Dirección con autocomplete
             TextFormField(
               controller: direccionController,
               focusNode: _direccionFocus,
@@ -481,13 +696,20 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
               decoration: InputDecoration(
                 labelText: 'Dirección *',
                 prefixIcon: const Icon(Icons.location_on),
-                suffixIcon: _latitud != null
-                    ? const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 20)
-                    : IconButton(
-                        icon: const Icon(Icons.map_outlined, color: AppColors.primary),
-                        tooltip: 'Buscar en el mapa',
-                        onPressed: isLoading ? null : _abrirSelectorMapa,
-                      ),
+                helperText: 'Escribe la calle y número, o selecciona en el mapa',
+                helperStyle: GoogleFonts.inter(fontSize: 12, color: mutedColor),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_latitud != null && direccionController.text.trim().isNotEmpty)
+                      const Icon(Icons.check_circle, color: Color(0xFF22C55E), size: 20),
+                    IconButton(
+                      icon: const Icon(Icons.map_outlined, color: AppColors.primary),
+                      tooltip: 'Seleccionar en el mapa',
+                      onPressed: isLoading ? null : _abrirSelectorMapa,
+                    ),
+                  ],
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -499,7 +721,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             }),
             const SizedBox(height: 15),
 
-            // ── Barrio con autocomplete desde BD ──
+            // 4. Barrio (Caso A: lista filtrable / Caso B: autocomplete texto)
             TextFormField(
               controller: barrioController,
               focusNode: _barrioFocus,
@@ -509,21 +731,35 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                 labelText: 'Barrio donde ocurrió *',
                 prefixIcon: const Icon(Icons.map),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                helperText: _modoListaBarrios
+                    ? '📍 Barrios de Comuna $_comunaDetectada'
+                    : _sinCobertura
+                        ? 'Barrio no detectado, escríbelo manualmente'
+                        : 'Se mostrará una lista de barrios automáticamente al ingresar la dirección. También puedes escribirlo.',
+                helperStyle: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: _modoListaBarrios ? AppColors.primary : mutedColor,
+                ),
+                helperMaxLines: 2,
                 suffixIcon: _barrioSeleccionado
                     ? const Icon(Icons.check_circle,
                         color: Color(0xFF22C55E), size: 20)
                     : null,
               ),
             ),
-            _listaSugerencias(_sugerenciasBarrio, (s) {
-              setState(() {
-                barrioController.text = s;
-                _sugerenciasBarrio    = [];
-                _barrioSeleccionado   = true;
-              });
-            }),
+            if (_modoListaBarrios && !_barrioSeleccionado)
+              _listaBarriosFiltrable()
+            else
+              _listaSugerencias(_sugerenciasBarrio, (s) {
+                setState(() {
+                  barrioController.text = s;
+                  _sugerenciasBarrio    = [];
+                  _barrioSeleccionado   = true;
+                });
+              }),
             const SizedBox(height: 15),
 
+            // 5. Tipo de hurto
             _dropdown<String>(
               label: 'Tipo de hurto *',
               value: tipoHurto,
@@ -533,12 +769,36 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             ),
             const SizedBox(height: 15),
 
+            // 6. ¿Eres víctima o testigo? *
+            _dropdown<String>(
+              label: '¿Eres víctima o testigo? *',
+              value: tipoReportante,
+              items: _tiposReportante,
+              display: (e) => e[0].toUpperCase() + e.substring(1),
+              onChanged: (v) => setState(() => tipoReportante = v),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Separador sección opcional ──
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'INFORMACIÓN ADICIONAL (OPCIONAL)',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: mutedColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+
+            // 6. Objeto hurtado (opcional)
             DropdownButtonFormField<String>(
               value: objetoHurtado,
               menuMaxHeight: 260,
               borderRadius: BorderRadius.circular(14),
-              dropdownColor: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               icon: const Icon(Icons.keyboard_arrow_down_rounded,
                   color: AppColors.primary),
               decoration: InputDecoration(
@@ -547,39 +807,56 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                     color: AppColors.primary),
               ),
               items: _objetosHurtados
-                  .map((e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(e.replaceAll('_', ' '),
+                  .map((e) {
+                    final label = e.replaceAll('_', ' ');
+                    var display = label[0].toUpperCase() + label.substring(1);
+                    if (e == 'tarjetas_documentos') display = 'Tarjetas y/o documentos';
+                    return DropdownMenuItem(
+                      value: e,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(display,
                             style: GoogleFonts.inter(fontSize: 14)),
-                      ))
+                      ),
+                    );
+                  })
                   .toList(),
               onChanged: (v) => setState(() => objetoHurtado = v),
             ),
             const SizedBox(height: 15),
 
+            // 7. Número de agresores (opcional)
             DropdownButtonFormField<String>(
               value: numeroAgresores,
               menuMaxHeight: 260,
               borderRadius: BorderRadius.circular(14),
-              dropdownColor: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF1E293B) : Colors.white,
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
               icon: const Icon(Icons.keyboard_arrow_down_rounded,
                   color: AppColors.primary),
               decoration: InputDecoration(
                 labelText: 'Número de agresores (opcional)',
                 prefixIcon:
                     const Icon(Icons.people_outline, color: AppColors.primary),
+                helperText: 'Si no lo recuerdas, selecciona "desconocido" sin problema',
+                helperStyle: GoogleFonts.inter(fontSize: 12, color: mutedColor),
               ),
               items: _numAgresores
-                  .map((e) => DropdownMenuItem(
-                        value: e,
-                        child: Text(e, style: GoogleFonts.inter(fontSize: 14)),
-                      ))
+                  .map((e) {
+                    final display = e[0].toUpperCase() + e.substring(1);
+                    return DropdownMenuItem(
+                      value: e,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(display, style: GoogleFonts.inter(fontSize: 14)),
+                      ),
+                    );
+                  })
                   .toList(),
               onChanged: (v) => setState(() => numeroAgresores = v),
             ),
             const SizedBox(height: 15),
 
+            // 9. Descripción (opcional)
             TextFormField(
               controller: descripcionController,
               maxLength: 300,
@@ -592,6 +869,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
             ),
             const SizedBox(height: 25),
 
+            // ── Botón enviar ──
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -604,6 +882,15 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
                 child: isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Enviar reporte'),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // ── Texto informativo post-envío ──
+            Center(
+              child: Text(
+                'Tu reporte aparecerá en el mapa muy pronto.',
+                style: GoogleFonts.inter(fontSize: 12, color: mutedColor),
               ),
             ),
           ]),

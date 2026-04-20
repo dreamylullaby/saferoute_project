@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/app_theme.dart';
 import 'services/auth_storage.dart';
 import 'features/user/presentation/pages/splash_page.dart';
@@ -88,6 +89,13 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.theme,
         darkTheme: AppTheme.darkTheme,
         themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+        locale: const Locale('es'),
+        supportedLocales: const [Locale('es')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: const SplashPage(),
         routes: {
           '/login':    (context) => const LoginPage(),

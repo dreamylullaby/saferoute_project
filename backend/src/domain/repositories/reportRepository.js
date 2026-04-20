@@ -36,6 +36,14 @@ class ReportRepository {
   async buscarBarrioSimilar(textoUsuario) {}
 
   /**
+   * Busca barrios por coordenadas usando la función RPC get_zona_por_coordenadas.
+   * @param {number} lat - Latitud del punto
+   * @param {number} lng - Longitud del punto
+   * @returns {Promise<Object|null>} { comuna, barrios } o null si no hay cobertura
+   */
+  async buscarBarriosPorCoordenadas(lat, lng) {}
+
+  /**
    * Obtiene reportes activos con solo los campos necesarios para el mapa.
    * @returns Lista de reportes para marcadores
    */

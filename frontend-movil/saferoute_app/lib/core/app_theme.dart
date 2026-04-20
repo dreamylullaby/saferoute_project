@@ -134,6 +134,11 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
+    ),
   );
 
   static ThemeData get darkTheme => ThemeData(
@@ -211,6 +216,11 @@ class AppTheme {
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Colors.white,
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
       ),
     ),
   );

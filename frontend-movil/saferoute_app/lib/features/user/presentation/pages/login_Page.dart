@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;
-      _mostrarError('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+      _mostrarError('Usuario o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
     }
 
     setState(() => isLoading = false);
@@ -147,8 +147,8 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         InputField(
                           controller: emailController,
-                          label: 'Correo',
-                          icon: Icons.email_outlined,
+                          label: 'Correo o usuario',
+                          icon: Icons.person_outline,
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                         ),

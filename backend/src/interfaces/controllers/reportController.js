@@ -190,6 +190,39 @@ class ReportController {
   }
 
   /**
+   * Maneja GET /api/reportes/barrios-por-coordenadas?lat=X&lng=Y
+   * Detecta la comuna a partir de coordenadas y retorna los barrios de esa comuna.
+   * Si las coordenadas no caen en ningún polígono, retorna data: null.
+   *
+   * Respuestas:
+   * - `200` { success: true, data: { comuna, barrios } } o { success: true, data: null, mensaje: "coordenadas_sin_cobertura" }
+   * - `400` Faltan parámetros lat/lng
+   * - `500` Error interno
+   */
+  async buscarBarriosPorCoordenadas(req, res) {
+    try {
+      const { lat, lng } = req.query;
+      if (!lat || !lng)
+        return res.status(400).json({ success: false, message: 'Se requieren los parámetros lat y lng' });
+
+      const latNum = parseFloat(lat);
+      const lngNum = parseFloat(lng);
+      if (isNaN(latNum) || isNaN(lngNum))
+        return res.status(400).json({ success: false, message: 'lat y lng deben ser números válidos' });
+
+      const result = await this.repository.buscarBarriosPorCoordenadas(latNum, lngNum);
+
+      if (!result) {
+        return res.status(200).json({ success: true, data: null, mensaje: 'coordenadas_sin_cobertura' });
+      }
+
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /**
    * Maneja GET /api/reportes/barrios?q=<texto>
    * Busca barrios similares al texto ingresado usando Levenshtein.
    * Retorna hasta 5 coincidencias ordenadas por similitud.

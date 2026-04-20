@@ -22,6 +22,9 @@ router.get('/mapa/nuevos',    authenticate, (req, res) => controller.getNewForMa
 /** GET /api/reportes/mapa/filtros?comunas=&franjas=&tipos=&fechaDesde=&fechaHasta= — Reportes filtrados para el mapa */
 router.get('/mapa/filtros',   authenticate, (req, res) => controller.getFiltered(req, res));
 
+/** GET /api/reportes/barrios-por-coordenadas?lat=X&lng=Y — Barrios de la comuna detectada por coordenadas */
+router.get('/barrios-por-coordenadas', authenticate, (req, res) => controller.buscarBarriosPorCoordenadas(req, res));
+
 /** GET /api/reportes/barrios?q= — Busca barrios similares al texto ingresado */
 router.get('/barrios',        authenticate, (req, res) => controller.buscarBarrios(req, res));
 
