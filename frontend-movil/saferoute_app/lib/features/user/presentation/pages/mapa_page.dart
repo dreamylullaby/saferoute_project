@@ -38,6 +38,7 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
   late final InactivityService _inactivityService;
   StreamSubscription<LatLng>? _navSub;
   StreamSubscription<int>? _nuevosSub;
+  LatLng? _userLocation;
 
   @override
   void initState() {
@@ -108,7 +109,8 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
       if (p == LocationPermission.denied || p == LocationPermission.deniedForever) return;
       final pos = await Geolocator.getCurrentPosition();
       if (!mounted) return;
-      _mapController.move(LatLng(pos.latitude, pos.longitude), 14);
+      setState(() => _userLocation = LatLng(pos.latitude, pos.longitude));
+      _mapController.move(_userLocation!, 14);
     } catch (_) {}
   }
 
@@ -210,6 +212,25 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                                   : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=$token',
                               userAgentPackageName: 'com.saferoute.app',
                             ),
+                            // Indicador de ubicación del usuario
+                            if (_userLocation != null)
+                              MarkerLayer(markers: [
+                                Marker(
+                                  point: _userLocation!,
+                                  width: 20, height: 20,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: [BoxShadow(
+                                        color: Colors.blue.withOpacity(0.3),
+                                        blurRadius: 8, spreadRadius: 2,
+                                      )],
+                                    ),
+                                  ),
+                                ),
+                              ]),
                             if (notifier.modoCalor)
                               HeatmapLayer(
                                 points: notifier.buildHeatmapPoints(),

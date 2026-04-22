@@ -72,7 +72,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
   void initState() {
     super.initState();
     _geoService = GeoService(dotenv.env['MAPBOX_TOKEN'] ?? '');
-    _autocompleteService = AutocompleteService('http://localhost:3000');
+    _autocompleteService = AutocompleteService(dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000');
 
     _direccionFocus.addListener(() {
       if (!_direccionFocus.hasFocus) {
@@ -230,7 +230,7 @@ class _ReportIncidentePageState extends State<ReportIncidentePage> {
       final token = await AuthStorage.getToken();
       final userId = await AuthStorage.getUserId();
       final res = await http.post(
-        Uri.parse('http://localhost:3000/api/reportes'),
+        Uri.parse('${dotenv.env['API_BASE_URL']}/api/reportes'),
         headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
         body: jsonEncode({
           'usuario_id': userId, 'tipo_reportante': tipoReportante,

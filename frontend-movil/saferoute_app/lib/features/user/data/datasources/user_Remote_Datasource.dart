@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
 import '../models/user_model.dart';
 import '../../../../services/auth_storage.dart';
 
@@ -9,7 +9,7 @@ import '../../../../services/auth_storage.dart';
 /// Consume los endpoints de /api/auth del backend.
 class UserRemoteDatasource {
 
-  final String baseUrl = "http://localhost:3000/api/auth";
+  final String baseUrl = "${dotenv.env['API_BASE_URL']}/api/auth";
 
   /// Autentica un usuario local con correo y contraseña.
   /// Guarda el token JWT y el userId en almacenamiento local.

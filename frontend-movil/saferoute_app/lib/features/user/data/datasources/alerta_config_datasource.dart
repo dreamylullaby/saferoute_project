@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/alerta_config_model.dart';
 import '../../../../services/auth_storage.dart';
 
 /// Datasource para el módulo de alertas por proximidad.
 /// Consume los endpoints de /api/alertas
 class AlertaConfigDatasource {
-  final String _base = 'http://localhost:3000/api/alertas';
+  final String _base = '${dotenv.env['API_BASE_URL']}/api/alertas';
 
   Future<Map<String, String>> get _headers async {
     final token = await AuthStorage.getToken();

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../services/auth_storage.dart';
 
 /// Datasource remoto para el perfil de usuario.
 class PerfilDatasource {
-  static const _baseUrl = 'http://localhost:3000/api/perfil';
+  static final _baseUrl = '${dotenv.env['API_BASE_URL']}/api/perfil';
 
   static Future<Map<String, String>> _headers() async {
     final token = await AuthStorage.getToken();
