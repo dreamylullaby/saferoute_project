@@ -13,12 +13,13 @@ import 'features/user/presentation/pages/home_page.dart';
 import 'features/user/presentation/pages/mapa_page.dart';
 import 'features/user/presentation/pages/alerta_config_page.dart';
 import 'features/user/presentation/pages/perfil_page.dart';
+import 'features/user/presentation/pages/estadisticas_page.dart';
+import 'features/user/presentation/pages/ranking_zonas_page.dart';
 
 /// Handler de mensajes en background/terminated (debe ser top-level)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // Firebase muestra la notificación automáticamente en background
 }
 
 /// Notifier global para pasar datos de notificación al mapa
@@ -28,7 +29,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
 
-  // En web se necesitan options explícitas; en Android usa google-services.json
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -44,17 +44,14 @@ void main() async {
     // Ya inicializado automáticamente (Android con google-services.json)
   }
 
-  // Registrar handler de background
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Borrar token al iniciar la app para forzar login siempre
   await AuthStorage.clear();
 
   runApp(const MyApp());
 }
 
-/// Widget que protege rutas: verifica que exista un token válido
-/// antes de mostrar la página. Si no hay token, redirige al login.
+/// Widget que protege rutas: verifica que exista un token válido.
 class AuthGuard extends StatelessWidget {
   final Widget child;
   const AuthGuard({super.key, required this.child});
@@ -65,15 +62,11 @@ class AuthGuard extends StatelessWidget {
       future: AuthStorage.getToken(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         if (snapshot.data == null) {
-          // Sin token → redirigir al login
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushNamedAndRemoveUntil(
-                context, '/login', (_) => false);
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
           });
           return const SizedBox.shrink();
         }
@@ -105,13 +98,15 @@ class MyApp extends StatelessWidget {
         ],
         home: const SplashPage(),
         routes: {
-          '/login':    (context) => const LoginPage(),
-          '/register': (context) => const RegisterPage(),
-          '/home':     (context) => AuthGuard(child: const MapaPage()),
-          '/reportar': (context) => AuthGuard(child: const ReportIncidentePage()),
-          '/mapa':     (context) => AuthGuard(child: const MapaPage()),
-          '/alertas':  (context) => AuthGuard(child: const AlertaConfigPage()),
-          '/perfil':   (context) => AuthGuard(child: const PerfilPage()),
+          '/login':        (context) => const LoginPage(),
+          '/register':     (context) => const RegisterPage(),
+          '/home':         (context) => AuthGuard(child: const MapaPage()),
+          '/reportar':     (context) => AuthGuard(child: const ReportIncidentePage()),
+          '/mapa':         (context) => AuthGuard(child: const MapaPage()),
+          '/alertas':      (context) => AuthGuard(child: const AlertaConfigPage()),
+          '/perfil':       (context) => AuthGuard(child: const PerfilPage()),
+          '/estadisticas': (context) => AuthGuard(child: const EstadisticasPage()),
+          '/ranking':      (context) => AuthGuard(child: const RankingZonasPage()),
         },
       ),
     );

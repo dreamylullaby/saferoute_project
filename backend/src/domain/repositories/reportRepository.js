@@ -67,6 +67,12 @@ class ReportRepository {
    * @returns {Promise<Array>} Reportes filtrados para el mapa
    */
   async findForMapFiltered(filtros) {}
+
+  async findForAdmin(opciones) {}
+  async getResumen() {}
+  async getEstadisticasPorPeriodo(opciones) {}
+  async getComparacionPeriodos(opciones) {}
+  async getTopZonas(opciones) {}
 }
 
 export default ReportRepository;
