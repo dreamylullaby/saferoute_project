@@ -12,6 +12,7 @@ import 'features/user/presentation/pages/report_Incidente_page.dart';
 import 'features/user/presentation/pages/home_page.dart';
 import 'features/user/presentation/pages/mapa_page.dart';
 import 'features/user/presentation/pages/alerta_config_page.dart';
+import 'features/user/presentation/pages/perfil_page.dart';
 
 /// Handler de mensajes en background/terminated (debe ser top-level)
 @pragma('vm:entry-point')
@@ -26,16 +27,22 @@ final ValueNotifier<RemoteMessage?> notificacionPendiente = ValueNotifier(null);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-  await Firebase.initializeApp(
-    options: const FirebaseOptions(
-      apiKey: "AIzaSyB-t6b7plOtez2YQGhSbJdYg3myQhH_JuI",
-      authDomain: "saferouteapp2026.firebaseapp.com",
-      projectId: "saferouteapp2026",
-      storageBucket: "saferouteapp2026.firebasestorage.app",
-      messagingSenderId: "455431452213",
-      appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
-    ),
-  );
+
+  // En web se necesitan options explícitas; en Android usa google-services.json
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyB-t6b7plOtez2YQGhSbJdYg3myQhH_JuI",
+        authDomain: "saferouteapp2026.firebaseapp.com",
+        projectId: "saferouteapp2026",
+        storageBucket: "saferouteapp2026.firebasestorage.app",
+        messagingSenderId: "455431452213",
+        appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
+      ),
+    );
+  } catch (_) {
+    // Ya inicializado automáticamente (Android con google-services.json)
+  }
 
   // Registrar handler de background
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -104,6 +111,7 @@ class MyApp extends StatelessWidget {
           '/reportar': (context) => AuthGuard(child: const ReportIncidentePage()),
           '/mapa':     (context) => AuthGuard(child: const MapaPage()),
           '/alertas':  (context) => AuthGuard(child: const AlertaConfigPage()),
+          '/perfil':   (context) => AuthGuard(child: const PerfilPage()),
         },
       ),
     );

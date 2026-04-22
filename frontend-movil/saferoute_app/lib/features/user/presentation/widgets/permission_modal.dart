@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../../../core/app_theme.dart';
 
 /// Muestra los modales de permisos (ubicación y notificaciones) después del login.
-/// Solo se muestran una vez por instalación usando SharedPreferences.
+/// Verifica el estado real de los permisos del sistema.
 /// Flujo: ubicación → notificaciones (secuencial).
 class PermissionModals {
-  static const _locationKey = 'permiso_ubicacion_respondido';
-  static const _notifKey = 'permiso_notificaciones_respondido';
-
   /// Punto de entrada: verifica qué permisos faltan y muestra los modales.
   /// Llamar después de navegar al mapa (post-login).
   static Future<void> mostrarSiNecesario(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
+    // Verificar permiso real de ubicación
+    final locationPermission = await Geolocator.checkPermission();
+    final needsLocation = locationPermission == LocationPermission.denied ||
+        locationPermission == LocationPermission.deniedForever;
 
-    final ubicacionRespondido = prefs.getBool(_locationKey) ?? false;
-    final notifRespondido = prefs.getBool(_notifKey) ?? false;
-
-    if (!ubicacionRespondido && context.mounted) {
-      await _mostrarModalUbicacion(context, prefs);
+    if (needsLocation && context.mounted) {
+      await _mostrarModalUbicacion(context);
     }
 
-    if (!notifRespondido && context.mounted) {
-      await _mostrarModalNotificaciones(context, prefs);
+    // Verificar permiso real de notificaciones
+    final notifSettings = await FirebaseMessaging.instance.getNotificationSettings();
+    final needsNotif = notifSettings.authorizationStatus == AuthorizationStatus.notDetermined ||
+        notifSettings.authorizationStatus == AuthorizationStatus.denied;
+
+    if (needsNotif && context.mounted) {
+      await _mostrarModalNotificaciones(context);
     }
   }
 
-  static Future<void> _mostrarModalUbicacion(
-      BuildContext context, SharedPreferences prefs) async {
+  static Future<void> _mostrarModalUbicacion(BuildContext context) async {
     await showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -53,15 +53,10 @@ class PermissionModals {
           textoBoton: 'Permitir acceso a ubicación',
           textoCancelar: 'Ahora no',
           onAceptar: () async {
-            await prefs.setBool(_locationKey, true);
             if (dialogContext.mounted) Navigator.pop(dialogContext);
-            final permiso = await Geolocator.checkPermission();
-            if (permiso == LocationPermission.denied) {
-              await Geolocator.requestPermission();
-            }
+            await Geolocator.requestPermission();
           },
-          onCancelar: () async {
-            await prefs.setBool(_locationKey, true);
+          onCancelar: () {
             if (dialogContext.mounted) Navigator.pop(dialogContext);
           },
         ),
@@ -70,7 +65,7 @@ class PermissionModals {
   }
 
   static Future<void> _mostrarModalNotificaciones(
-      BuildContext context, SharedPreferences prefs) async {
+      BuildContext context) async {
     await showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -93,7 +88,6 @@ class PermissionModals {
           textoBoton: 'Activar notificaciones',
           textoCancelar: 'Ahora no',
           onAceptar: () async {
-            await prefs.setBool(_notifKey, true);
             if (dialogContext.mounted) Navigator.pop(dialogContext);
             await FirebaseMessaging.instance.requestPermission(
               alert: true,
@@ -101,8 +95,7 @@ class PermissionModals {
               sound: true,
             );
           },
-          onCancelar: () async {
-            await prefs.setBool(_notifKey, true);
+          onCancelar: () {
             if (dialogContext.mounted) Navigator.pop(dialogContext);
           },
         ),
