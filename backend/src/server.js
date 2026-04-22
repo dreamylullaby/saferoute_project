@@ -23,6 +23,7 @@ import dotenv from "dotenv";
 import userRoutes   from "./interfaces/routes/userRoutes.js";
 import reportRoutes from "./interfaces/routes/reportRoutes.js";
 import alertRoutes  from "./interfaces/routes/alertRoutes.js";
+import perfilRoutes from "./interfaces/routes/perfilRoutes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use(express.json());
 app.use("/api/auth",     userRoutes);
 app.use("/api/reportes", reportRoutes);
 app.use("/api/alertas",  alertRoutes);
+app.use("/api/perfil",   perfilRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));

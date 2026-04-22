@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
@@ -65,14 +67,31 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
-      final googleProvider = GoogleAuthProvider();
-      final userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
-      final idToken        = await userCredential.user!.getIdToken();
-      final datasource     = UserRemoteDatasource();
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        // Web: usar popup
+        final googleProvider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Android/iOS: usar google_sign_in nativo
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) {
+          setState(() => isLoading = false);
+          return; // El usuario canceló
+        }
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      final idToken = await userCredential.user!.getIdToken();
+      final datasource = UserRemoteDatasource();
 
       await datasource.loginWithGoogle(idToken: idToken!);
-
-      // Registrar FCM token después del login exitoso (fire and forget)
       datasource.registrarFcmToken();
 
       if (!mounted) return;
