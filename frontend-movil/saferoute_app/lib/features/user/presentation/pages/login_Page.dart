@@ -75,7 +75,10 @@ class _LoginPageState extends State<LoginPage> {
         userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
       } else {
         // Android/iOS: usar google_sign_in nativo
-        final googleUser = await GoogleSignIn().signIn();
+        // signOut previo para forzar el selector de cuentas
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+        final googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
           setState(() => isLoading = false);
           return; // El usuario canceló

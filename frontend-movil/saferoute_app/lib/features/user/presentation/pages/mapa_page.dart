@@ -212,25 +212,6 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                                   : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=$token',
                               userAgentPackageName: 'com.saferoute.app',
                             ),
-                            // Indicador de ubicación del usuario
-                            if (_userLocation != null)
-                              MarkerLayer(markers: [
-                                Marker(
-                                  point: _userLocation!,
-                                  width: 20, height: 20,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 3),
-                                      boxShadow: [BoxShadow(
-                                        color: Colors.blue.withOpacity(0.3),
-                                        blurRadius: 8, spreadRadius: 2,
-                                      )],
-                                    ),
-                                  ),
-                                ),
-                              ]),
                             if (notifier.modoCalor)
                               HeatmapLayer(
                                 points: notifier.buildHeatmapPoints(),
@@ -258,6 +239,25 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                                   ),
                                 )).toList(),
                               ),
+                            // Indicador de ubicación del usuario (siempre encima)
+                            if (_userLocation != null)
+                              MarkerLayer(markers: [
+                                Marker(
+                                  point: _userLocation!,
+                                  width: 22, height: 22,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 3),
+                                      boxShadow: [BoxShadow(
+                                        color: Colors.blue.withOpacity(0.3),
+                                        blurRadius: 8, spreadRadius: 3,
+                                      )],
+                                    ),
+                                  ),
+                                ),
+                              ]),
                           ],
                         ),
                         MapAppBar(
