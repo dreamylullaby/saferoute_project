@@ -164,6 +164,8 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                   fechaHasta: notifier.fechaHasta,
                   conteoFiltros: notifier.conteoFiltros,
                   hayFiltros: notifier.hayFiltros,
+                  onFechaDesdeChanged: (d) => notifier.fechaDesde = d,
+                  onFechaHastaChanged: (d) => notifier.fechaHasta = d,
                   onAplicar: () {
                     notifier.aplicarFiltros();
                     _messengerKey.currentState?.showSnackBar(

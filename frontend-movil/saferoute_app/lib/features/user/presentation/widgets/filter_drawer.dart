@@ -20,6 +20,8 @@ class FilterDrawer extends StatelessWidget {
     required this.onCerrarSesion,
     this.onPerfil,
     this.onMisReportes,
+    this.onFechaDesdeChanged,
+    this.onFechaHastaChanged,
   });
 
   final Set<int> comunasSeleccionadas;
@@ -34,6 +36,8 @@ class FilterDrawer extends StatelessWidget {
   final VoidCallback onCerrarSesion;
   final VoidCallback? onPerfil;
   final VoidCallback? onMisReportes;
+  final void Function(DateTime)? onFechaDesdeChanged;
+  final void Function(DateTime)? onFechaHastaChanged;
 
   static const _franjas = [
     '00:00-05:59',
@@ -200,13 +204,17 @@ class FilterDrawer extends StatelessWidget {
                       FilterDateField(
                         label: 'Desde',
                         value: fechaDesde,
-                        onPicked: (d) => setDrawer(() {}),
+                        onPicked: (d) => setDrawer(() {
+                          onFechaDesdeChanged?.call(d);
+                        }),
                       ),
                       const SizedBox(height: 12),
                       FilterDateField(
                         label: 'Hasta',
                         value: fechaHasta,
-                        onPicked: (d) => setDrawer(() {}),
+                        onPicked: (d) => setDrawer(() {
+                          onFechaHastaChanged?.call(d);
+                        }),
                       ),
                       const SizedBox(height: 24),
                     ],
