@@ -43,12 +43,21 @@ class SubmitButton extends StatelessWidget {
                 width: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Text(
-                text,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (isGoogle) ...[
+                    Image.asset('assets/logo_google.png', height: 20, width: 20),
+                    const SizedBox(width: 10),
+                  ],
+                  Text(
+                    text,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
               ),
       ),
     );

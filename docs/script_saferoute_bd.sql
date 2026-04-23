@@ -2,7 +2,12 @@
 -- SafeRoute — Script completo de base de datos
 -- Base: PostgreSQL 17 (Supabase)
 -- Extensiones requeridas: uuid-ossp, unaccent, fuzzystrmatch, postgis
--- Sprint 3: HU-10, HU-11, HU-12, HU-13 + zonas de riesgo
+--
+-- Sprint 1 (HU-01 a HU-06): Registro, login, reportes de hurto
+-- Sprint 2 (HU-07 a HU-09): Alertas, mapa interactivo, filtros
+-- Sprint 2 (mejora): Geolocalización barrios PostGIS + secciones DANE
+-- Sprint 3 (mejora): Zona rural, corregimientos, veredas
+-- Sprint 3 (mejora): Tabla incidentes + deduplicación automática
 -- Sprint 4: Geolocalización de barrios (PostGIS + secciones DANE)
 -- =============================================================
 
@@ -50,6 +55,38 @@ CREATE INDEX idx_secciones_geom ON public.secciones_dane USING GIST(geom);
 
 
 -- =============================================================
+-- TABLA: corregimientos
+-- 17 corregimientos de Pasto (zona rural)
+-- =============================================================
+CREATE TABLE public.corregimientos (
+    id      SERIAL PRIMARY KEY,
+    nombre  VARCHAR(80) NOT NULL,
+    geom    GEOMETRY(MULTIPOLYGON, 4326),
+
+    CONSTRAINT chk_corregimiento_not_empty CHECK (nombre <> ''),
+    CONSTRAINT uniq_corregimiento UNIQUE (nombre)
+);
+
+CREATE INDEX idx_corregimientos_geom ON public.corregimientos USING GIST(geom);
+
+
+-- =============================================================
+-- TABLA: veredas
+-- Veredas por corregimiento
+-- =============================================================
+CREATE TABLE public.veredas (
+    id                SERIAL PRIMARY KEY,
+    nombre            VARCHAR(80) NOT NULL,
+    corregimiento_id  INTEGER NOT NULL REFERENCES public.corregimientos(id),
+    es_cabecera       BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT chk_vereda_not_empty CHECK (nombre <> '')
+);
+
+CREATE INDEX idx_veredas_corregimiento ON public.veredas (corregimiento_id);
+
+
+-- =============================================================
 -- TABLA: usuarios
 -- Usuarios registrados (local o Google)
 -- =============================================================
@@ -75,6 +112,7 @@ CREATE TABLE public.usuarios (
 -- =============================================================
 -- TABLA: reportes
 -- Reportes de incidentes de hurto registrados por usuarios
+-- Estado final con zona rural, auditoría e incidentes
 -- =============================================================
 CREATE TABLE public.reportes (
     id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -82,8 +120,8 @@ CREATE TABLE public.reportes (
     tipo_reportante     VARCHAR(20) NOT NULL,
     fecha_incidente     DATE        NOT NULL,
     franja_horaria      VARCHAR(20) NOT NULL,
-    latitud             NUMERIC(9,6) NOT NULL,
-    longitud            NUMERIC(9,6) NOT NULL,
+    latitud             NUMERIC(9,6),
+    longitud            NUMERIC(9,6),
     direccion           VARCHAR(100),
     tipo_hurto          VARCHAR(30) NOT NULL,
     descripcion         VARCHAR(300),
@@ -92,17 +130,52 @@ CREATE TABLE public.reportes (
     barrio_ingresado    VARCHAR(80) NOT NULL DEFAULT 'SIN DEFINIR',
     zona_id             INTEGER,
     comuna              INTEGER,
+    zona_tipo           VARCHAR(10) NOT NULL DEFAULT 'urbana',
+    corregimiento_id    INTEGER,
+    vereda_id           INTEGER,
     estado              VARCHAR(20) NOT NULL,
     fecha_creacion      TIMESTAMP   NOT NULL DEFAULT now(),
     fecha_actualizacion TIMESTAMP,
     actualizado_por     UUID,
+    incidente_id        UUID,
 
     CONSTRAINT reportes_tipo_reportante_check  CHECK (tipo_reportante  IN ('victima', 'testigo')),
     CONSTRAINT reportes_franja_horaria_check   CHECK (franja_horaria   IN ('00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59')),
     CONSTRAINT reportes_tipo_hurto_check       CHECK (tipo_hurto       IN ('atraco', 'raponazo', 'cosquilleo', 'fleteo')),
     CONSTRAINT reportes_objeto_hurtado_check   CHECK (objeto_hurtado   IN ('celular', 'dinero', 'tarjetas_documentos', 'articulos_personales', 'dispositivos_electronicos')),
     CONSTRAINT reportes_numero_agresores_check CHECK (numero_agresores IN ('1', '2', '3+', 'desconocido')),
-    CONSTRAINT reportes_estado_check           CHECK (estado           IN ('activo', 'oculto', 'eliminado'))
+    CONSTRAINT reportes_estado_check           CHECK (estado           IN ('activo', 'oculto', 'eliminado')),
+    CONSTRAINT reportes_zona_tipo_check        CHECK (zona_tipo        IN ('urbana', 'rural'))
+);
+
+
+-- =============================================================
+-- TABLA: incidentes
+-- Agrupa reportes del mismo hecho físico (deduplicación)
+-- =============================================================
+CREATE TABLE public.incidentes (
+    id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporte_principal_id UUID        NOT NULL,
+    tipo_hurto           VARCHAR(30) NOT NULL,
+    fecha_incidente      DATE        NOT NULL,
+    franja_horaria       VARCHAR(20) NOT NULL,
+    latitud_centro       NUMERIC(9,6),
+    longitud_centro      NUMERIC(9,6),
+    zona_id              INTEGER,
+    comuna               INTEGER,
+    cantidad_reportes    INTEGER     NOT NULL DEFAULT 1,
+    fecha_creacion       TIMESTAMP   NOT NULL DEFAULT now(),
+
+    CONSTRAINT fk_reporte_principal
+        FOREIGN KEY (reporte_principal_id) REFERENCES public.reportes(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_incidente_zona
+        FOREIGN KEY (zona_id) REFERENCES public.zonas(id),
+    CONSTRAINT incidentes_tipo_hurto_check
+        CHECK (tipo_hurto IN ('atraco', 'raponazo', 'cosquilleo', 'fleteo')),
+    CONSTRAINT incidentes_franja_horaria_check
+        CHECK (franja_horaria IN ('00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59')),
+    CONSTRAINT chk_incidente_comuna
+        CHECK (comuna IS NULL OR (comuna >= 1 AND comuna <= 12))
 );
 
 
@@ -120,6 +193,18 @@ ALTER TABLE public.reportes
 ALTER TABLE public.reportes
     ADD CONSTRAINT fk_zona
     FOREIGN KEY (zona_id) REFERENCES public.zonas(id);
+
+ALTER TABLE public.reportes
+    ADD CONSTRAINT fk_corregimiento
+    FOREIGN KEY (corregimiento_id) REFERENCES public.corregimientos(id);
+
+ALTER TABLE public.reportes
+    ADD CONSTRAINT fk_vereda
+    FOREIGN KEY (vereda_id) REFERENCES public.veredas(id);
+
+ALTER TABLE public.reportes
+    ADD CONSTRAINT fk_reporte_incidente
+    FOREIGN KEY (incidente_id) REFERENCES public.incidentes(id) ON DELETE SET NULL;
 
 
 -- =============================================================
@@ -219,7 +304,7 @@ CREATE OR REPLACE FUNCTION public.get_zona_por_coordenadas(
     lng DOUBLE PRECISION
 )
 RETURNS TABLE(comuna INTEGER, barrios TEXT[])
-LANGUAGE sql AS $$
+LANGUAGE sql AS $
     SELECT
         s.comuna,
         ARRAY_AGG(z.barrio ORDER BY z.barrio) AS barrios
@@ -231,7 +316,7 @@ LANGUAGE sql AS $$
     )
     GROUP BY s.comuna
     LIMIT 1;
-$$;
+$;
 
 -- Asigna zona y comuna usando coordenadas (primero) y nombre como fallback
 CREATE OR REPLACE FUNCTION public.asignar_zona_y_comuna()
@@ -267,27 +352,94 @@ BEGIN
 END;
 $;
 
+-- Deduplicación automática de incidentes
+-- Criterios: mismo tipo_hurto + misma fecha + misma franja + dentro de 150m
+CREATE OR REPLACE FUNCTION public.asignar_o_crear_incidente()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    incidente_existente UUID;
+    RADIO_METROS        CONSTANT NUMERIC := 150;
+BEGIN
+    IF NEW.latitud IS NOT NULL AND NEW.longitud IS NOT NULL THEN
+        SELECT i.id INTO incidente_existente
+        FROM public.incidentes i
+        WHERE i.tipo_hurto      = NEW.tipo_hurto
+          AND i.fecha_incidente = NEW.fecha_incidente
+          AND i.franja_horaria  = NEW.franja_horaria
+          AND i.latitud_centro  IS NOT NULL
+          AND (
+              6371000 * acos(
+                  LEAST(1.0,
+                      cos(radians(i.latitud_centro::float8))
+                      * cos(radians(NEW.latitud::float8))
+                      * cos(radians(NEW.longitud::float8) - radians(i.longitud_centro::float8))
+                      + sin(radians(i.latitud_centro::float8))
+                      * sin(radians(NEW.latitud::float8))
+                  )
+              )
+          ) <= RADIO_METROS
+        ORDER BY i.fecha_creacion ASC
+        LIMIT 1;
+    END IF;
+
+    IF incidente_existente IS NOT NULL THEN
+        NEW.incidente_id := incidente_existente;
+        UPDATE public.incidentes i
+        SET
+            cantidad_reportes = i.cantidad_reportes + 1,
+            latitud_centro  = (i.latitud_centro  * i.cantidad_reportes + NEW.latitud)
+                              / (i.cantidad_reportes + 1),
+            longitud_centro = (i.longitud_centro * i.cantidad_reportes + NEW.longitud)
+                              / (i.cantidad_reportes + 1),
+            reporte_principal_id = CASE
+                WHEN NEW.tipo_reportante = 'victima' THEN NEW.id
+                ELSE i.reporte_principal_id
+            END
+        WHERE i.id = incidente_existente;
+    ELSE
+        INSERT INTO public.incidentes (
+            reporte_principal_id, tipo_hurto, fecha_incidente,
+            franja_horaria, latitud_centro, longitud_centro,
+            zona_id, comuna, cantidad_reportes
+        ) VALUES (
+            NEW.id, NEW.tipo_hurto, NEW.fecha_incidente,
+            NEW.franja_horaria, NEW.latitud, NEW.longitud,
+            NEW.zona_id, NEW.comuna, 1
+        )
+        RETURNING id INTO NEW.incidente_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
 -- Calcula nivel de riesgo según cantidad de reportes (heatmap)
--- seguro: 0-3 | medio: 4-7 | alto: 8-10 | peligroso: >10
 CREATE OR REPLACE FUNCTION public.calcular_nivel_riesgo(cantidad INTEGER)
 RETURNS VARCHAR(20)
-LANGUAGE sql IMMUTABLE AS $$
+LANGUAGE sql IMMUTABLE AS $
     SELECT CASE
         WHEN cantidad <= 3  THEN 'seguro'
         WHEN cantidad <= 7  THEN 'medio'
         WHEN cantidad <= 10 THEN 'alto'
         ELSE 'peligroso'
     END;
-$$;
+$;
 
 
 -- =============================================================
 -- TRIGGERS sobre reportes
+-- (orden alfabético: trigger_asignar_incidente corre DESPUÉS
+--  de trigger_asignar_zona_comuna)
 -- =============================================================
 CREATE TRIGGER trigger_asignar_zona_comuna
     BEFORE INSERT OR UPDATE ON public.reportes
     FOR EACH ROW
     EXECUTE FUNCTION public.asignar_zona_y_comuna();
+
+CREATE TRIGGER trigger_asignar_incidente
+    BEFORE INSERT ON public.reportes
+    FOR EACH ROW
+    EXECUTE FUNCTION public.asignar_o_crear_incidente();
 
 
 -- =============================================================
@@ -335,6 +487,22 @@ CREATE INDEX idx_reportes_actualizado_por
     WHERE actualizado_por IS NOT NULL;
 
 -- =============================================================
+-- ÍNDICES — Zona rural
+-- =============================================================
+CREATE INDEX idx_reportes_zona_tipo       ON public.reportes (zona_tipo);
+CREATE INDEX idx_reportes_corregimiento   ON public.reportes (corregimiento_id);
+
+-- =============================================================
+-- ÍNDICES — Incidentes
+-- =============================================================
+CREATE INDEX idx_incidentes_tipo_hurto ON public.incidentes (tipo_hurto);
+CREATE INDEX idx_incidentes_fecha      ON public.incidentes (fecha_incidente);
+CREATE INDEX idx_incidentes_zona       ON public.incidentes (zona_id);
+CREATE INDEX idx_incidentes_coords     ON public.incidentes (latitud_centro, longitud_centro);
+CREATE INDEX idx_incidentes_comuna     ON public.incidentes (comuna);
+CREATE INDEX idx_reportes_incidente_id ON public.reportes (incidente_id);
+
+-- =============================================================
 -- ÍNDICES — password_resets (HU-13)
 -- =============================================================
 CREATE INDEX idx_password_resets_token     ON public.password_resets (token);
@@ -352,18 +520,11 @@ CREATE INDEX idx_zonas_riesgo_comuna       ON public.zonas_riesgo (comuna) WHERE
 
 -- =============================================================
 -- VISTA: vw_estadisticas_basicas (HU-11)
--- Estadísticas generales de reportes activos
 -- =============================================================
 CREATE OR REPLACE VIEW public.vw_estadisticas_basicas AS
 WITH reportes_activos AS (
-    SELECT
-        id,
-        fecha_incidente,
-        franja_horaria,
-        tipo_hurto,
-        comuna,
-        zona_id,
-        fecha_creacion
+    SELECT id, fecha_incidente, franja_horaria, tipo_hurto,
+           comuna, zona_id, fecha_creacion
     FROM public.reportes
     WHERE estado = 'activo'
 ),
@@ -371,16 +532,12 @@ total AS (
     SELECT COUNT(*) AS total_reportes FROM reportes_activos
 ),
 por_dia AS (
-    SELECT
-        fecha_incidente,
-        COUNT(*) AS cantidad
+    SELECT fecha_incidente, COUNT(*) AS cantidad
     FROM reportes_activos
     GROUP BY fecha_incidente
 ),
 por_franja AS (
-    SELECT
-        franja_horaria,
-        COUNT(*) AS cantidad
+    SELECT franja_horaria, COUNT(*) AS cantidad
     FROM reportes_activos
     GROUP BY franja_horaria
 )
@@ -396,7 +553,6 @@ CROSS JOIN por_franja pf;
 
 -- =============================================================
 -- VISTA: vw_estadisticas_por_periodo (HU-11)
--- Comparación entre periodos (agrupado por semana ISO)
 -- =============================================================
 CREATE OR REPLACE VIEW public.vw_estadisticas_por_periodo AS
 SELECT
@@ -411,55 +567,59 @@ GROUP BY DATE_TRUNC('week', fecha_incidente)
 ORDER BY semana_inicio DESC;
 
 -- =============================================================
--- VISTA: vw_top_zonas_hurtos (HU-12)
--- Ranking de comunas con más hurtos + tipo más frecuente
+-- VISTA: vw_top_zonas_hurtos (con incidentes)
 -- =============================================================
 CREATE OR REPLACE VIEW public.vw_top_zonas_hurtos AS
 WITH conteo_comuna AS (
     SELECT
-        r.comuna,
-        COUNT(*)            AS total_reportes,
-        MAX(r.fecha_incidente) AS ultimo_reporte
-    FROM public.reportes r
+        i.comuna,
+        COUNT(*)                 AS total_incidentes,
+        SUM(i.cantidad_reportes) AS total_reportes_vinculados,
+        MAX(i.fecha_incidente)   AS ultimo_incidente
+    FROM public.incidentes i
+    INNER JOIN public.reportes r ON r.id = i.reporte_principal_id
     WHERE r.estado = 'activo'
-      AND r.comuna IS NOT NULL
-    GROUP BY r.comuna
+      AND i.comuna IS NOT NULL
+    GROUP BY i.comuna
 ),
 tipo_frecuente AS (
-    SELECT DISTINCT ON (r.comuna)
-        r.comuna,
-        r.tipo_hurto,
+    SELECT DISTINCT ON (i.comuna)
+        i.comuna,
+        i.tipo_hurto,
         COUNT(*) AS cantidad_tipo
-    FROM public.reportes r
+    FROM public.incidentes i
+    INNER JOIN public.reportes r ON r.id = i.reporte_principal_id
     WHERE r.estado = 'activo'
-      AND r.comuna IS NOT NULL
-    GROUP BY r.comuna, r.tipo_hurto
-    ORDER BY r.comuna, cantidad_tipo DESC
+      AND i.comuna IS NOT NULL
+    GROUP BY i.comuna, i.tipo_hurto
+    ORDER BY i.comuna, cantidad_tipo DESC
 )
 SELECT
     cc.comuna,
-    cc.total_reportes,
-    cc.ultimo_reporte,
-    tf.tipo_hurto       AS tipo_hurto_frecuente,
-    tf.cantidad_tipo    AS cantidad_tipo_frecuente
+    cc.total_incidentes,
+    cc.total_reportes_vinculados,
+    cc.ultimo_incidente,
+    tf.tipo_hurto    AS tipo_hurto_frecuente,
+    tf.cantidad_tipo AS cantidad_tipo_frecuente
 FROM conteo_comuna cc
 LEFT JOIN tipo_frecuente tf ON cc.comuna = tf.comuna
-ORDER BY cc.total_reportes DESC;
+ORDER BY cc.total_incidentes DESC;
 
 -- =============================================================
--- VISTA: vw_top_barrios_hurtos (HU-12)
--- Ranking de barrios con más hurtos (detalle por barrio)
+-- VISTA: vw_top_barrios_hurtos (con incidentes)
 -- =============================================================
 CREATE OR REPLACE VIEW public.vw_top_barrios_hurtos AS
 SELECT
-    r.comuna,
+    i.comuna,
     z.barrio,
-    r.zona_id,
-    COUNT(*)                    AS total_reportes,
-    MAX(r.fecha_incidente)      AS ultimo_reporte
-FROM public.reportes r
-INNER JOIN public.zonas z ON r.zona_id = z.id
+    i.zona_id,
+    COUNT(*)                 AS total_incidentes,
+    SUM(i.cantidad_reportes) AS total_reportes_vinculados,
+    MAX(i.fecha_incidente)   AS ultimo_incidente
+FROM public.incidentes i
+INNER JOIN public.zonas z ON i.zona_id = z.id
+INNER JOIN public.reportes r ON r.id = i.reporte_principal_id
 WHERE r.estado = 'activo'
-  AND r.zona_id IS NOT NULL
-GROUP BY r.comuna, z.barrio, r.zona_id
-ORDER BY total_reportes DESC;
+  AND i.zona_id IS NOT NULL
+GROUP BY i.comuna, z.barrio, i.zona_id
+ORDER BY total_incidentes DESC;

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../services/auth_storage.dart';
 
 /// Datasource para estadísticas de hurtos por período.
 class EstadisticasDatasource {
-  final String _base = 'http://localhost:3000/api/reportes';
+  final String _base = '${dotenv.env['API_BASE_URL']}/api/reportes';
 
   Future<Map<String, String>> get _headers async {
     final token = await AuthStorage.getToken();
