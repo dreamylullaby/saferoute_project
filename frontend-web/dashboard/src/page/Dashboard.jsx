@@ -1,117 +1,143 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutAdmin } from "../services/authService";
-import { getResumen } from "../services/reportService";
-import ReportesAdmin from "./ReportesAdmin";
+import TabResumen from "./tabs/TabResumen";
+import TabIncidentes from "./tabs/TabIncidentes";
+import TabUsuarios from "./tabs/TabUsuarios";
+import TabEstadisticas from "./tabs/TabEstadisticas";
 
-const COLORES_TIPO = {
-  atraco:     { bg: "#fee2e2", text: "#b91c1c" },
-  raponazo:   { bg: "#fce7f3", text: "#9d174d" },
-  fleteo:     { bg: "#fae8ff", text: "#7e22ce" },
-  cosquilleo: { bg: "#ede9fe", text: "#5b21b6" },
-};
+const TABS = [
+  { id: "resumen", label: "Resumen", icon: "📊" },
+  { id: "incidentes", label: "Incidentes", icon: "⚠️" },
+  { id: "usuarios", label: "Usuarios", icon: "👥" },
+  { id: "estadisticas", label: "Estadísticas", icon: "📈" },
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const admin = JSON.parse(sessionStorage.getItem("admin") || "{}");
-  const [resumen, setResumen] = useState(null);
-
-  useEffect(() => {
-    getResumen()
-      .then(setResumen)
-      .catch(console.error);
-  }, []);
+  const [activeTab, setActiveTab] = useState("resumen");
+  const [counts, setCounts] = useState({ incidentes: 0, usuarios: 0 });
 
   const cerrarSesion = async () => {
     await logoutAdmin();
     navigate("/");
   };
 
+  const renderTab = () => {
+    switch (activeTab) {
+      case "resumen":      return <TabResumen />;
+      case "incidentes":   return <TabIncidentes onCountChange={(n) => setCounts(c => ({ ...c, incidentes: n }))} />;
+      case "usuarios":     return <TabUsuarios onCountChange={(n) => setCounts(c => ({ ...c, usuarios: n }))} />;
+      case "estadisticas": return <TabEstadisticas />;
+      default:             return null;
+    }
+  };
+
+  const getTabLabel = (tab) => {
+    if (tab.id === "incidentes" && counts.incidentes > 0) return `${tab.label} (${counts.incidentes})`;
+    if (tab.id === "usuarios" && counts.usuarios > 0) return `${tab.label} (${counts.usuarios})`;
+    return tab.label;
+  };
+
   return (
     <div style={styles.page}>
       {/* Header */}
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.titulo}>SafeRoute — Panel Admin</h1>
-          <p style={styles.subtitulo}>Bienvenido, <strong>{admin.username}</strong></p>
+      <header style={styles.header}>
+        <div style={styles.headerLeft}>
+          <div style={styles.logoCircle}>
+            <span style={{ fontSize: "18px" }}>🛡️</span>
+          </div>
+          <div>
+            <h1 style={styles.titulo}>Panel de Administración</h1>
+            <p style={styles.subtitulo}>SafeRoute: Pasto - Análisis de Seguridad</p>
+          </div>
         </div>
-        <button onClick={cerrarSesion} style={styles.btnLogout}>
-          Cerrar sesión
-        </button>
-      </div>
-
-      {/* Tarjetas de resumen */}
-      {resumen && (
-        <div style={styles.tarjetas}>
-          <Tarjeta titulo="Total reportes" valor={resumen.total} color={{ bg: "#eff6ff", text: "#1d4ed8" }} />
-          <Tarjeta titulo="Activos"  valor={resumen.porEstado?.activo  || 0} color={{ bg: "#f0fdf4", text: "#166534" }} />
-          <Tarjeta titulo="Ocultos"  valor={resumen.porEstado?.oculto  || 0} color={{ bg: "#fefce8", text: "#854d0e" }} />
-          {Object.entries(resumen.porTipo || {}).map(([tipo, count]) => (
-            <Tarjeta
-              key={tipo}
-              titulo={tipo.charAt(0).toUpperCase() + tipo.slice(1)}
-              valor={count}
-              color={COLORES_TIPO[tipo] || { bg: "#f1f5f9", text: "#475569" }}
-            />
-          ))}
+        <div style={styles.headerRight}>
+          <span style={styles.adminName}>{admin.username}</span>
+          <button onClick={cerrarSesion} style={styles.btnLogout} title="Cerrar sesión">
+            ⎋
+          </button>
         </div>
-      )}
+      </header>
 
-      {/* Tabla de reportes */}
-      <div style={styles.seccion}>
-        <h2 style={styles.seccionTitulo}>Incidentes registrados</h2>
-        <ReportesAdmin />
-      </div>
-    </div>
-  );
-}
+      {/* Tabs */}
+      <nav style={styles.tabBar}>
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              ...styles.tab,
+              ...(activeTab === tab.id ? styles.tabActive : {}),
+            }}
+          >
+            <span style={styles.tabIcon}>{tab.icon}</span>
+            {getTabLabel(tab)}
+          </button>
+        ))}
+      </nav>
 
-function Tarjeta({ titulo, valor, color }) {
-  return (
-    <div style={{ ...styles.tarjeta, backgroundColor: color.bg }}>
-      <span style={{ ...styles.tarjetaValor, color: color.text }}>{valor}</span>
-      <span style={styles.tarjetaTitulo}>{titulo}</span>
+      {/* Content */}
+      <main style={styles.content}>
+        {renderTab()}
+      </main>
     </div>
   );
 }
 
 const styles = {
   page: {
-    padding: "32px 40px",
-    fontFamily: "'Inter', sans-serif",
-    backgroundColor: "#f8fafc",
+    fontFamily: "'Inter', -apple-system, sans-serif",
+    backgroundColor: "#f1f5f9",
     minHeight: "100vh",
   },
   header: {
-    display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-    marginBottom: "28px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 32px",
+    background: "linear-gradient(135deg, #1E1E7C, #333c87, #6D6DF9)",
+    color: "#fff",
   },
-  titulo: { margin: 0, fontSize: "22px", color: "#1e293b", fontWeight: "700" },
-  subtitulo: { margin: "4px 0 0", color: "#64748b", fontSize: "14px" },
+  headerLeft: { display: "flex", alignItems: "center", gap: "12px" },
+  logoCircle: {
+    width: "40px", height: "40px", borderRadius: "50%",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+  },
+  titulo: { margin: 0, fontSize: "18px", fontWeight: "700" },
+  subtitulo: { margin: "2px 0 0", fontSize: "12px", opacity: 0.8 },
+  headerRight: { display: "flex", alignItems: "center", gap: "12px" },
+  adminName: { fontSize: "13px", opacity: 0.9 },
   btnLogout: {
-    padding: "8px 16px", borderRadius: "8px",
-    backgroundColor: "#ef4444", color: "#fff",
-    border: "none", cursor: "pointer", fontSize: "13px",
+    width: "36px", height: "36px", borderRadius: "8px",
+    backgroundColor: "rgba(255,255,255,0.15)", color: "#fff",
+    border: "none", cursor: "pointer", fontSize: "16px",
+    display: "flex", alignItems: "center", justifyContent: "center",
   },
-  tarjetas: {
-    display: "flex", flexWrap: "wrap", gap: "12px",
-    marginBottom: "28px",
-  },
-  tarjeta: {
-    display: "flex", flexDirection: "column", alignItems: "center",
-    padding: "16px 24px", borderRadius: "12px",
-    minWidth: "120px",
-  },
-  tarjetaValor: { fontSize: "28px", fontWeight: "700" },
-  tarjetaTitulo: { fontSize: "12px", color: "#64748b", marginTop: "4px" },
-  seccion: {
+  tabBar: {
+    display: "flex", gap: "0",
     backgroundColor: "#fff",
-    borderRadius: "12px",
-    padding: "24px",
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    borderBottom: "2px solid #e2e8f0",
+    padding: "0 32px",
   },
-  seccionTitulo: {
-    margin: "0 0 16px",
-    fontSize: "16px", color: "#1e293b", fontWeight: "600",
+  tab: {
+    padding: "14px 20px",
+    border: "none", background: "none",
+    cursor: "pointer",
+    fontSize: "13px", fontWeight: "500",
+    color: "#64748b",
+    borderBottom: "2px solid transparent",
+    marginBottom: "-2px",
+    transition: "all 0.2s",
+    display: "flex", alignItems: "center", gap: "6px",
   },
+  tabActive: {
+    color: "#2563EB",
+    borderBottomColor: "#2563EB",
+    fontWeight: "600",
+  },
+  tabIcon: { fontSize: "14px" },
+  content: { padding: "24px 32px" },
 };

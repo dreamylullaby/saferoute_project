@@ -134,12 +134,25 @@ class MapaNotifier extends ChangeNotifier {
 
   List<HeatmapPoint> buildHeatmapPoints() {
     if (_filtrados.isEmpty) return [];
-    const radio = 0.005;
+    // Radio de ~180m en grados (aprox)
+    const radio = 0.0016;
     return _filtrados.map((r) {
+      // Contar reportes cercanos (excluyéndose a sí mismo)
       final cercanos = _filtrados.where((o) =>
+          o.id != r.id &&
           (o.latitud - r.latitud).abs() < radio &&
           (o.longitud - r.longitud).abs() < radio).length;
-      final intensity = (cercanos / 10).clamp(0.15, 1.0);
+      // Escala absoluta: 0-2 seguro, 3-6 bajo, 7-10 medio, >10 alto
+      final double intensity;
+      if (cercanos <= 2) {
+        intensity = 0.15; // seguro
+      } else if (cercanos <= 6) {
+        intensity = 0.35; // bajo riesgo
+      } else if (cercanos <= 10) {
+        intensity = 0.65; // riesgo medio
+      } else {
+        intensity = 1.0;  // alto riesgo
+      }
       return HeatmapPoint(LatLng(r.latitud, r.longitud), intensity);
     }).toList();
   }

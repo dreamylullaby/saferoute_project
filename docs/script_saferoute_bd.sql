@@ -358,6 +358,7 @@ CREATE OR REPLACE FUNCTION public.asignar_o_crear_incidente()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 DECLARE
     incidente_existente UUID;
+    nuevo_incidente_id  UUID;
     RADIO_METROS        CONSTANT NUMERIC := 150;
 BEGIN
     IF NEW.latitud IS NOT NULL AND NEW.longitud IS NOT NULL THEN
@@ -383,7 +384,6 @@ BEGIN
     END IF;
 
     IF incidente_existente IS NOT NULL THEN
-        NEW.incidente_id := incidente_existente;
         UPDATE public.incidentes i
         SET
             cantidad_reportes = i.cantidad_reportes + 1,
@@ -396,6 +396,8 @@ BEGIN
                 ELSE i.reporte_principal_id
             END
         WHERE i.id = incidente_existente;
+
+        nuevo_incidente_id := incidente_existente;
     ELSE
         INSERT INTO public.incidentes (
             reporte_principal_id, tipo_hurto, fecha_incidente,
@@ -406,8 +408,13 @@ BEGIN
             NEW.franja_horaria, NEW.latitud, NEW.longitud,
             NEW.zona_id, NEW.comuna, 1
         )
-        RETURNING id INTO NEW.incidente_id;
+        RETURNING id INTO nuevo_incidente_id;
     END IF;
+
+    -- Asignar incidente_id al reporte (AFTER INSERT, no podemos modificar NEW)
+    UPDATE public.reportes
+    SET incidente_id = nuevo_incidente_id
+    WHERE id = NEW.id;
 
     RETURN NEW;
 END;
@@ -437,7 +444,7 @@ CREATE TRIGGER trigger_asignar_zona_comuna
     EXECUTE FUNCTION public.asignar_zona_y_comuna();
 
 CREATE TRIGGER trigger_asignar_incidente
-    BEFORE INSERT ON public.reportes
+    AFTER INSERT ON public.reportes
     FOR EACH ROW
     EXECUTE FUNCTION public.asignar_o_crear_incidente();
 
