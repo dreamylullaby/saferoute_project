@@ -16,6 +16,8 @@ import 'features/user/presentation/pages/perfil_page.dart';
 import 'features/user/presentation/pages/estadisticas_page.dart';
 import 'features/user/presentation/pages/ranking_zonas_page.dart';
 import 'features/user/presentation/pages/mis_reportes_page.dart';
+import 'features/user/presentation/pages/forgot_password_page.dart';
+import 'features/user/presentation/pages/reset_password_page.dart';
 
 /// Handler de mensajes en background/terminated (debe ser top-level)
 @pragma('vm:entry-point')
@@ -108,7 +110,9 @@ class MyApp extends StatelessWidget {
           '/perfil':       (context) => AuthGuard(child: const PerfilPage()),
           '/estadisticas': (context) => AuthGuard(child: const EstadisticasPage()),
           '/ranking':      (context) => AuthGuard(child: const RankingZonasPage()),
-          '/mis-reportes': (context) => AuthGuard(child: const MisReportesPage()),
+          '/mis-reportes':      (context) => AuthGuard(child: const MisReportesPage()),
+          '/forgot-password':   (context) => const ForgotPasswordPage(),
+          '/reset-password':    (context) => const ResetPasswordPage(),
         },
       ),
     );
