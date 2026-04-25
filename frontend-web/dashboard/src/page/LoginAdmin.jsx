@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { loginAdmin } from "../services/authService.js";
 import "./LoginAdmin.css";
 
@@ -92,6 +92,11 @@ export default function LoginAdmin() {
             </div>
             {serverError && <p className="login-server-err">{serverError}</p>}
             <button type="submit" disabled={isLoading} className="login-btn">{isLoading ? "Ingresando..." : "Iniciar sesión"}</button>
+            <div style={{textAlign:"center",marginTop:"12px"}}>
+              <Link to="/forgot-password" style={{color:"#2563eb",fontSize:"13px",textDecoration:"none"}}>
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </form>
           <p className="login-footer">Solo para administradores autorizados del sistema SafeRoute</p>
         </div>

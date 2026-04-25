@@ -133,4 +133,30 @@ class UserRemoteDatasource {
       // Silencioso — no interrumpe el flujo de login
     }
   }
+
+  /// Solicita recuperación de contraseña enviando correo con enlace.
+  Future<void> forgotPassword(String correo) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/forgot-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"correo": correo, "plataforma": "app"}),
+    );
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data["message"] ?? "Error al procesar la solicitud");
+    }
+  }
+
+  /// Restablece la contraseña usando el token recibido por correo.
+  Future<void> resetPassword(String token, String nuevaPassword) async {
+    final response = await http.post(
+      Uri.parse("$baseUrl/reset-password"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"token": token, "nuevaPassword": nuevaPassword}),
+    );
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data["message"] ?? "Error al restablecer la contraseña");
+    }
+  }
 }
