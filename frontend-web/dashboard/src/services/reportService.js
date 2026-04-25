@@ -1,4 +1,4 @@
-import api from "./api";
+import api from "./api.js";
 
 /**
  * Obtiene el resumen de conteos para las tarjetas del dashboard.
@@ -22,5 +22,13 @@ export const getReportesAdmin = async (params = {}) => {
  */
 export const getReporteById = async (id) => {
   const { data } = await api.get(`/api/reportes/${id}`);
+  return data.data;
+};
+
+/**
+ * Obtiene reportes con coordenadas para el mapa.
+ */
+export const getReportesMapa = async () => {
+  const { data } = await api.get("/api/reportes/mapa");
   return data.data;
 };
