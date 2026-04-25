@@ -194,6 +194,14 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                     // Re-verificar permisos al volver del perfil
                     if (mounted) PermissionModals.mostrarSiNecesario(context);
                   },
+                  onEstadisticas: () {
+                    Navigator.pop(context); // cerrar drawer
+                    Navigator.pushNamed(context, '/estadisticas');
+                  },
+                  onMisReportes: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, '/mis-reportes');
+                  },
                 ),
                 body: notifier.cargando
                     ? const Center(child: CircularProgressIndicator())
