@@ -197,7 +197,12 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
   }
 
   void _showFilterSheet(String title, List<MapEntry<String, String>> options, String? current, void Function(String?) onSelect) {
-    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))), builder: (ctx) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final sheetBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final sheetText = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final sheetSub = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: sheetBg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))), builder: (ctx) {
       return DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.3,
@@ -205,11 +210,11 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
         expand: false,
         builder: (_, scrollController) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
           Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-            Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textMain)),
+            Text(title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: sheetText)),
             const Spacer(),
             if (current != null) GestureDetector(onTap: () { Navigator.pop(ctx); onSelect(null); }, child: Text('Quitar filtro', style: GoogleFonts.inter(fontSize: 13, color: AppColors.error, fontWeight: FontWeight.w500))),
           ])),
-          const Divider(height: 1),
+          Divider(height: 1, color: isDark ? const Color(0xFF475569) : AppColors.border),
           Expanded(child: ListView.builder(
             controller: scrollController,
             itemCount: options.length,
@@ -217,8 +222,8 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
               final o = options[i];
               final selected = current == o.key;
               return ListTile(
-                leading: Icon(selected ? Icons.check_circle : Icons.circle_outlined, color: selected ? AppColors.primary : AppColors.textSub, size: 20),
-                title: Text(o.value, style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMain, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
+                leading: Icon(selected ? Icons.check_circle : Icons.circle_outlined, color: selected ? AppColors.primary : sheetSub, size: 20),
+                title: Text(o.value, style: GoogleFonts.inter(fontSize: 14, color: sheetText, fontWeight: selected ? FontWeight.w600 : FontWeight.normal)),
                 onTap: () { Navigator.pop(ctx); onSelect(o.key); },
               );
             },
