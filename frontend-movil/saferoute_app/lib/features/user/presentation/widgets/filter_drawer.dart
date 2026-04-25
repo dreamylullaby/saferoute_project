@@ -19,6 +19,7 @@ class FilterDrawer extends StatefulWidget {
     required this.onRestablecer,
     required this.onCerrarSesion,
     this.onPerfil,
+    this.onEstadisticas,
     this.onMisReportes,
     this.onFechaDesdeChanged,
     this.onFechaHastaChanged,
@@ -35,6 +36,7 @@ class FilterDrawer extends StatefulWidget {
   final VoidCallback onRestablecer;
   final VoidCallback onCerrarSesion;
   final VoidCallback? onPerfil;
+  final VoidCallback? onEstadisticas;
   final VoidCallback? onMisReportes;
   final void Function(DateTime)? onFechaDesdeChanged;
   final void Function(DateTime)? onFechaHastaChanged;
@@ -271,7 +273,7 @@ class _FilterDrawerState extends State<FilterDrawer> {
                 _navItem(icon: Icons.person_outline, label: 'Mi perfil',
                     enabled: true, isDark: isDark, onTap: widget.onPerfil),
                 _navItem(icon: Icons.bar_chart_rounded, label: 'Estadísticas',
-                    enabled: false, isDark: isDark),
+                    enabled: true, isDark: isDark, onTap: widget.onEstadisticas),
                 _navItem(icon: Icons.description_outlined, label: 'Mis reportes',
                     enabled: widget.onMisReportes != null, isDark: isDark, onTap: widget.onMisReportes),
                 const SizedBox(height: 4),
