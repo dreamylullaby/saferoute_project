@@ -214,21 +214,32 @@ export default class ReportRepositoryImpl extends ReportRepository {
   async getResumen() {
     const { data, error } = await supabase
       .from('reportes')
-      .select('tipo_hurto, estado')
+      .select('tipo_hurto, estado, comuna, franja_horaria, fecha_incidente')
       .neq('estado', 'eliminado');
 
     if (error) throw new Error(`Error al obtener resumen: ${error.message}`);
 
-    const total     = data.length;
-    const porTipo   = {};
-    const porEstado = {};
+    const total       = data.length;
+    const porTipo     = {};
+    const porEstado   = {};
+    const porComuna   = {};
+    const porFranja   = {};
+    const porFecha    = {};
+    const recientes   = [];
 
-    for (const r of data) {
-      porTipo[r.tipo_hurto] = (porTipo[r.tipo_hurto] || 0) + 1;
-      porEstado[r.estado]   = (porEstado[r.estado]   || 0) + 1;
+    // Ordenar por fecha descendente para obtener los más recientes
+    const sorted = [...data].sort((a, b) => (b.fecha_incidente || '').localeCompare(a.fecha_incidente || ''));
+
+    for (const r of sorted) {
+      porTipo[r.tipo_hurto]       = (porTipo[r.tipo_hurto] || 0) + 1;
+      porEstado[r.estado]         = (porEstado[r.estado] || 0) + 1;
+      if (r.comuna) porComuna[r.comuna] = (porComuna[r.comuna] || 0) + 1;
+      if (r.franja_horaria) porFranja[r.franja_horaria] = (porFranja[r.franja_horaria] || 0) + 1;
+      if (r.fecha_incidente) porFecha[r.fecha_incidente] = (porFecha[r.fecha_incidente] || 0) + 1;
+      if (recientes.length < 5) recientes.push(r);
     }
 
-    return { total, porTipo, porEstado };
+    return { total, porTipo, porEstado, porComuna, porFranja, porFecha, recientes };
   }
 
   /**
