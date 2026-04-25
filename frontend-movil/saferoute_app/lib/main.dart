@@ -19,19 +19,16 @@ import 'features/user/presentation/pages/mis_reportes_page.dart';
 import 'features/user/presentation/pages/forgot_password_page.dart';
 import 'features/user/presentation/pages/reset_password_page.dart';
 
-/// Handler de mensajes en background/terminated (debe ser top-level)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-/// Notifier global para pasar datos de notificación al mapa
 final ValueNotifier<RemoteMessage?> notificacionPendiente = ValueNotifier(null);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
-
   try {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
@@ -43,36 +40,22 @@ void main() async {
         appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
       ),
     );
-  } catch (_) {
-    // Ya inicializado automáticamente (Android con google-services.json)
-  }
-
+  } catch (_) {}
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
   await AuthStorage.clear();
-
   runApp(const MyApp());
 }
 
-/// Widget que protege rutas: verifica que exista un token válido.
 class AuthGuard extends StatelessWidget {
   final Widget child;
   const AuthGuard({super.key, required this.child});
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
       future: AuthStorage.getToken(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        }
-        if (snapshot.data == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-          });
-          return const SizedBox.shrink();
-        }
+        if (snapshot.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (snapshot.data == null) { WidgetsBinding.instance.addPostFrameCallback((_) { Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false); }); return const SizedBox.shrink(); }
         return child;
       },
     );
@@ -81,7 +64,6 @@ class AuthGuard extends StatelessWidget {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
@@ -101,18 +83,25 @@ class MyApp extends StatelessWidget {
         ],
         home: const SplashPage(),
         routes: {
-          '/login':        (context) => const LoginPage(),
-          '/register':     (context) => const RegisterPage(),
-          '/home':         (context) => AuthGuard(child: const MapaPage()),
-          '/reportar':     (context) => AuthGuard(child: const ReportIncidentePage()),
-          '/mapa':         (context) => AuthGuard(child: const MapaPage()),
-          '/alertas':      (context) => AuthGuard(child: const AlertaConfigPage()),
-          '/perfil':       (context) => AuthGuard(child: const PerfilPage()),
-          '/estadisticas': (context) => AuthGuard(child: const EstadisticasPage()),
-          '/ranking':      (context) => AuthGuard(child: const RankingZonasPage()),
-          '/mis-reportes':      (context) => AuthGuard(child: const MisReportesPage()),
-          '/forgot-password':   (context) => const ForgotPasswordPage(),
-          '/reset-password':    (context) => const ResetPasswordPage(),
+          '/login':           (context) => const LoginPage(),
+          '/register':        (context) => const RegisterPage(),
+          '/home':            (context) => AuthGuard(child: const MapaPage()),
+          '/reportar':        (context) => AuthGuard(child: const ReportIncidentePage()),
+          '/mapa':            (context) => AuthGuard(child: const MapaPage()),
+          '/alertas':         (context) => AuthGuard(child: const AlertaConfigPage()),
+          '/perfil':          (context) => AuthGuard(child: const PerfilPage()),
+          '/estadisticas':    (context) => AuthGuard(child: const EstadisticasPage()),
+          '/ranking':         (context) => AuthGuard(child: const RankingZonasPage()),
+          '/mis-reportes':    (context) => AuthGuard(child: const MisReportesPage()),
+          '/forgot-password': (context) => const ForgotPasswordPage(),
+        },
+        onGenerateRoute: (settings) {
+          if (settings.name != null && settings.name!.startsWith('/reset-password')) {
+            final uri = Uri.parse(settings.name!);
+            final token = uri.queryParameters['token'] ?? '';
+            return MaterialPageRoute(builder: (_) => ResetPasswordPage(token: token));
+          }
+          return null;
         },
       ),
     );

@@ -203,6 +203,15 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
 
                   TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                    child: Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(height: 0),
+
+                  TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),
                     child: Text(
                       '¿No tienes cuenta? Crear cuenta',

@@ -198,8 +198,9 @@ class _MisReportesPageState extends State<MisReportesPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
     final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final sheetBg = isDark ? const Color(0xFF1E293B) : Colors.white;
 
-    showModalBottomSheet(context: context, isScrollControlled: true, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))), builder: (ctx) {
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: sheetBg, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))), builder: (ctx) {
       return DraggableScrollableSheet(initialChildSize: 0.7, minChildSize: 0.4, maxChildSize: 0.9, expand: false, builder: (_, sc) {
         return ListView(controller: sc, padding: const EdgeInsets.all(20), children: [
           Row(children: [
@@ -235,20 +236,32 @@ class _MisReportesPageState extends State<MisReportesPage> {
   }
 
   void _editarReporte(Map<String, dynamic> r) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+
     showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: dialogBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       title: Row(children: [
         const Icon(Icons.construction, color: AppColors.primary, size: 22),
         const SizedBox(width: 8),
-        Text('Edición en desarrollo', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600)),
+        Text('Edición en desarrollo', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM)),
       ]),
-      content: Text('Esta función estará disponible cuando se conecten los endpoints de edición.', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textSub)),
+      content: Text('Esta función estará disponible cuando se conecten los endpoints de edición.', style: GoogleFonts.inter(fontSize: 14, color: textS)),
       actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
     ));
   }
 
   void _confirmarEliminar(Map<String, dynamic> r) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+
     showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: dialogBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       title: Row(children: [
         const Icon(Icons.warning_amber_rounded, color: AppColors.hurtoAtraco, size: 22),
@@ -256,23 +269,23 @@ class _MisReportesPageState extends State<MisReportesPage> {
         Text('Eliminar reporte', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.hurtoAtraco)),
       ]),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('¿Estás seguro de que deseas eliminar este reporte?', style: GoogleFonts.inter(fontSize: 14, color: AppColors.textMain)),
+        Text('¿Estás seguro de que deseas eliminar este reporte?', style: GoogleFonts.inter(fontSize: 14, color: textM)),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: AppColors.hurtoAtraco.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${(r['tipo_hurto'] as String? ?? '')[0].toUpperCase()}${(r['tipo_hurto'] as String? ?? '').substring(1)} · ${_fmtFecha(r['fecha_incidente'] as String?)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMain)),
-            Text(r['barrio_ingresado'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSub)),
+            Text('${(r['tipo_hurto'] as String? ?? '')[0].toUpperCase()}${(r['tipo_hurto'] as String? ?? '').substring(1)} · ${_fmtFecha(r['fecha_incidente'] as String?)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textM)),
+            Text(r['barrio_ingresado'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: textS)),
           ]),
         ),
         const SizedBox(height: 8),
-        Text('Esta acción no se puede deshacer.', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSub, fontStyle: FontStyle.italic)),
+        Text('Esta acción no se puede deshacer.', style: GoogleFonts.inter(fontSize: 12, color: textS, fontStyle: FontStyle.italic)),
       ]),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: AppColors.textSub))),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
         ElevatedButton(
-          onPressed: () { Navigator.pop(ctx); /* TODO: conectar DELETE /api/mis-reportes/:id */ },
+          onPressed: () { Navigator.pop(ctx); },
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.hurtoAtraco),
           child: const Text('Eliminar'),
         ),
