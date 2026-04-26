@@ -13,7 +13,7 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _correoCtrl = TextEditingController();
-  final _dominiosPermitidos = ['gmail.com', 'outlook.com', 'hotmail.com'];
+  final _dominiosPermitidos = ['gmail.com', 'outlook.com', 'hotmail.com', 'umariana.edu.co'];
 
   @override
   void dispose() { _correoCtrl.dispose(); super.dispose(); }

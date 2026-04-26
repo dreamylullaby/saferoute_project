@@ -62,7 +62,7 @@ class UserRemoteDatasource {
 
   /// POST /auth/forgot-password — usa plataforma: "app" para deep link
   Future<void> forgotPassword(String correo) async {
-    final response = await http.post(Uri.parse("$baseUrl/forgot-password"), headers: {"Content-Type": "application/json"}, body: jsonEncode({"correo": correo, "plataforma": "app"}));
+    final response = await http.post(Uri.parse("$baseUrl/forgot-password"), headers: {"Content-Type": "application/json"}, body: jsonEncode({"correo": correo, "plataforma": "web"}));
     if (response.statusCode != 200) {
       final data = jsonDecode(response.body);
       throw Exception(data["message"] ?? "Error al procesar la solicitud");
