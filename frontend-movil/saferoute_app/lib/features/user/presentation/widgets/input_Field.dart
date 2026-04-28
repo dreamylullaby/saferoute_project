@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
 
-const _dominiosValidos = ['gmail.com', 'outlook.com', 'hotmail.com'];
+const _dominiosValidos = ['gmail.com', 'outlook.com', 'hotmail.com', 'umariana.edu.co'];
 
+/// Campo de texto reutilizable con validaciones integradas.
+/// Soporta validación de correo (dominios permitidos), contraseña fuerte,
+/// toggle de visibilidad y validadores personalizados.
 class InputField extends StatefulWidget {
   final TextEditingController controller;
   final String label;

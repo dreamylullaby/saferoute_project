@@ -90,16 +90,6 @@ class _HeatmapPainter extends CustomPainter {
     }
     if (screenPoints.isEmpty) return;
 
-    // Calcular la intensidad máxima para normalizar
-    double maxIntensity = 0;
-    // Usamos una grilla para calcular densidad acumulada
-    // Cada punto contribuye con su intensidad al área circundante
-    // Pintamos cada punto como un gradiente radial
-    for (final intensity in intensities) {
-      if (intensity > maxIntensity) maxIntensity = intensity;
-    }
-    if (maxIntensity == 0) maxIntensity = 1;
-
     // Guardar estado y aplicar blur al canvas completo
     canvas.saveLayer(Offset.zero & size, Paint());
 
@@ -107,22 +97,19 @@ class _HeatmapPainter extends CustomPainter {
 
     for (int i = 0; i < screenPoints.length; i++) {
       final center = screenPoints[i];
-      final normalizedIntensity = intensities[i] / maxIntensity;
+      // Usar intensidad absoluta directamente (ya clasificada en el notifier)
+      final absIntensity = intensities[i].clamp(0.0, 1.0);
 
-      // Opacidad equilibrada: visible sin tapar el mapa (~65-75%).
-      final centerOpacity = (maxOpacity * normalizedIntensity)
-          .clamp(0.15, 0.75);
-      final midOpacity = (centerOpacity * 0.55).clamp(0.08, 0.40);
+      final centerOpacity = (maxOpacity * absIntensity).clamp(0.10, 0.70);
+      final midOpacity = (centerOpacity * 0.50).clamp(0.05, 0.35);
 
       final gradient = ui.Gradient.radial(
         center,
         effectiveRadius,
         [
-          _colorForIntensity(normalizedIntensity)
-              .withOpacity(centerOpacity),
-          _colorForIntensity(normalizedIntensity)
-              .withOpacity(midOpacity),
-          _colorForIntensity(normalizedIntensity).withOpacity(0),
+          _colorForIntensity(absIntensity).withOpacity(centerOpacity),
+          _colorForIntensity(absIntensity).withOpacity(midOpacity),
+          _colorForIntensity(absIntensity).withOpacity(0),
         ],
         [0.0, 0.5, 1.0],
       );

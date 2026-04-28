@@ -1,10 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/reporte_mapa_model.dart';
 import '../../../../services/auth_storage.dart';
 
+/// Datasource remoto para reportes del mapa interactivo.
+/// Consume los endpoints de /api/reportes/mapa del backend.
 class ReporteMapaDatasource {
-  final String baseUrl = 'http://localhost:3000/api/reportes';
+  final String baseUrl = '${dotenv.env['API_BASE_URL']}/api/reportes';
 
   Future<Map<String, String>> get _authHeaders async {
     final token = await AuthStorage.getToken();

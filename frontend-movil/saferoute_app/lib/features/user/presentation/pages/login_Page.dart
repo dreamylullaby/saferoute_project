@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
@@ -9,6 +11,9 @@ import '../../data/datasources/user_Remote_Datasource.dart';
 import '../../domain/usecases/login_User.dart';
 import '../../data/repositories/user_repository.impl.dart';
 
+/// Pantalla de inicio de sesión.
+/// Permite login con correo/contraseña o con Google Sign-In.
+/// Usa clean architecture: datasource → repository → use case.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -45,11 +50,14 @@ class _LoginPageState extends State<LoginPage> {
         password: passwordController.text.trim(),
       );
 
+      // Registrar FCM token después del login exitoso (fire and forget)
+      datasource.registrarFcmToken();
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;
-      _mostrarError('Correo o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
+      _mostrarError('Usuario o contraseña incorrectos. Verifica tus datos e intenta de nuevo.');
     }
 
     setState(() => isLoading = false);
@@ -59,12 +67,35 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
-      final googleProvider = GoogleAuthProvider();
-      final userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
-      final idToken        = await userCredential.user!.getIdToken();
-      final datasource     = UserRemoteDatasource();
+      UserCredential userCredential;
+
+      if (kIsWeb) {
+        // Web: usar popup
+        final googleProvider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+      } else {
+        // Android/iOS: usar google_sign_in nativo
+        // signOut previo para forzar el selector de cuentas
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+        final googleUser = await googleSignIn.signIn();
+        if (googleUser == null) {
+          setState(() => isLoading = false);
+          return; // El usuario canceló
+        }
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+
+      final idToken = await userCredential.user!.getIdToken();
+      final datasource = UserRemoteDatasource();
 
       await datasource.loginWithGoogle(idToken: idToken!);
+      datasource.registrarFcmToken();
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
@@ -138,8 +169,8 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         InputField(
                           controller: emailController,
-                          label: 'Correo',
-                          icon: Icons.email_outlined,
+                          label: 'Correo o usuario',
+                          icon: Icons.person_outline,
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                         ),
@@ -170,6 +201,15 @@ class _LoginPageState extends State<LoginPage> {
                   ),
 
                   const SizedBox(height: 20),
+
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                    child: Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(height: 0),
 
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),

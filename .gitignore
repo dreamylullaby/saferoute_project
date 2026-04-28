@@ -33,6 +33,7 @@ yarn.lock
 build/
 dist/
 coverage/
+credenciales-google.json
 
 # Carpeta de backend específica
 backend/node_modules/

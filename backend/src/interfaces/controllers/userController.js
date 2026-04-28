@@ -1,7 +1,16 @@
+/**
+ * @module userController
+ * @description Controlador HTTP para autenticación y gestión de usuarios.
+ * Maneja registro local, login local/admin, login con Google, logout,
+ * actualización de username y gestión de FCM tokens.
+ */
+
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import admin from "../../infrastructure/firebase/firebase.js";
 import db from "../../infrastructure/database/dbScript/db.js";
 import { generateToken } from "../../config/jwt.js";
+import { enviarCorreoRecuperacion } from "../../infrastructure/email/emailService.js";
 
 /**
  * Maneja POST /api/auth/register
@@ -71,7 +80,8 @@ export const registerLocal = async (req, res) => {
 
 /**
  * Maneja POST /api/auth/login
- * Autentica un usuario local verificando correo, estado activo y contraseña.
+ * Autentica un usuario local verificando correo o username, estado activo y contraseña.
+ * El campo "correo" del body acepta tanto correo como username (case-insensitive).
  * @param {import('express').Request} req - Body: { correo, password }
  * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
  */
@@ -80,15 +90,34 @@ export const loginLocal = async (req, res) => {
   try {
 
     const { correo, password } = req.body;
+    const input = correo?.trim().toLowerCase();
 
-    const { data, error } = await db
-      .from("usuarios")
-      .select("*")
-      .eq("correo", correo)
-      .eq("estado", "activo")
-      .single();
+    if (!input || !password)
+      return res.status(400).json({ message: "Correo/usuario y contraseña son requeridos" });
 
-    if (error || !data)
+    // Determinar si es correo o username
+    const isEmail = input.includes('@');
+
+    let data;
+    if (isEmail) {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("correo", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    } else {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("username", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    }
+
+    if (!data)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
     const passwordValida = await bcrypt.compare(password, data.password_hash);
@@ -115,6 +144,7 @@ export const loginLocal = async (req, res) => {
 /**
  * Maneja POST /api/auth/admin-login
  * Login exclusivo para administradores. Verifica rol antes de responder.
+ * Acepta correo o username (case-insensitive).
  * @param {import('express').Request} req - Body: { correo, password }
  * @param {import('express').Response} res
  */
@@ -123,15 +153,33 @@ export const loginAdmin = async (req, res) => {
   try {
 
     const { correo, password } = req.body;
+    const input = correo?.trim().toLowerCase();
 
-    const { data, error } = await db
-      .from("usuarios")
-      .select("*")
-      .eq("correo", correo)
-      .eq("estado", "activo")
-      .single();
+    if (!input || !password)
+      return res.status(400).json({ message: "Correo/usuario y contraseña son requeridos" });
 
-    if (error || !data)
+    const isEmail = input.includes('@');
+
+    let data;
+    if (isEmail) {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("correo", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    } else {
+      const result = await db
+        .from("usuarios")
+        .select("*")
+        .ilike("username", input)
+        .eq("estado", "activo")
+        .single();
+      data = result.data;
+    }
+
+    if (!data)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
     if (data.rol !== "admin")
@@ -235,10 +283,11 @@ export const loginGoogle = async (req, res) => {
  * @param {import('express').Request} req - Body: { username }, req.user.id del token
  * @param {import('express').Response} res
  */
+
 /**
  * Maneja PATCH /api/auth/fcm-token
- * Guarda o actualiza el FCM token del dispositivo del usuario.
- * Se llama cada vez que el usuario abre la app.
+ * Guarda, actualiza o limpia el FCM token del dispositivo del usuario.
+ * Se llama al abrir la app (guardar) y al cerrar sesión (limpiar con string vacío).
  * @param {import('express').Request} req - Body: { fcm_token }
  * @param {import('express').Response} res
  */
@@ -249,17 +298,20 @@ export const updateFcmToken = async (req, res) => {
     const { fcm_token } = req.body;
     const userId = req.user.id;
 
-    if (!fcm_token || fcm_token.trim().length === 0)
+    if (fcm_token === undefined || fcm_token === null)
       return res.status(400).json({ message: "fcm_token es obligatorio" });
+
+    // String vacío = limpiar token (logout), string con contenido = guardar
+    const tokenValue = fcm_token.trim().length === 0 ? null : fcm_token.trim();
 
     const { error } = await db
       .from("usuarios")
-      .update({ fcm_token: fcm_token.trim() })
+      .update({ fcm_token: tokenValue })
       .eq("id", userId);
 
     if (error) throw error;
 
-    res.json({ message: "FCM token actualizado correctamente" });
+    res.json({ message: tokenValue ? "FCM token actualizado correctamente" : "FCM token eliminado" });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -301,4 +353,102 @@ export const updateUsername = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 
+};
+
+/**
+ * POST /api/auth/forgot-password
+ * Genera token de recuperación y envía correo con enlace.
+ * Siempre responde igual para no revelar si el correo existe.
+ */
+export const forgotPassword = async (req, res) => {
+  try {
+    const { correo, plataforma = 'web' } = req.body;
+
+    if (!correo || !correo.includes('@'))
+      return res.status(400).json({ message: "Correo inválido" });
+
+    // Buscar usuario (sin revelar si existe en la respuesta)
+    const { data: usuario } = await db
+      .from("usuarios")
+      .select("id, correo, auth_provider")
+      .eq("correo", correo.toLowerCase().trim())
+      .eq("estado", "activo")
+      .single();
+
+    // Si existe y es usuario local, generar token
+    if (usuario && usuario.auth_provider === 'local') {
+      const token     = crypto.randomBytes(32).toString('hex');
+      const expiracion = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+      await db.from("password_resets").insert({
+        usuario_id: usuario.id,
+        token,
+        expiration: expiracion.toISOString(),
+        usado: false,
+      });
+
+      // Enviar correo (silencioso si falla)
+      try {
+        await enviarCorreoRecuperacion(usuario.correo, token, plataforma);
+      } catch (emailErr) {
+        console.warn('[Email] Error al enviar correo de recuperación:', emailErr.message);
+      }
+    }
+
+    // Siempre respuesta estándar
+    res.json({ message: "Si el correo está registrado, recibirás un enlace de recuperación." });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/reset-password
+ * Valida token, verifica expiración y actualiza contraseña.
+ * Body: { token, nuevaPassword }
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, nuevaPassword } = req.body;
+
+    if (!token)         return res.status(400).json({ message: "Token requerido" });
+    if (!nuevaPassword) return res.status(400).json({ message: "Nueva contraseña requerida" });
+    if (nuevaPassword.length < 8)
+      return res.status(400).json({ message: "La contraseña debe tener al menos 8 caracteres" });
+
+    // Buscar token
+    const { data: reset, error } = await db
+      .from("password_resets")
+      .select("*")
+      .eq("token", token)
+      .single();
+
+    if (error || !reset)
+      return res.status(400).json({ message: "Token inválido" });
+
+    if (reset.usado)
+      return res.status(400).json({ message: "Este enlace ya fue utilizado" });
+
+    if (new Date(reset.expiration) < new Date())
+      return res.status(400).json({ message: "El enlace ha expirado. Solicita uno nuevo." });
+
+    // Actualizar contraseña
+    const password_hash = await bcrypt.hash(nuevaPassword, 12);
+
+    const { error: updateError } = await db
+      .from("usuarios")
+      .update({ password_hash })
+      .eq("id", reset.usuario_id);
+
+    if (updateError) throw updateError;
+
+    // Marcar token como usado
+    await db.from("password_resets").update({ usado: true }).eq("id", reset.id);
+
+    res.json({ message: "Contraseña actualizada correctamente" });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };

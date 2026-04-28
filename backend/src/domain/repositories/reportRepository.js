@@ -20,10 +20,28 @@ class ReportRepository {
    */
   async findAll() {}
 
-  //Buscar un reporte por id
+  /**
+   * Busca un reporte por su UUID.
+   * @param {string} id - UUID del reporte
+   * @returns {Promise<Object>} El reporte encontrado con datos de zona
+   * @throws {Error} Si el reporte no existe
+   */
   async findById(id) {}
 
+  /**
+   * Busca barrios similares al texto ingresado usando distancia Levenshtein.
+   * @param {string} textoUsuario - Texto del barrio ingresado por el usuario
+   * @returns {Promise<Array>} Lista de hasta 5 barrios ordenados por similitud
+   */
   async buscarBarrioSimilar(textoUsuario) {}
+
+  /**
+   * Busca barrios por coordenadas usando la función RPC get_zona_por_coordenadas.
+   * @param {number} lat - Latitud del punto
+   * @param {number} lng - Longitud del punto
+   * @returns {Promise<Object|null>} { comuna, barrios } o null si no hay cobertura
+   */
+  async buscarBarriosPorCoordenadas(lat, lng) {}
 
   /**
    * Obtiene reportes activos con solo los campos necesarios para el mapa.
@@ -49,6 +67,12 @@ class ReportRepository {
    * @returns {Promise<Array>} Reportes filtrados para el mapa
    */
   async findForMapFiltered(filtros) {}
+
+  async findForAdmin(opciones) {}
+  async getResumen() {}
+  async getEstadisticasPorPeriodo(opciones) {}
+  async getComparacionPeriodos(opciones) {}
+  async getTopZonas(opciones) {}
 }
 
 export default ReportRepository;
