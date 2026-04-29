@@ -10,13 +10,15 @@ import 'package:geolocator/geolocator.dart';
 
 /// Página de perfil del usuario.
 class PerfilPage extends StatefulWidget {
-  const PerfilPage({super.key});
+  const PerfilPage({super.key, this.datasource});
+  final PerfilDatasource? datasource;
   @override
   State<PerfilPage> createState() => _PerfilPageState();
 }
 
 class _PerfilPageState extends State<PerfilPage> {
-  final _datasource = PerfilDatasource();
+  late final PerfilDatasource _datasource =
+      widget.datasource ?? PerfilDatasource();
   Map<String, dynamic>? _perfil;
   bool _cargando = true;
   bool _editando = false;

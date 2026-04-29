@@ -4,14 +4,16 @@ import '../../../../core/app_theme.dart';
 import '../../data/datasources/estadisticas_datasource.dart';
 
 class RankingZonasPage extends StatefulWidget {
-  const RankingZonasPage({super.key});
+  const RankingZonasPage({super.key, this.datasource});
+  final EstadisticasDatasource? datasource;
 
   @override
   State<RankingZonasPage> createState() => _RankingZonasPageState();
 }
 
 class _RankingZonasPageState extends State<RankingZonasPage> {
-  final _ds = EstadisticasDatasource();
+  late final EstadisticasDatasource _ds =
+      widget.datasource ?? EstadisticasDatasource();
 
   int       _top        = 10;
   String?   _fechaDesde;

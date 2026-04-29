@@ -241,24 +241,41 @@ export const loginGoogle = async (req, res) => {
       .single();
 
     if (!user) {
-
-      const { data: newUser, error } = await db
+      // Buscar si ya existe un usuario con ese correo (registro local previo)
+      const { data: existingUser } = await db
         .from("usuarios")
-        .insert({
-          username: name,
-          correo: email,
-          google_id: uid,
-          foto_url: picture,
-          rol: "usuario",
-          auth_provider: "google",
-          estado: "activo"
-        })
-        .select()
+        .select("*")
+        .eq("correo", email)
         .single();
 
-      if (error) throw error;
-      user = newUser;
+      if (existingUser) {
+        // Vincular cuenta Google al usuario local existente
+        const { error } = await db
+          .from("usuarios")
+          .update({ google_id: uid, foto_url: picture || existingUser.foto_url })
+          .eq("id", existingUser.id);
 
+        if (error) throw error;
+        user = existingUser;
+      } else {
+        // Crear usuario nuevo
+        const { data: newUser, error } = await db
+          .from("usuarios")
+          .insert({
+            username: name,
+            correo: email,
+            google_id: uid,
+            foto_url: picture,
+            rol: "usuario",
+            auth_provider: "google",
+            estado: "activo"
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        user = newUser;
+      }
     }
 
     res.json({
@@ -272,7 +289,8 @@ export const loginGoogle = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(401).json({ message: "Token inválido" });
+    console.error("Error loginGoogle:", error);
+    res.status(401).json({ message: "Token inválido", detail: error.message || error });
   }
 
 };

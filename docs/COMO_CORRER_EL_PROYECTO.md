@@ -8,9 +8,26 @@ Guía rápida para levantar todo el entorno de desarrollo.
 
 - Node.js instalado
 - Flutter SDK instalado
+- Android SDK Command-line Tools instalado (ver sección abajo)
 - Celular Android conectado por USB con depuración USB activada
 - Backend configurado con `.env` (Supabase, JWT, etc.)
 - Dashboard web configurado con `frontend-web/dashboard/.env` (VITE_MAPBOX_TOKEN)
+
+### Instalar Android SDK Command-line Tools (para correr en celular)
+
+1. Descargar `Windowscommandlinetools-win-14742923_latest.zip` desde https://developer.android.com/studio#command-line-tools-only
+2. Crear la carpeta `C:\Android\` si no existe
+3. Extraer el contenido del zip dentro de `C:\Android\cmdline-tools\latest\`
+   - La estructura debe quedar: `C:\Android\cmdline-tools\latest\bin\sdkmanager.bat`
+4. Abrir una terminal y ejecutar:
+   ```
+   C:\Android\cmdline-tools\latest\bin\sdkmanager.bat --sdk_root=C:\Android "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+   ```
+5. Aceptar las licencias cuando lo pida
+6. Configurar las variables de entorno:
+   - `ANDROID_HOME` = `C:\Android`
+   - Agregar al `PATH`: `C:\Android\platform-tools` y `C:\Android\cmdline-tools\latest\bin`
+7. Verificar con `flutter doctor` que detecte el Android SDK
 
 ---
 

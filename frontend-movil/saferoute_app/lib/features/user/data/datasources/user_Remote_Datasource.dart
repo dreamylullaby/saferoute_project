@@ -25,7 +25,10 @@ class UserRemoteDatasource {
       await AuthStorage.saveToken(data["token"]);
       await AuthStorage.saveUserId(data["user"]["id"].toString());
       return UserModel.fromJson(data["user"]);
-    } else { throw Exception("Error login Google"); }
+    } else {
+      print("Google login error - Status: ${response.statusCode}, Body: ${response.body}");
+      throw Exception("Error login Google: ${response.statusCode} - ${response.body}");
+    }
   }
 
   Future<UserModel> register({required String username, required String correo, required String password}) async {
