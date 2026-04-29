@@ -5,13 +5,15 @@ import '../../../../core/app_theme.dart';
 import '../../data/datasources/estadisticas_datasource.dart';
 
 class EstadisticasPage extends StatefulWidget {
-  const EstadisticasPage({super.key});
+  const EstadisticasPage({super.key, this.datasource});
+  final EstadisticasDatasource? datasource;
   @override
   State<EstadisticasPage> createState() => _EstadisticasPageState();
 }
 
 class _EstadisticasPageState extends State<EstadisticasPage> {
-  final _ds = EstadisticasDatasource();
+  late final EstadisticasDatasource _ds =
+      widget.datasource ?? EstadisticasDatasource();
   bool _cargando = true;
 
   Map<String, dynamic> _resumen = {};

@@ -8,14 +8,16 @@ import '../../data/models/alerta_config_model.dart';
 /// Pantalla de configuración de alertas por proximidad.
 /// Permite al usuario ajustar el radio de alerta y activar/desactivar notificaciones.
 class AlertaConfigPage extends StatefulWidget {
-  const AlertaConfigPage({super.key});
+  const AlertaConfigPage({super.key, this.datasource});
+  final AlertaConfigDatasource? datasource;
 
   @override
   State<AlertaConfigPage> createState() => _AlertaConfigPageState();
 }
 
 class _AlertaConfigPageState extends State<AlertaConfigPage> {
-  final _datasource = AlertaConfigDatasource();
+  late final AlertaConfigDatasource _datasource =
+      widget.datasource ?? AlertaConfigDatasource();
 
   AlertaConfigModel? _config;
   bool _cargando   = true;

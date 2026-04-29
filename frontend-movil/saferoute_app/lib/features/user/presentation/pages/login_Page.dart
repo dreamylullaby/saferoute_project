@@ -99,7 +99,10 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('=== ERROR GOOGLE LOGIN ===');
+      debugPrint('Error: $e');
+      debugPrint('Stack: $stack');
       if (!mounted) return;
       _mostrarError('No se pudo iniciar sesión con Google. Intenta de nuevo.');
     }
