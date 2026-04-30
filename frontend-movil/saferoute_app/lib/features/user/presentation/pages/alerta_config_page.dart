@@ -9,22 +9,16 @@ import '../../../../services/location_service.dart';
 /// Pantalla de configuración de alertas por proximidad.
 /// Permite al usuario ajustar el radio de alerta y activar/desactivar notificaciones.
 class AlertaConfigPage extends StatefulWidget {
+  const AlertaConfigPage({super.key, this.datasource});
   final AlertaConfigDatasource? datasource;
-  final LocationService? locationService;
-
-  const AlertaConfigPage({
-    super.key,
-    this.datasource,
-    this.locationService,
-  });
 
   @override
   State<AlertaConfigPage> createState() => _AlertaConfigPageState();
 }
 
 class _AlertaConfigPageState extends State<AlertaConfigPage> {
-  late final AlertaConfigDatasource _datasource;
-  late final LocationService _locationService;
+  late final AlertaConfigDatasource _datasource =
+      widget.datasource ?? AlertaConfigDatasource();
 
   AlertaConfigModel? _config;
   bool _cargando = true;
