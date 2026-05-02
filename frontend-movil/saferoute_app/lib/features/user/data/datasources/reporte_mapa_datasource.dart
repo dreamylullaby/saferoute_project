@@ -26,7 +26,8 @@ class ReporteMapaDatasource {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return (data['data'] as List)
-          .map((e) => ReporteMapaModel.fromJson(e))
+          .map((e) => ReporteMapaModel.tryFromJson(e))
+          .whereType<ReporteMapaModel>()
           .toList();
     }
     throw Exception('Error al cargar reportes del mapa');
@@ -58,7 +59,8 @@ class ReporteMapaDatasource {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return (data['data'] as List)
-          .map((e) => ReporteMapaModel.fromJson(e))
+          .map((e) => ReporteMapaModel.tryFromJson(e))
+          .whereType<ReporteMapaModel>()
           .toList();
     }
     throw Exception('Error al cargar reportes filtrados');
@@ -74,7 +76,8 @@ class ReporteMapaDatasource {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return (data['data'] as List)
-          .map((e) => ReporteMapaModel.fromJson(e))
+          .map((e) => ReporteMapaModel.tryFromJson(e))
+          .whereType<ReporteMapaModel>()
           .toList();
     }
     throw Exception('Error al cargar reportes nuevos');
