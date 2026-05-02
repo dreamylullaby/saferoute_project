@@ -33,4 +33,10 @@ class ReporteMapaModel {
       comuna:          json['comuna'] as int?,
     );
   }
+
+  /// Retorna null si el reporte no tiene coordenadas (no se puede pintar en el mapa)
+  static ReporteMapaModel? tryFromJson(Map<String, dynamic> json) {
+    if (json['latitud'] == null || json['longitud'] == null) return null;
+    return ReporteMapaModel.fromJson(json);
+  }
 }

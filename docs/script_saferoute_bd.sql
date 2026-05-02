@@ -224,6 +224,30 @@ CREATE TABLE public.zonas_riesgo (
     CONSTRAINT zonas_riesgo_pkey PRIMARY KEY (id)
 );
 
+-- Solicitudes de eliminación de reportes
+CREATE TABLE public.solicitudes_eliminacion (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    reporte_id uuid NOT NULL,
+    usuario_id uuid NOT NULL,
+    estado_solicitud character varying(20) DEFAULT 'pendiente' NOT NULL,
+    motivo text,
+    fecha_solicitud timestamp without time zone DEFAULT now() NOT NULL,
+    fecha_resolucion timestamp without time zone,
+    admin_id uuid,
+    CONSTRAINT solicitudes_eliminacion_estado_check CHECK (((estado_solicitud)::text = ANY (ARRAY['pendiente', 'aprobada', 'rechazada']::text[]))),
+    CONSTRAINT solicitudes_eliminacion_pkey PRIMARY KEY (id)
+);
+
+-- Aceptación de términos y condiciones
+CREATE TABLE public.aceptacion_terminos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    usuario_id uuid NOT NULL,
+    version_terminos character varying(10) DEFAULT 'v1.0' NOT NULL,
+    fecha_aceptacion timestamp without time zone DEFAULT now() NOT NULL,
+    ip_origen character varying(45),
+    CONSTRAINT aceptacion_terminos_pkey PRIMARY KEY (id)
+);
+
 -- ============================================================
 -- 3. FOREIGN KEYS (Relaciones)
 -- ============================================================
@@ -292,6 +316,20 @@ ALTER TABLE ONLY public.auditoria_usuarios
 
 ALTER TABLE ONLY public.auditoria_usuarios
     ADD CONSTRAINT auditoria_usuarios_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+-- solicitudes_eliminacion -> reportes / usuarios
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_reporte_fkey FOREIGN KEY (reporte_id) REFERENCES public.reportes(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_usuario_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_admin_fkey FOREIGN KEY (admin_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+-- aceptacion_terminos -> usuarios
+ALTER TABLE ONLY public.aceptacion_terminos
+    ADD CONSTRAINT aceptacion_terminos_usuario_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
 
 -- ============================================================
 -- 4. ÍNDICES
@@ -366,6 +404,16 @@ CREATE INDEX idx_secciones_geom ON public.secciones_dane USING gist (geom);
 CREATE INDEX idx_zonas_geom ON public.zonas USING gist (geom);
 CREATE INDEX idx_corregimientos_geom ON public.corregimientos USING gist (geom);
 CREATE INDEX idx_veredas_corregimiento ON public.veredas USING btree (corregimiento_id);
+
+-- Solicitudes eliminación
+CREATE INDEX idx_solicitudes_estado ON public.solicitudes_eliminacion USING btree (estado_solicitud);
+CREATE INDEX idx_solicitudes_reporte ON public.solicitudes_eliminacion USING btree (reporte_id);
+CREATE INDEX idx_solicitudes_usuario ON public.solicitudes_eliminacion USING btree (usuario_id);
+CREATE UNIQUE INDEX uniq_solicitud_pendiente_por_reporte ON public.solicitudes_eliminacion USING btree (reporte_id) WHERE ((estado_solicitud)::text = 'pendiente');
+
+-- Aceptación términos
+CREATE INDEX idx_aceptacion_usuario ON public.aceptacion_terminos USING btree (usuario_id);
+CREATE INDEX idx_aceptacion_version ON public.aceptacion_terminos USING btree (version_terminos);
 
 -- ============================================================
 -- 5. FUNCIONES

@@ -212,3 +212,45 @@ CREATE INDEX idx_zonas_riesgo_nivel      ON public.zonas_riesgo (nivel_riesgo);
 CREATE INDEX idx_zonas_riesgo_fecha      ON public.zonas_riesgo (fecha_calculo DESC);
 CREATE INDEX idx_zonas_riesgo_comuna     ON public.zonas_riesgo (comuna) WHERE (comuna IS NOT NULL);
 CREATE INDEX idx_zonas_riesgo_nivel_fecha ON public.zonas_riesgo (nivel_riesgo, fecha_calculo DESC);
+
+
+-- =============================================================
+-- Solicitudes de eliminación de reportes (usuario → admin)
+-- =============================================================
+
+CREATE TABLE public.solicitudes_eliminacion (
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    reporte_id          UUID        NOT NULL REFERENCES public.reportes(id) ON DELETE CASCADE,
+    usuario_id          UUID        NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    estado_solicitud    VARCHAR(20) NOT NULL DEFAULT 'pendiente'
+        CHECK (estado_solicitud IN ('pendiente', 'aprobada', 'rechazada')),
+    motivo              TEXT,
+    fecha_solicitud     TIMESTAMP   NOT NULL DEFAULT now(),
+    fecha_resolucion    TIMESTAMP,
+    admin_id            UUID        REFERENCES public.usuarios(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_solicitudes_estado   ON public.solicitudes_eliminacion (estado_solicitud);
+CREATE INDEX idx_solicitudes_reporte  ON public.solicitudes_eliminacion (reporte_id);
+CREATE INDEX idx_solicitudes_usuario  ON public.solicitudes_eliminacion (usuario_id);
+
+-- Un reporte no puede tener múltiples solicitudes pendientes simultáneamente
+CREATE UNIQUE INDEX uniq_solicitud_pendiente_por_reporte
+    ON public.solicitudes_eliminacion (reporte_id)
+    WHERE estado_solicitud = 'pendiente';
+
+
+-- =============================================================
+-- Aceptación de términos y condiciones
+-- =============================================================
+
+CREATE TABLE public.aceptacion_terminos (
+    id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id          UUID        NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    version_terminos    VARCHAR(10) NOT NULL DEFAULT 'v1.0',
+    fecha_aceptacion    TIMESTAMP   NOT NULL DEFAULT now(),
+    ip_origen           VARCHAR(45)
+);
+
+CREATE INDEX idx_aceptacion_usuario ON public.aceptacion_terminos (usuario_id);
+CREATE INDEX idx_aceptacion_version ON public.aceptacion_terminos (version_terminos);
