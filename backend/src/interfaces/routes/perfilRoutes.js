@@ -10,6 +10,7 @@ import {
   actualizarPerfil,
   cambiarPassword,
   actualizarNotificaciones,
+  eliminarCuenta,
 } from "../controllers/perfilController.js";
 
 const router = express.Router();
@@ -22,5 +23,8 @@ router.put("/password", authenticate, cambiarPassword);
 
 /** PUT /api/perfil/notificaciones — Activa/desactiva alertas y configura radio */
 router.put("/notificaciones", authenticate, actualizarNotificaciones);
+
+/** DELETE /api/perfil — Elimina la cuenta del usuario autenticado */
+router.delete("/", authenticate, eliminarCuenta);
 
 export default router;

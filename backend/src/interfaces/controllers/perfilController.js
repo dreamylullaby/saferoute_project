@@ -152,3 +152,53 @@ export const actualizarNotificaciones = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+/**
+ * DELETE /api/perfil
+ * Elimina la cuenta del usuario autenticado.
+ * - Usuarios locales: requiere confirmar con password actual
+ * - Usuarios Google: no requiere contraseña
+ * Llama a la función RPC eliminar_cuenta_usuario que anonimiza los datos.
+ * Los reportes quedan reasignados al usuario anónimo por la FK ON DELETE SET DEFAULT.
+ */
+export const eliminarCuenta = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user.id;
+
+    const { data: usuario, error: fetchError } = await db
+      .from("usuarios")
+      .select("id, auth_provider, password_hash, estado")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError || !usuario)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    if (usuario.estado !== "activo")
+      return res.status(400).json({ message: "La cuenta ya no está activa" });
+
+    // Usuarios locales deben confirmar con contraseña
+    if (usuario.auth_provider === "local") {
+      if (!password)
+        return res.status(400).json({ message: "Debes confirmar tu contraseña para eliminar la cuenta" });
+
+      const passwordValida = await bcrypt.compare(password, usuario.password_hash);
+      if (!passwordValida)
+        return res.status(401).json({ message: "Contraseña incorrecta" });
+    }
+
+    // Llamar a la función RPC que anonimiza y elimina datos sensibles
+    const { error: rpcError } = await db.rpc("eliminar_cuenta_usuario", {
+      p_usuario_id: userId,
+    });
+
+    if (rpcError) throw new Error(rpcError.message);
+
+    return res.status(200).json({
+      message: "Cuenta eliminada correctamente. Tus reportes han sido conservados de forma anónima.",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
