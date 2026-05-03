@@ -37,7 +37,7 @@ CREATE TABLE public.usuarios (
     estado          VARCHAR(20) NOT NULL,
     CONSTRAINT usuarios_rol_check           CHECK (rol           IN ('usuario', 'admin')),
     CONSTRAINT usuarios_auth_provider_check CHECK (auth_provider IN ('local', 'google')),
-    CONSTRAINT usuarios_estado_check        CHECK (estado        IN ('activo', 'bloqueado', 'eliminado'))
+    CONSTRAINT usuarios_estado_check        CHECK (estado        IN ('activo', 'bloqueado', 'eliminado', 'oculto'))
 );
 
 -- =============================================================

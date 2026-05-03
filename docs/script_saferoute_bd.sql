@@ -32,7 +32,7 @@ CREATE TABLE public.usuarios (
     estado character varying(20) NOT NULL,
     fcm_token text,
     CONSTRAINT usuarios_auth_provider_check CHECK (((auth_provider)::text = ANY (ARRAY['local', 'google']::text[]))),
-    CONSTRAINT usuarios_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'bloqueado', 'eliminado']::text[]))),
+    CONSTRAINT usuarios_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'bloqueado', 'eliminado', 'oculto']::text[]))),
     CONSTRAINT usuarios_rol_check CHECK (((rol)::text = ANY (ARRAY['usuario', 'admin']::text[]))),
     CONSTRAINT usuarios_pkey PRIMARY KEY (id),
     CONSTRAINT usuarios_correo_key UNIQUE (correo),

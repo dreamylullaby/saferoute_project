@@ -20,6 +20,6 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     auth_provider   VARCHAR(20) NOT NULL CHECK (auth_provider IN ('local', 'google')),
     google_id       VARCHAR(255) UNIQUE,
     fecha_creacion  TIMESTAMP   NOT NULL DEFAULT now(),
-    estado          VARCHAR(20) NOT NULL CHECK (estado IN ('activo', 'bloqueado', 'eliminado')),
+    estado          VARCHAR(20) NOT NULL CHECK (estado IN ('activo', 'bloqueado', 'eliminado', 'oculto')),
     fcm_token       TEXT
 );
