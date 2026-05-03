@@ -90,16 +90,20 @@ export default function TabPerfil() {
             {msgText && <p style={{ margin: "8px 0 0", fontSize: 12, color: isErr ? "#EF4444" : "#10B981", fontWeight: 500 }}>{msgText}</p>}
           </div>
 
-          {/* Próximamente */}
+          {/* Seguridad — Cambiar contraseña */}
           <div style={CARD}>
             <h3 style={TITLE}>Seguridad</h3>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "0.5px solid #F1F5F9" }}>
-              <div>
-                <span style={{ fontSize: 13, color: "#1E293B", fontWeight: 500, display: "block" }}>Cambiar contraseña</span>
-                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 300 }}>Actualiza tu contraseña de acceso</span>
+            {perfil.auth_provider === "google" ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0" }}>
+                <div>
+                  <span style={{ fontSize: 13, color: "#1E293B", fontWeight: 500, display: "block" }}>Cambiar contraseña</span>
+                  <span style={{ fontSize: 12, color: "#64748B", fontWeight: 300 }}>No disponible para cuentas de Google</span>
+                </div>
+                <span style={{ backgroundColor: "#F1F5F9", color: "#94A3B8", padding: "3px 12px", borderRadius: 99, fontSize: 11, fontWeight: 500 }}>Google</span>
               </div>
-              <span style={{ backgroundColor: "#EFF6FF", color: "#2563EB", padding: "3px 12px", borderRadius: 99, fontSize: 11, fontWeight: 500, fontFamily: "'Montserrat',sans-serif" }}>Próximamente</span>
-            </div>
+            ) : (
+              <CambiarPassword />
+            )}
           </div>
 
           <div style={CARD}>
@@ -121,6 +125,43 @@ export default function TabPerfil() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function CambiarPassword() {
+  var [actual, setActual] = useState("");
+  var [nueva, setNueva] = useState("");
+  var [confirmar, setConfirmar] = useState("");
+  var [msg, setMsg] = useState("");
+  var [guardando, setGuardando] = useState(false);
+
+  function cambiar() {
+    if (!actual || !nueva || !confirmar) { setMsg("err:Todos los campos son obligatorios"); return; }
+    if (nueva.length < 6) { setMsg("err:La nueva contraseña debe tener al menos 6 caracteres"); return; }
+    if (nueva !== confirmar) { setMsg("err:Las contraseñas no coinciden"); return; }
+    setGuardando(true);
+    api.put("/api/perfil/password", { passwordActual: actual, nuevaPassword: nueva })
+      .then(function () { setMsg("ok:Contraseña actualizada"); setActual(""); setNueva(""); setConfirmar(""); setTimeout(function () { setMsg(""); }, 3000); })
+      .catch(function (err) { setMsg("err:" + (err.response?.data?.message || "Error al cambiar contraseña")); })
+      .finally(function () { setGuardando(false); });
+  }
+
+  var isErr = msg.startsWith("err:");
+  var msgText = msg.replace(/^(err:|ok:)/, "");
+
+  return (
+    <div>
+      <label style={{ fontSize: 12, color: "#64748B", fontWeight: 500, display: "block", marginBottom: 4 }}>Contraseña actual</label>
+      <input type="password" value={actual} onChange={function (e) { setActual(e.target.value); }} style={{ ...INP, width: "100%", marginBottom: 10 }} />
+      <label style={{ fontSize: 12, color: "#64748B", fontWeight: 500, display: "block", marginBottom: 4 }}>Nueva contraseña</label>
+      <input type="password" value={nueva} onChange={function (e) { setNueva(e.target.value); }} style={{ ...INP, width: "100%", marginBottom: 10 }} />
+      <label style={{ fontSize: 12, color: "#64748B", fontWeight: 500, display: "block", marginBottom: 4 }}>Confirmar nueva contraseña</label>
+      <input type="password" value={confirmar} onChange={function (e) { setConfirmar(e.target.value); }} style={{ ...INP, width: "100%", marginBottom: 12 }} />
+      <button onClick={cambiar} disabled={guardando} style={{ height: 38, padding: "0 20px", borderRadius: 8, border: "none", backgroundColor: "#2563EB", color: "#fff", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'Montserrat',sans-serif" }}>
+        {guardando ? "Guardando..." : "Cambiar contraseña"}
+      </button>
+      {msgText && <p style={{ margin: "8px 0 0", fontSize: 12, color: isErr ? "#EF4444" : "#10B981", fontWeight: 500 }}>{msgText}</p>}
     </div>
   );
 }
