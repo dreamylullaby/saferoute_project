@@ -80,4 +80,30 @@ class UserRemoteDatasource {
       throw Exception(data["message"] ?? "Error al restablecer la contraseña");
     }
   }
+
+  /// DELETE /api/perfil — Elimina la cuenta del usuario autenticado.
+  /// [password] es requerido para usuarios locales, null para Google.
+  /// Al completar, limpia el token local para invalidar la sesión.
+  Future<void> eliminarCuenta({String? password}) async {
+    final token = await AuthStorage.getToken();
+    if (token == null) throw Exception('No hay sesión activa');
+
+    final perfilBase = baseUrl.replaceAll('/api/auth', '/api/perfil');
+    final response = await http.delete(
+      Uri.parse(perfilBase),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: password != null ? jsonEncode({'password': password}) : null,
+    );
+
+    if (response.statusCode == 200) {
+      await AuthStorage.clear();
+      return;
+    }
+
+    final data = jsonDecode(response.body);
+    throw Exception(data['message'] ?? 'Error al eliminar la cuenta');
+  }
 }
