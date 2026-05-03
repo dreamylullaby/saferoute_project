@@ -357,4 +357,79 @@ export default class ReportRepositoryImpl extends ReportRepository {
       .sort((a, b) => b.total - a.total)
       .slice(0, Number(top));
   }
+
+  /**
+   * Obtiene todos los reportes de un usuario específico.
+   */
+  async findByUsuario(usuarioId) {
+    const { data, error } = await supabase
+      .from('reportes')
+      .select('*, zonas(barrio)')
+      .eq('usuario_id', usuarioId)
+      .neq('estado', 'eliminado')
+      .order('fecha_creacion', { ascending: false });
+
+    if (error) throw new Error(`Error al obtener reportes del usuario: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Obtiene un reporte por ID verificando que pertenezca al usuario.
+   */
+  async findByIdAndUsuario(id, usuarioId) {
+    const { data, error } = await supabase
+      .from('reportes')
+      .select('*, zonas(barrio)')
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .maybeSingle();
+
+    if (error) throw new Error(`Error al buscar reporte: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Actualiza campos editables de un reporte propio.
+   * Solo permite editar reportes activos.
+   */
+  async updateOwn(id, usuarioId, data) {
+    const { data: updated, error } = await supabase
+      .from('reportes')
+      .update({
+        ...data,
+        fecha_actualizacion: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .eq('estado', 'activo')
+      .select()
+      .single();
+
+    if (error) throw new Error(`Error al actualizar reporte: ${error.message}`);
+    return updated;
+  }
+
+  /**
+   * Crea una solicitud de eliminación para un reporte.
+   * La BD previene duplicados pendientes con un índice único.
+   */
+  async crearSolicitudEliminacion(reporteId, usuarioId, motivo) {
+    const { data, error } = await supabase
+      .from('solicitudes_eliminacion')
+      .insert({
+        reporte_id:  reporteId,
+        usuario_id:  usuarioId,
+        motivo:      motivo ?? null,
+        estado_solicitud: 'pendiente',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505')
+        throw new Error('Ya existe una solicitud de eliminación pendiente para este reporte');
+      throw new Error(`Error al crear solicitud: ${error.message}`);
+    }
+    return data;
+  }
 }

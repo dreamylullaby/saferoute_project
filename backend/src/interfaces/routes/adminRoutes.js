@@ -14,6 +14,11 @@ import {
   reactivarUsuario,
   eliminarUsuario,
   cambiarEstadoReporte,
+  editarTipoHurtoReporte,
+  listarSolicitudesEliminacion,
+  detalleSolicitudEliminacion,
+  aprobarSolicitud,
+  rechazarSolicitud,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -38,5 +43,20 @@ router.patch("/usuarios/:id/eliminar", eliminarUsuario);
 
 /** PATCH /api/admin/reportes/:id/estado — Cambia el estado de un reporte */
 router.patch("/reportes/:id/estado", cambiarEstadoReporte);
+
+/** PATCH /api/admin/reportes/:id/tipo — Edita el tipo de hurto de un reporte */
+router.patch("/reportes/:id/tipo", editarTipoHurtoReporte);
+
+/** GET  /api/admin/solicitudes-eliminacion — Lista solicitudes (filtro por estado) */
+router.get("/solicitudes-eliminacion",              listarSolicitudesEliminacion);
+
+/** GET  /api/admin/solicitudes-eliminacion/:id — Detalle de una solicitud */
+router.get("/solicitudes-eliminacion/:id",          detalleSolicitudEliminacion);
+
+/** POST /api/admin/solicitudes-eliminacion/:id/aprobar — Aprueba y elimina el reporte */
+router.post("/solicitudes-eliminacion/:id/aprobar", aprobarSolicitud);
+
+/** POST /api/admin/solicitudes-eliminacion/:id/rechazar — Rechaza la solicitud */
+router.post("/solicitudes-eliminacion/:id/rechazar", rechazarSolicitud);
 
 export default router;

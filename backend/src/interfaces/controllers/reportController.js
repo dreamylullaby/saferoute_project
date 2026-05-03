@@ -6,6 +6,7 @@ import GetMapReports from "../../application/use-cases/getMapReports.js";
 import GetNewMapReports from "../../application/use-cases/getNewMapReports.js";
 import GetFilteredMapReports from "../../application/use-cases/getFilteredMapReports.js";
 import AlertRepositoryImpl from "../../infrastructure/database/repositoriesImplementation/alertRepositoryImpl.js";
+import Report from "../../domain/entities/Report.js";
 
 /**
  * @class ReportController
@@ -209,6 +210,110 @@ class ReportController {
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** GET /api/reportes/mis-reportes — reportes del usuario autenticado */
+  async getMisReportes(req, res) {
+    try {
+      const result = await this.repository.findByUsuario(req.user.id);
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** GET /api/reportes/mis-reportes/:id — detalle de reporte propio */
+  async getMiReporteById(req, res) {
+    try {
+      const reporte = await this.repository.findByIdAndUsuario(req.params.id, req.user.id);
+      if (!reporte)
+        return res.status(404).json({ success: false, message: 'Reporte no encontrado o no te pertenece' });
+      return res.status(200).json({ success: true, data: reporte });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** PUT /api/reportes/:id — editar reporte propio */
+  async updateOwn(req, res) {
+    try {
+      const { id } = req.params;
+
+      // Verificar ownership
+      const reporte = await this.repository.findByIdAndUsuario(id, req.user.id);
+      if (!reporte)
+        return res.status(404).json({ success: false, message: 'Reporte no encontrado o no te pertenece' });
+
+      if (reporte.estado !== 'activo')
+        return res.status(400).json({ success: false, message: 'Solo se pueden editar reportes activos' });
+
+      const {
+        tipo_reportante, fecha_incidente, franja_horaria,
+        tipo_hurto, descripcion, objeto_hurtado,
+        numero_agresores, barrio_ingresado, direccion,
+      } = req.body;
+
+      // Validar campos con los valores permitidos de la entidad
+      if (tipo_reportante && !Report.tipo_reportante.includes(tipo_reportante))
+        return res.status(400).json({ success: false, message: `tipo_reportante inválido. Valores: ${Report.tipo_reportante.join(', ')}` });
+
+      if (franja_horaria && !Report.franja_horaria.includes(franja_horaria))
+        return res.status(400).json({ success: false, message: `franja_horaria inválida. Valores: ${Report.franja_horaria.join(', ')}` });
+
+      if (tipo_hurto && !Report.tipo_hurto.includes(tipo_hurto))
+        return res.status(400).json({ success: false, message: `tipo_hurto inválido. Valores: ${Report.tipo_hurto.join(', ')}` });
+
+      if (objeto_hurtado && !Report.objeto_hurtado.includes(objeto_hurtado))
+        return res.status(400).json({ success: false, message: `objeto_hurtado inválido. Valores: ${Report.objeto_hurtado.join(', ')}` });
+
+      if (numero_agresores && !Report.numero_agresores.includes(numero_agresores))
+        return res.status(400).json({ success: false, message: `numero_agresores inválido. Valores: ${Report.numero_agresores.join(', ')}` });
+
+      if (descripcion && descripcion.trim().length > 300)
+        return res.status(400).json({ success: false, message: 'descripcion excede 300 caracteres' });
+
+      // Solo actualizar campos que vienen en el body
+      const campos = {};
+      if (tipo_reportante !== undefined) campos.tipo_reportante = tipo_reportante;
+      if (fecha_incidente  !== undefined) campos.fecha_incidente  = fecha_incidente;
+      if (franja_horaria   !== undefined) campos.franja_horaria   = franja_horaria;
+      if (tipo_hurto       !== undefined) campos.tipo_hurto       = tipo_hurto;
+      if (descripcion      !== undefined) campos.descripcion      = descripcion;
+      if (objeto_hurtado   !== undefined) campos.objeto_hurtado   = objeto_hurtado;
+      if (numero_agresores !== undefined) campos.numero_agresores = numero_agresores;
+      if (barrio_ingresado !== undefined) campos.barrio_ingresado = barrio_ingresado.trim();
+      if (direccion        !== undefined) campos.direccion        = direccion;
+
+      if (Object.keys(campos).length === 0)
+        return res.status(400).json({ success: false, message: 'No se enviaron campos para actualizar' });
+
+      const updated = await this.repository.updateOwn(id, req.user.id, campos);
+      return res.status(200).json({ success: true, data: updated });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** POST /api/reportes/:id/solicitar-eliminacion */
+  async solicitarEliminacion(req, res) {
+    try {
+      const { id }    = req.params;
+      const { motivo } = req.body;
+
+      // Verificar ownership
+      const reporte = await this.repository.findByIdAndUsuario(id, req.user.id);
+      if (!reporte)
+        return res.status(404).json({ success: false, message: 'Reporte no encontrado o no te pertenece' });
+
+      if (reporte.estado === 'eliminado')
+        return res.status(400).json({ success: false, message: 'El reporte ya está eliminado' });
+
+      const solicitud = await this.repository.crearSolicitudEliminacion(id, req.user.id, motivo);
+      return res.status(201).json({ success: true, data: solicitud });
+    } catch (error) {
+      const status = error.message.includes('pendiente') ? 409 : 500;
+      return res.status(status).json({ success: false, message: error.message });
     }
   }
 }
