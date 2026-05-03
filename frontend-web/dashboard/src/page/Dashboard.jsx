@@ -6,6 +6,7 @@ import TabIncidentes from "./tabs/TabIncidentes.jsx";
 import TabUsuarios from "./tabs/TabUsuarios.jsx";
 import TabEstadisticas from "./tabs/TabEstadisticas.jsx";
 import TabPerfil from "./tabs/TabPerfil.jsx";
+import TabSolicitudes from "./tabs/TabSolicitudes.jsx";
 
 /* ── SVG Icons ── */
 function IcoDashboard() {
@@ -19,6 +20,9 @@ function IcoUsuarios() {
 }
 function IcoEstadisticas() {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>);
+}
+function IcoSolicitudes() {
+  return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>);
 }
 function IcoLogout() {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>);
@@ -35,6 +39,7 @@ var NAV_ITEMS = [
   { id: "incidentes", label: "Incidentes", Ico: IcoIncidentes },
   { id: "usuarios", label: "Usuarios", Ico: IcoUsuarios },
   { id: "estadisticas", label: "Estadísticas", Ico: IcoEstadisticas },
+  { id: "solicitudes", label: "Solicitudes", Ico: IcoSolicitudes },
 ];
 
 var SECTION_TITLES = {
@@ -42,6 +47,7 @@ var SECTION_TITLES = {
   incidentes: "Gestión de Incidentes",
   usuarios: "Gestión de Usuarios",
   estadisticas: "Estadísticas y Análisis",
+  solicitudes: "Solicitudes de Eliminación",
   perfil: "Mi Perfil",
 };
 
@@ -69,6 +75,7 @@ export default function Dashboard() {
       case "incidentes": return <TabIncidentes onCountChange={function (n) { setCounts(function (c) { return { ...c, incidentes: n }; }); }} />;
       case "usuarios": return <TabUsuarios onCountChange={function (n) { setCounts(function (c) { return { ...c, usuarios: n }; }); }} />;
       case "estadisticas": return <TabEstadisticas />;
+      case "solicitudes": return <TabSolicitudes onCountChange={function (n) { setCounts(function (c) { return { ...c, solicitudes: n }; }); }} />;
       case "perfil": return <TabPerfil />;
       default: return null;
     }
@@ -95,6 +102,9 @@ export default function Dashboard() {
                   <span>{item.label}</span>
                   {item.id === "incidentes" && counts.incidentes > 0 && (
                     <span style={S.badge}>{counts.incidentes}</span>
+                  )}
+                  {item.id === "solicitudes" && counts.solicitudes > 0 && (
+                    <span style={S.badge}>{counts.solicitudes}</span>
                   )}
                 </button>
               );

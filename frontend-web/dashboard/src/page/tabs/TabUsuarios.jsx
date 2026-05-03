@@ -25,8 +25,8 @@ export default function TabUsuarios({ onCountChange }) {
     setCargando(true);
     var params = { page: page, limit: LIMIT };
     if (filtroEstado) params.estado = filtroEstado;
-    if (busqueda) params.buscar = busqueda;
-    api.get("/api/auth/admin/usuarios", { params: params })
+    if (busqueda) params.q = busqueda;
+    api.get("/api/admin/usuarios", { params: params })
       .then(function (res) {
         var d = res.data;
         setUsuarios(d.data || []);
@@ -48,9 +48,9 @@ export default function TabUsuarios({ onCountChange }) {
   var ejecutarAccion = function () {
     if (!modal) return;
     setProcesando(true);
-    api.patch("/api/auth/admin/usuarios/" + modal.id + "/" + modal.accion)
+    api.patch("/api/admin/usuarios/" + modal.id + "/" + modal.accion)
       .then(function () {
-        setMensaje({ tipo: "ok", texto: "Usuario " + (modal.accion === "bloquear" ? "bloqueado" : "reactivado") + " correctamente" });
+        setMensaje({ tipo: "ok", texto: "Usuario " + modal.accion + (modal.accion.endsWith("r") ? "" : "do") + " correctamente" });
         setModal(null);
         cargar();
       })
@@ -79,14 +79,24 @@ export default function TabUsuarios({ onCountChange }) {
   };
 
   var botonAccion = function (u) {
-    if (u.rol === "admin" || u.estado === "eliminado") return <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>;
+    if (u.rol === "admin") return <span style={{ color: "#CBD5E1", fontSize: 12 }}>—</span>;
+    var botones = [];
     if (u.estado === "activo") {
-      return <button onClick={function () { setModal({ id: u.id, username: u.username, accion: "bloquear" }); }} style={S.btnBloquear}>Bloquear</button>;
+      botones.push({ accion: "bloquear", label: "Bloquear", style: S.btnBloquear });
+      botones.push({ accion: "ocultar", label: "Ocultar", style: S.btnOcultar });
+    } else if (u.estado === "bloqueado" || u.estado === "oculto") {
+      botones.push({ accion: "reactivar", label: "Reactivar", style: S.btnReactivar });
+      botones.push({ accion: "eliminar", label: "Eliminar", style: S.btnEliminar });
+    } else if (u.estado === "eliminado") {
+      botones.push({ accion: "reactivar", label: "Restaurar", style: S.btnReactivar });
     }
-    if (u.estado === "bloqueado") {
-      return <button onClick={function () { setModal({ id: u.id, username: u.username, accion: "reactivar" }); }} style={S.btnReactivar}>Reactivar</button>;
-    }
-    return null;
+    return (
+      <div style={{ display: "flex", gap: 6 }}>
+        {botones.map(function (b) {
+          return <button key={b.accion} onClick={function () { setModal({ id: u.id, username: u.username, accion: b.accion }); }} style={b.style}>{b.label}</button>;
+        })}
+      </div>
+    );
   };
 
   if (cargando && usuarios.length === 0) {
@@ -112,7 +122,7 @@ export default function TabUsuarios({ onCountChange }) {
             </p>
             <div style={S.modalButtons}>
               <button onClick={function () { setModal(null); }} style={S.btnCancelar} disabled={procesando}>Cancelar</button>
-              <button onClick={ejecutarAccion} style={modal.accion === "bloquear" ? S.btnConfirmarBloquear : S.btnConfirmarReactivar} disabled={procesando}>
+              <button onClick={ejecutarAccion} style={modal.accion === "bloquear" || modal.accion === "eliminar" ? S.btnConfirmarBloquear : modal.accion === "ocultar" ? S.btnConfirmarOcultar : S.btnConfirmarReactivar} disabled={procesando}>
                 {procesando ? "Procesando..." : (modal.accion === "bloquear" ? "Bloquear" : "Reactivar")}
               </button>
             </div>
@@ -200,6 +210,8 @@ var S = {
   avatar: { width: 32, height: 32, borderRadius: "50%", backgroundColor: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, fontFamily: "'Montserrat',sans-serif" },
   btnBloquear: { padding: "6px 14px", borderRadius: 6, border: "1px solid #FCA5A5", backgroundColor: "#FEF2F2", color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
   btnReactivar: { padding: "6px 14px", borderRadius: 6, border: "1px solid #86EFAC", backgroundColor: "#F0FDF4", color: "#16A34A", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
+  btnOcultar: { padding: "6px 14px", borderRadius: 6, border: "1px solid #FCD34D", backgroundColor: "#FFFBEB", color: "#D97706", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
+  btnEliminar: { padding: "6px 14px", borderRadius: 6, border: "1px solid #FCA5A5", backgroundColor: "#FEF2F2", color: "#DC2626", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
   paginacion: { display: "flex", justifyContent: "center", alignItems: "center", gap: 16, marginTop: 16 },
   btnPag: { padding: "8px 16px", borderRadius: 6, border: "1px solid #CBD5E1", backgroundColor: "#fff", color: "#1E293B", fontSize: 13, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
   pagInfo: { fontSize: 13, color: "#64748B", fontFamily: "'Inter',sans-serif" },
@@ -211,5 +223,6 @@ var S = {
   modalButtons: { display: "flex", justifyContent: "flex-end", gap: 10 },
   btnCancelar: { padding: "8px 20px", borderRadius: 6, border: "1px solid #CBD5E1", backgroundColor: "#fff", color: "#64748B", fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
   btnConfirmarBloquear: { padding: "8px 20px", borderRadius: 6, border: "none", backgroundColor: "#DC2626", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
+  btnConfirmarOcultar: { padding: "8px 20px", borderRadius: 6, border: "none", backgroundColor: "#D97706", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
   btnConfirmarReactivar: { padding: "8px 20px", borderRadius: 6, border: "none", backgroundColor: "#16A34A", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'Inter',sans-serif" },
 };

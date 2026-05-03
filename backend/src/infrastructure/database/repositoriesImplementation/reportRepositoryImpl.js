@@ -192,12 +192,14 @@ export default class ReportRepositoryImpl extends ReportRepository {
     let query = supabase
       .from('reportes')
       .select('id, tipo_hurto, tipo_reportante, franja_horaria, fecha_incidente, barrio_ingresado, comuna, estado, fecha_creacion, descripcion, objeto_hurtado, numero_agresores, latitud, longitud', { count: 'exact' })
-      .neq('estado', 'eliminado')
       .order('fecha_creacion', { ascending: false })
       .range(from, to);
 
-    if (tipo_hurto) query = query.eq('tipo_hurto', tipo_hurto);
+    // Si se filtra por un estado específico, usar ese; si no, excluir eliminados por defecto
     if (estado)     query = query.eq('estado', estado);
+    else            query = query.neq('estado', 'eliminado');
+
+    if (tipo_hurto) query = query.eq('tipo_hurto', tipo_hurto);
     if (fechaDesde) query = query.gte('fecha_incidente', fechaDesde);
     if (fechaHasta) query = query.lte('fecha_incidente', fechaHasta);
     if (comuna)     query = query.eq('comuna', Number(comuna));

@@ -15,7 +15,6 @@ class MisReportesPage extends StatefulWidget {
 class _MisReportesPageState extends State<MisReportesPage> {
   bool _cargando = true;
   List<Map<String, dynamic>> _reportes = [];
-  String? _userId;
   final String _base = '${dotenv.env['API_BASE_URL']}/api/reportes';
 
   static const _coloresTipo = {
@@ -25,25 +24,31 @@ class _MisReportesPageState extends State<MisReportesPage> {
     'cosquilleo': AppColors.hurtoCosquilleo,
   };
 
+  static const _coloresEstado = {
+    'activo': Color(0xFF16A34A),
+    'oculto': Color(0xFFD97706),
+    'eliminado': Color(0xFFDC2626),
+  };
+
   @override
   void initState() {
     super.initState();
     _cargar();
   }
 
+  Future<Map<String, String>> get _headers async {
+    final token = await AuthStorage.getToken();
+    return {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
+  }
+
   Future<void> _cargar() async {
     setState(() => _cargando = true);
     try {
-      _userId = await AuthStorage.getUserId();
-      final token = await AuthStorage.getToken();
-      final headers = {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'};
-      final res = await http.get(Uri.parse(_base), headers: headers);
+      final res = await http.get(Uri.parse('$_base/mis-reportes'), headers: await _headers);
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body);
-        final todos = List<Map<String, dynamic>>.from(body['data'] ?? []);
-        final propios = _userId != null ? todos.where((r) => r['usuario_id'] == _userId).toList() : todos;
         if (!mounted) return;
-        setState(() { _reportes = propios; _cargando = false; });
+        setState(() { _reportes = List<Map<String, dynamic>>.from(body['data'] ?? []); _cargando = false; });
       } else {
         throw Exception('Error ${res.statusCode}');
       }
@@ -60,140 +65,152 @@ class _MisReportesPageState extends State<MisReportesPage> {
     return p.length == 3 ? '${p[2]}/${p[1]}/${p[0]}' : f;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF1E293B) : AppColors.surface;
-    final textMain = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
-    final textSub = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
-    final borderColor = isDark ? const Color(0xFF475569) : AppColors.border;
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mis reportes')),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _reportes.isEmpty
-              ? _emptyState(textMain, textSub)
-              : RefreshIndicator(
-                  onRefresh: _cargar,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _reportes.length,
-                    itemBuilder: (_, i) => _reporteCard(_reportes[i], i, cardColor, textMain, textSub, borderColor),
-                  ),
-                ),
-    );
-  }
-
-  Widget _emptyState(Color textM, Color textS) {
-    return Center(child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.description_outlined, size: 64, color: AppColors.border),
-        const SizedBox(height: 16),
-        Text('Aún no has registrado ningún reporte', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM), textAlign: TextAlign.center),
-        const SizedBox(height: 8),
-        Text('Cuando registres un incidente, aparecerá aquí para que puedas gestionarlo.', style: GoogleFonts.inter(fontSize: 13, color: textS), textAlign: TextAlign.center),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          onPressed: () => Navigator.pushNamed(context, '/reportar'),
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Reportar incidente'),
-        ),
-      ]),
+  void _mostrarMensaje(String texto, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(texto, style: const TextStyle(fontWeight: FontWeight.w500)),
+      backgroundColor: error ? AppColors.hurtoAtraco : AppColors.primary,
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ));
   }
 
-  Widget _reporteCard(Map<String, dynamic> r, int index, Color card, Color textM, Color textS, Color border) {
-    final tipo = r['tipo_hurto'] as String? ?? '';
-    final tipoColor = _coloresTipo[tipo] ?? AppColors.textSub;
-    final estado = r['estado'] as String? ?? 'activo';
-    final fecha = _fmtFecha(r['fecha_incidente'] as String?);
-    final barrio = r['barrio_ingresado'] as String? ?? '—';
-    final comuna = r['comuna'];
-    final franja = r['franja_horaria'] as String? ?? '';
-    final descripcion = r['descripcion'] as String?;
+  // ── Editar reporte ──
+  void _editarReporte(Map<String, dynamic> r) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final borderC = isDark ? const Color(0xFF475569) : AppColors.border;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header del card
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: border, width: 0.5)),
-          ),
-          child: Row(children: [
-            // Badge tipo
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: tipoColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(99)),
-              child: Text('${tipo[0].toUpperCase()}${tipo.substring(1)}', style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600, color: tipoColor)),
+    var tipoHurto = r['tipo_hurto'] as String? ?? 'atraco';
+    var descripcion = r['descripcion'] as String? ?? '';
+    var objetoHurtado = r['objeto_hurtado'] as String?;
+    var numAgresores = r['numero_agresores'] as String?;
+    final descCtrl = TextEditingController(text: descripcion);
+
+    showDialog(context: context, builder: (ctx) {
+      return StatefulBuilder(builder: (ctx, setDialogState) {
+        return AlertDialog(
+          backgroundColor: dialogBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Editar reporte', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM)),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Tipo de hurto', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<String>(
+              value: tipoHurto,
+              decoration: InputDecoration(filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+              items: ['atraco', 'raponazo', 'cosquilleo', 'fleteo'].map((t) => DropdownMenuItem(value: t, child: Text('${t[0].toUpperCase()}${t.substring(1)}'))).toList(),
+              onChanged: (v) => setDialogState(() => tipoHurto = v!),
             ),
-            const SizedBox(width: 8),
-            // Badge estado
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: estado == 'activo' ? AppColors.zonaSegura.withValues(alpha: 0.15) : AppColors.bajoRiesgo.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text(estado, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: estado == 'activo' ? const Color(0xFF166534) : const Color(0xFF854D0E))),
-            ),
-            const Spacer(),
-            Text(fecha, style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w300)),
-          ]),
-        ),
-        // Body
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Icon(Icons.location_on_outlined, size: 16, color: textS),
-              const SizedBox(width: 6),
-              Expanded(child: Text('$barrio${comuna != null ? ' · Comuna $comuna' : ''}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: textM))),
-            ]),
-            const SizedBox(height: 6),
-            Row(children: [
-              Icon(Icons.access_time, size: 16, color: textS),
-              const SizedBox(width: 6),
-              Text(franja, style: GoogleFonts.inter(fontSize: 12, color: textS)),
-            ]),
-            if (descripcion != null && descripcion.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(descripcion, style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w300), maxLines: 2, overflow: TextOverflow.ellipsis),
-            ],
             const SizedBox(height: 12),
-            // Acciones
-            Row(children: [
-              _actionBtn(Icons.visibility_outlined, 'Ver', AppColors.primary, () => _verDetalle(r)),
-              const SizedBox(width: 8),
-              _actionBtn(Icons.edit_outlined, 'Editar', const Color(0xFFD97706), () => _editarReporte(r)),
-              const SizedBox(width: 8),
-              _actionBtn(Icons.delete_outline, 'Eliminar', AppColors.hurtoAtraco, () => _confirmarEliminar(r)),
-            ]),
+            Text('Descripción', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            TextField(controller: descCtrl, maxLines: 3, maxLength: 300, decoration: InputDecoration(filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)), contentPadding: const EdgeInsets.all(12))),
+            const SizedBox(height: 12),
+            Text('Objeto hurtado', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<String>(
+              value: objetoHurtado,
+              decoration: InputDecoration(filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+              items: [null, 'celular', 'dinero', 'tarjetas_documentos', 'articulos_personales', 'dispositivos_electronicos'].map((t) => DropdownMenuItem(value: t, child: Text(t ?? 'Sin especificar'))).toList(),
+              onChanged: (v) => setDialogState(() => objetoHurtado = v),
+            ),
+            const SizedBox(height: 12),
+            Text('N° agresores', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 4),
+            DropdownButtonFormField<String>(
+              value: numAgresores,
+              decoration: InputDecoration(filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+              items: [null, '1', '2', '3+', 'desconocido'].map((t) => DropdownMenuItem(value: t, child: Text(t ?? 'Sin especificar'))).toList(),
+              onChanged: (v) => setDialogState(() => numAgresores = v),
+            ),
+          ])),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  final body = {'tipo_hurto': tipoHurto, 'descripcion': descCtrl.text.trim()};
+                  if (objetoHurtado != null) body['objeto_hurtado'] = objetoHurtado;
+                  if (numAgresores != null) body['numero_agresores'] = numAgresores;
+                  final res = await http.put(Uri.parse('$_base/${r['id']}'), headers: await _headers, body: jsonEncode(body));
+                  if (res.statusCode == 200) {
+                    _mostrarMensaje('Reporte actualizado');
+                    _cargar();
+                  } else {
+                    final err = jsonDecode(res.body);
+                    _mostrarMensaje(err['message'] ?? 'Error al actualizar', error: true);
+                  }
+                } catch (e) { _mostrarMensaje('Error de conexión', error: true); }
+              },
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      });
+    });
+  }
+
+  // ── Solicitar eliminación ──
+  void _solicitarEliminacion(Map<String, dynamic> r) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final motivoCtrl = TextEditingController();
+
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: dialogBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Row(children: [
+        const Icon(Icons.delete_outline, color: AppColors.hurtoAtraco, size: 22),
+        const SizedBox(width: 8),
+        Text('Solicitar eliminación', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.hurtoAtraco)),
+      ]),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Tu solicitud será revisada por un administrador.', style: GoogleFonts.inter(fontSize: 14, color: textM)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.hurtoAtraco.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${(r['tipo_hurto'] as String? ?? '')[0].toUpperCase()}${(r['tipo_hurto'] as String? ?? '').substring(1)} · ${_fmtFecha(r['fecha_incidente'] as String?)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textM)),
+            Text(r['barrio_ingresado'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: textS)),
           ]),
         ),
+        const SizedBox(height: 12),
+        Text('Motivo (opcional)', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 4),
+        TextField(controller: motivoCtrl, maxLines: 2, maxLength: 200, decoration: InputDecoration(hintText: 'Ej: Reporte duplicado', filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), contentPadding: const EdgeInsets.all(12))),
       ]),
-    );
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(ctx);
+            try {
+              final body = motivoCtrl.text.trim().isNotEmpty ? {'motivo': motivoCtrl.text.trim()} : {};
+              final res = await http.post(Uri.parse('$_base/${r['id']}/solicitar-eliminacion'), headers: await _headers, body: jsonEncode(body));
+              if (res.statusCode == 200 || res.statusCode == 201) {
+                _mostrarMensaje('Solicitud enviada. Un administrador la revisará.');
+              } else {
+                final err = jsonDecode(res.body);
+                _mostrarMensaje(err['message'] ?? 'Error al solicitar', error: true);
+              }
+            } catch (e) { _mostrarMensaje('Error de conexión', error: true); }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.hurtoAtraco),
+          child: const Text('Enviar solicitud'),
+        ),
+      ],
+    ));
   }
 
-  Widget _actionBtn(IconData icon, String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 15, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
-        ]),
-      ),
-    );
-  }
-
+  // ── Ver detalle ──
   void _verDetalle(Map<String, dynamic> r) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
@@ -235,61 +252,125 @@ class _MisReportesPageState extends State<MisReportesPage> {
     ]));
   }
 
-  void _editarReporte(Map<String, dynamic> r) {
+  @override
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
-    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final cardColor = isDark ? const Color(0xFF1E293B) : AppColors.surface;
+    final textMain = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textSub = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final borderColor = isDark ? const Color(0xFF475569) : AppColors.border;
 
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      backgroundColor: dialogBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      title: Row(children: [
-        const Icon(Icons.construction, color: AppColors.primary, size: 22),
-        const SizedBox(width: 8),
-        Text('Edición en desarrollo', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM)),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mis reportes')),
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _reportes.isEmpty
+              ? _emptyState(textMain, textSub)
+              : RefreshIndicator(
+                  onRefresh: _cargar,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _reportes.length,
+                    itemBuilder: (_, i) => _reporteCard(_reportes[i], cardColor, textMain, textSub, borderColor),
+                  ),
+                ),
+    );
+  }
+
+  Widget _emptyState(Color textM, Color textS) {
+    return Center(child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.description_outlined, size: 64, color: AppColors.border),
+        const SizedBox(height: 16),
+        Text('Aún no has registrado ningún reporte', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM), textAlign: TextAlign.center),
+        const SizedBox(height: 8),
+        Text('Cuando registres un incidente, aparecerá aquí.', style: GoogleFonts.inter(fontSize: 13, color: textS), textAlign: TextAlign.center),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: () => Navigator.pushNamed(context, '/reportar'),
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Reportar incidente'),
+        ),
       ]),
-      content: Text('Esta función estará disponible cuando se conecten los endpoints de edición.', style: GoogleFonts.inter(fontSize: 14, color: textS)),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido'))],
     ));
   }
 
-  void _confirmarEliminar(Map<String, dynamic> r) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
-    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+  Widget _reporteCard(Map<String, dynamic> r, Color card, Color textM, Color textS, Color border) {
+    final tipo = r['tipo_hurto'] as String? ?? '';
+    final tipoColor = _coloresTipo[tipo] ?? AppColors.textSub;
+    final estado = r['estado'] as String? ?? 'activo';
+    final estadoColor = _coloresEstado[estado] ?? const Color(0xFF16A34A);
 
-    showDialog(context: context, builder: (ctx) => AlertDialog(
-      backgroundColor: dialogBg,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      title: Row(children: [
-        const Icon(Icons.warning_amber_rounded, color: AppColors.hurtoAtraco, size: 22),
-        const SizedBox(width: 8),
-        Text('Eliminar reporte', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.hurtoAtraco)),
-      ]),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('¿Estás seguro de que deseas eliminar este reporte?', style: GoogleFonts.inter(fontSize: 14, color: textM)),
-        const SizedBox(height: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14), border: Border.all(color: border)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: AppColors.hurtoAtraco.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${(r['tipo_hurto'] as String? ?? '')[0].toUpperCase()}${(r['tipo_hurto'] as String? ?? '').substring(1)} · ${_fmtFecha(r['fecha_incidente'] as String?)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textM)),
-            Text(r['barrio_ingresado'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: textS)),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: border, width: 0.5))),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: tipoColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(99)),
+              child: Text(tipo.isNotEmpty ? '${tipo[0].toUpperCase()}${tipo.substring(1)}' : '', style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600, color: tipoColor)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: estadoColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(99)),
+              child: Text(estado, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: estadoColor)),
+            ),
+            const Spacer(),
+            Text(_fmtFecha(r['fecha_incidente'] as String?), style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w300)),
           ]),
         ),
-        const SizedBox(height: 8),
-        Text('Esta acción no se puede deshacer.', style: GoogleFonts.inter(fontSize: 12, color: textS, fontStyle: FontStyle.italic)),
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
-        ElevatedButton(
-          onPressed: () { Navigator.pop(ctx); },
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.hurtoAtraco),
-          child: const Text('Eliminar'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.location_on_outlined, size: 16, color: textS),
+              const SizedBox(width: 6),
+              Expanded(child: Text('${r['barrio_ingresado'] ?? '—'}${r['comuna'] != null ? ' · Comuna ${r['comuna']}' : ''}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: textM))),
+            ]),
+            const SizedBox(height: 6),
+            Row(children: [
+              Icon(Icons.access_time, size: 16, color: textS),
+              const SizedBox(width: 6),
+              Text(r['franja_horaria'] ?? '', style: GoogleFonts.inter(fontSize: 12, color: textS)),
+            ]),
+            if (r['descripcion'] != null && (r['descripcion'] as String).isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(r['descripcion'], style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w300), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ],
+            const SizedBox(height: 12),
+            Row(children: [
+              _actionBtn(Icons.visibility_outlined, 'Ver', AppColors.primary, () => _verDetalle(r)),
+              if (estado == 'activo') ...[
+                const SizedBox(width: 8),
+                _actionBtn(Icons.edit_outlined, 'Editar', const Color(0xFFD97706), () => _editarReporte(r)),
+                const SizedBox(width: 8),
+                _actionBtn(Icons.delete_outline, 'Eliminar', AppColors.hurtoAtraco, () => _solicitarEliminacion(r)),
+              ],
+            ]),
+          ]),
         ),
-      ],
-    ));
+      ]),
+    );
+  }
+
+  Widget _actionBtn(IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+        ]),
+      ),
+    );
   }
 }

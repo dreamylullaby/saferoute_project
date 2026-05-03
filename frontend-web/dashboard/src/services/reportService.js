@@ -32,3 +32,24 @@ export const getReportesMapa = async () => {
   const { data } = await api.get("/api/reportes/mapa");
   return data.data;
 };
+
+/**
+ * Cambia el estado de un reporte (activo/oculto/eliminado).
+ * Endpoint que Fer debe implementar: PATCH /api/reportes/:id/estado
+ * @param {string} id - UUID del reporte
+ * @param {string} estado - Nuevo estado ('activo', 'oculto', 'eliminado')
+ */
+export const cambiarEstadoReporte = async (id, estado) => {
+  const { data } = await api.patch(`/api/admin/reportes/${id}/estado`, { estado });
+  return data;
+};
+
+/**
+ * Edita el tipo de hurto de un reporte (solo admin).
+ * @param {string} id - UUID del reporte
+ * @param {string} tipo_hurto - Nuevo tipo ('atraco', 'raponazo', 'cosquilleo', 'fleteo')
+ */
+export const editarTipoHurtoReporte = async (id, tipo_hurto) => {
+  const { data } = await api.patch(`/api/admin/reportes/${id}/tipo`, { tipo_hurto });
+  return data;
+};
