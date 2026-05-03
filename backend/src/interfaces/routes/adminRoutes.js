@@ -19,6 +19,7 @@ import {
   detalleSolicitudEliminacion,
   aprobarSolicitud,
   rechazarSolicitud,
+  exportarReportes,
 } from "../controllers/adminController.js";
 
 const router = express.Router();
@@ -58,5 +59,8 @@ router.post("/solicitudes-eliminacion/:id/aprobar", aprobarSolicitud);
 
 /** POST /api/admin/solicitudes-eliminacion/:id/rechazar — Rechaza la solicitud */
 router.post("/solicitudes-eliminacion/:id/rechazar", rechazarSolicitud);
+
+/** GET /api/admin/reportes/export — Exporta reportes en CSV o Excel */
+router.get("/reportes/export", exportarReportes);
 
 export default router;
