@@ -15,17 +15,21 @@ import { enviarCorreoRecuperacion } from "../../infrastructure/email/emailServic
 /**
  * Maneja POST /api/auth/register
  * Registra un nuevo usuario local con contraseña hasheada.
- * @param {import('express').Request} req - Body: { username, correo, password }
+ * Requiere aceptación de términos y condiciones.
+ * @param {import('express').Request} req - Body: { username, correo, password, aceptaTerminos }
  * @param {import('express').Response} res - Retorna { user: { id, username, correo, rol } }
  */
 export const registerLocal = async (req, res) => {
 
   try {
 
-    const { username, correo, password } = req.body;
+    const { username, correo, password, aceptaTerminos } = req.body;
 
     if (!username || !correo || !password)
       return res.status(400).json({ message: "Todos los campos son obligatorios" });
+
+    if (!aceptaTerminos)
+      return res.status(400).json({ message: "Debes aceptar los términos y condiciones para registrarte" });
 
     const { data: existingUsername } = await db
       .from("usuarios")
@@ -62,6 +66,17 @@ export const registerLocal = async (req, res) => {
 
     if (error) throw error;
 
+    // Guardar evidencia de aceptación de términos
+    const ipOrigen = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+      || req.socket?.remoteAddress
+      || null;
+
+    await db.from("aceptacion_terminos").insert({
+      usuario_id:       newUser.id,
+      version_terminos: 'v1.0',
+      ip_origen:        ipOrigen,
+    });
+
     res.status(201).json({
       user: {
         id: newUser.id,
@@ -76,6 +91,39 @@ export const registerLocal = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 
+};
+
+/**
+ * GET /api/auth/terminos
+ * Retorna el texto de los términos y condiciones vigentes.
+ */
+export const getTerminos = (req, res) => {
+  res.json({
+    version: 'v1.0',
+    fecha_vigencia: '2026-01-01',
+    contenido: `TÉRMINOS Y CONDICIONES DE USO — SafeRoute v1.0
+
+1. ACEPTACIÓN
+Al registrarte en SafeRoute aceptas estos términos en su totalidad.
+
+2. USO DEL SERVICIO
+SafeRoute es una plataforma para reportar y consultar incidentes de hurto en la ciudad de Pasto. El uso indebido, fraudulento o malintencionado del sistema está prohibido.
+
+3. DATOS PERSONALES
+Los datos que proporcionas (correo, apodo) serán usados exclusivamente para el funcionamiento del sistema. No serán compartidos con terceros sin tu consentimiento.
+
+4. REPORTES
+Los reportes que registres deben ser verídicos. SafeRoute se reserva el derecho de ocultar o eliminar reportes que sean considerados fraudulentos o duplicados.
+
+5. RESPONSABILIDAD
+SafeRoute no se hace responsable por decisiones tomadas con base en la información del sistema. La información es de carácter informativo.
+
+6. MODIFICACIONES
+Estos términos pueden ser actualizados. Se notificará a los usuarios ante cambios significativos.
+
+7. CONTACTO
+Para consultas: soporte@saferoute.com`,
+  });
 };
 
 /**

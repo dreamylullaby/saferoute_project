@@ -529,3 +529,98 @@ export const rechazarSolicitud = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * GET /api/admin/reportes/export
+ * Exporta reportes filtrados en formato CSV o Excel.
+ * Query params: fechaDesde, fechaHasta, zona (comuna), estado, formato (csv|excel)
+ * Límite máximo: 5000 registros.
+ */
+export const exportarReportes = async (req, res) => {
+  try {
+    const {
+      fechaDesde, fechaHasta,
+      zona, estado,
+      formato = 'excel',
+    } = req.query;
+
+    const LIMITE = 5000;
+
+    if (!['csv', 'excel'].includes(formato))
+      return res.status(400).json({ success: false, message: "formato debe ser 'csv' o 'excel'" });
+
+    // Consultar vista de exportación con filtros
+    let query = db
+      .from('vw_export_reportes_admin')
+      .select('*')
+      .limit(LIMITE + 1); // +1 para detectar si excede el límite
+
+    if (fechaDesde) query = query.gte('fecha_incidente', fechaDesde);
+    if (fechaHasta) query = query.lte('fecha_incidente', fechaHasta);
+    if (estado)     query = query.eq('estado', estado);
+    if (zona)       query = query.eq('comuna', Number(zona));
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    if (data.length > LIMITE)
+      return res.status(400).json({
+        success: false,
+        message: `La consulta excede el límite de ${LIMITE} registros. Aplica más filtros para reducir los resultados.`,
+      });
+
+    if (data.length === 0)
+      return res.status(200).json({ success: true, message: 'No hay registros para exportar con los filtros aplicados.' });
+
+    const columnas = [
+      'reporte_id', 'fecha_incidente', 'franja_horaria', 'tipo_hurto',
+      'tipo_reportante', 'objeto_hurtado', 'numero_agresores', 'descripcion',
+      'direccion', 'barrio_ingresado', 'barrio_normalizado', 'comuna',
+      'latitud', 'longitud', 'estado', 'fecha_creacion',
+    ];
+
+    if (formato === 'csv') {
+      const header = columnas.join(',');
+      const rows   = data.map(r =>
+        columnas.map(c => {
+          const val = r[c] ?? '';
+          return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+        }).join(',')
+      );
+      const csv = [header, ...rows].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="reportes_${Date.now()}.csv"`);
+      return res.send('\uFEFF' + csv); // BOM para Excel en Windows
+    }
+
+    // Excel con exceljs
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook  = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reportes SafeRoute');
+
+    worksheet.columns = columnas.map(c => ({
+      header: c.replace(/_/g, ' ').toUpperCase(),
+      key:    c,
+      width:  20,
+    }));
+
+    // Estilo de cabecera
+    worksheet.getRow(1).eachCell(cell => {
+      cell.font      = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+      cell.alignment = { horizontal: 'center' };
+    });
+
+    data.forEach(r => worksheet.addRow(columnas.reduce((acc, c) => ({ ...acc, [c]: r[c] ?? '' }), {})));
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="reportes_${Date.now()}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    return res.end();
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
