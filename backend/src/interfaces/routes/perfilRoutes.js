@@ -1,21 +1,26 @@
+// src/interfaces/routes/perfilRoutes.js
+
 /**
- * Rutas de perfil de usuario.
+ * Rutas de gestión de perfil del usuario autenticado.
  * Base: /api/perfil
- * @module perfilRoutes
  */
 import express from "express";
-import { getPerfil, updatePerfil, toggleNotificaciones } from "../controllers/perfilController.js";
 import { authenticate } from "../middlewares/auth.js";
+import {
+  actualizarPerfil,
+  cambiarPassword,
+  actualizarNotificaciones,
+} from "../controllers/perfilController.js";
 
 const router = express.Router();
 
-/** GET /api/perfil — Datos del perfil del usuario autenticado */
-router.get("/", authenticate, getPerfil);
+/** PUT /api/perfil — Actualiza username y/o foto_url */
+router.put("/", authenticate, actualizarPerfil);
 
-/** PATCH /api/perfil — Actualizar username y/o foto_url */
-router.patch("/", authenticate, updatePerfil);
+/** PUT /api/perfil/password — Cambia la contraseña (solo usuarios locales) */
+router.put("/password", authenticate, cambiarPassword);
 
-/** PATCH /api/perfil/notificaciones — Toggle de notificaciones */
-router.patch("/notificaciones", authenticate, toggleNotificaciones);
+/** PUT /api/perfil/notificaciones — Activa/desactiva alertas y configura radio */
+router.put("/notificaciones", authenticate, actualizarNotificaciones);
 
 export default router;

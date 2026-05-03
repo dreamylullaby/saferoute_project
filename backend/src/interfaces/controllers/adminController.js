@@ -302,3 +302,230 @@ export const cambiarEstadoReporte = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * PATCH /api/admin/reportes/:id/tipo
+ * Edita el tipo_hurto de un reporte.
+ * Requiere que el reporte tenga descripcion no vacía.
+ * Body: { tipo_hurto }
+ */
+export const editarTipoHurtoReporte = async (req, res) => {
+  try {
+    const { id }        = req.params;
+    const { tipo_hurto } = req.body;
+    const adminId       = req.user.id;
+
+    const tiposPermitidos = ['atraco', 'raponazo', 'cosquilleo', 'fleteo'];
+
+    if (!tipo_hurto || !tipo_hurto.trim())
+      return res.status(400).json({ success: false, message: "tipo_hurto es obligatorio" });
+
+    if (!tiposPermitidos.includes(tipo_hurto))
+      return res.status(400).json({
+        success: false,
+        message: `tipo_hurto inválido. Valores permitidos: ${tiposPermitidos.join(', ')}`,
+      });
+
+    // Buscar reporte
+    const { data: reporte, error: fetchError } = await db
+      .from("reportes")
+      .select("id, tipo_hurto, descripcion")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !reporte)
+      return res.status(404).json({ success: false, message: "Reporte no encontrado" });
+
+    // Validar que tenga descripción no vacía
+    if (!reporte.descripcion || reporte.descripcion.trim().length === 0)
+      return res.status(400).json({
+        success: false,
+        message: "El reporte debe tener una descripción antes de poder editar el tipo de hurto",
+      });
+
+    if (reporte.tipo_hurto === tipo_hurto)
+      return res.status(400).json({
+        success: false,
+        message: `El reporte ya tiene el tipo '${tipo_hurto}'`,
+      });
+
+    const tipoAnterior = reporte.tipo_hurto;
+
+    // Actualizar tipo_hurto
+    const { error: updateError } = await db
+      .from("reportes")
+      .update({
+        tipo_hurto,
+        actualizado_por:     adminId,
+        fecha_actualizacion: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (updateError) throw updateError;
+
+    // Registrar en auditoría
+    await db.from("auditoria_edicion_reportes").insert({
+      admin_id:           adminId,
+      reporte_id:         id,
+      campos_modificados: ['tipo_hurto'],
+      valores_anteriores: { tipo_hurto: tipoAnterior },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Tipo de hurto actualizado correctamente",
+      data: { id, tipoAnterior, tipoNuevo: tipo_hurto },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/solicitudes-eliminacion
+ * Lista solicitudes con filtro opcional por estado_solicitud (default: pendiente).
+ * Query params: estado (pendiente | aprobada | rechazada)
+ */
+export const listarSolicitudesEliminacion = async (req, res) => {
+  try {
+    const { estado = 'pendiente' } = req.query;
+
+    const estadosValidos = ['pendiente', 'aprobada', 'rechazada'];
+    if (!estadosValidos.includes(estado))
+      return res.status(400).json({ success: false, message: `estado inválido. Valores: ${estadosValidos.join(', ')}` });
+
+    const { data, error } = await db
+      .from('solicitudes_eliminacion')
+      .select(`
+        id, estado_solicitud, motivo, fecha_solicitud, fecha_resolucion,
+        reportes(id, tipo_hurto, barrio_ingresado, estado, fecha_incidente),
+        usuarios!solicitudes_eliminacion_usuario_id_fkey(id, username, correo)
+      `)
+      .eq('estado_solicitud', estado)
+      .order('fecha_solicitud', { ascending: false });
+
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/solicitudes-eliminacion/:id
+ * Detalle completo de una solicitud.
+ */
+export const detalleSolicitudEliminacion = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await db
+      .from('solicitudes_eliminacion')
+      .select(`
+        *,
+        reportes(id, tipo_hurto, barrio_ingresado, estado, fecha_incidente, descripcion, latitud, longitud),
+        usuarios!solicitudes_eliminacion_usuario_id_fkey(id, username, correo, fecha_creacion)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error || !data)
+      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/admin/solicitudes-eliminacion/:id/aprobar
+ * Aprueba la solicitud: cambia estado del reporte a 'eliminado'.
+ */
+export const aprobarSolicitud = async (req, res) => {
+  try {
+    const { id }    = req.params;
+    const adminId   = req.user.id;
+
+    const { data: solicitud, error: fetchError } = await db
+      .from('solicitudes_eliminacion')
+      .select('*, reportes(id, estado)')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !solicitud)
+      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+
+    if (solicitud.estado_solicitud !== 'pendiente')
+      return res.status(400).json({ success: false, message: `La solicitud ya fue ${solicitud.estado_solicitud}` });
+
+    if (solicitud.reportes?.estado === 'eliminado')
+      return res.status(400).json({ success: false, message: 'El reporte ya está eliminado' });
+
+    // Eliminar el reporte
+    await db.from('reportes').update({
+      estado:              'eliminado',
+      actualizado_por:     adminId,
+      fecha_actualizacion: new Date().toISOString(),
+    }).eq('id', solicitud.reporte_id);
+
+    // Resolver la solicitud
+    const { data: updated, error: updateError } = await db
+      .from('solicitudes_eliminacion')
+      .update({
+        estado_solicitud:  'aprobada',
+        admin_id:          adminId,
+        fecha_resolucion:  new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    return res.status(200).json({ success: true, message: 'Solicitud aprobada. Reporte eliminado.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * POST /api/admin/solicitudes-eliminacion/:id/rechazar
+ * Rechaza la solicitud sin modificar el reporte.
+ */
+export const rechazarSolicitud = async (req, res) => {
+  try {
+    const { id }  = req.params;
+    const adminId = req.user.id;
+
+    const { data: solicitud, error: fetchError } = await db
+      .from('solicitudes_eliminacion')
+      .select('id, estado_solicitud')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !solicitud)
+      return res.status(404).json({ success: false, message: 'Solicitud no encontrada' });
+
+    if (solicitud.estado_solicitud !== 'pendiente')
+      return res.status(400).json({ success: false, message: `La solicitud ya fue ${solicitud.estado_solicitud}` });
+
+    const { data: updated, error: updateError } = await db
+      .from('solicitudes_eliminacion')
+      .update({
+        estado_solicitud: 'rechazada',
+        admin_id:         adminId,
+        fecha_resolucion: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+
+    return res.status(200).json({ success: true, message: 'Solicitud rechazada.', data: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

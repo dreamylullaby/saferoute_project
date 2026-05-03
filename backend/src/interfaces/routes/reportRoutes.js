@@ -43,8 +43,20 @@ router.get('/barrios-por-coordenadas', authenticate, (req, res) => controller.bu
 /** GET /api/reportes/barrios?q= — Busca barrios similares al texto ingresado */
 router.get('/barrios', authenticate, (req, res) => controller.buscarBarrios(req, res));
 
+/** GET /api/reportes/mis-reportes — Reportes del usuario autenticado */
+router.get('/mis-reportes', authenticate, (req, res) => controller.getMisReportes(req, res));
+
+/** GET /api/reportes/mis-reportes/:id — Detalle de reporte propio */
+router.get('/mis-reportes/:id', authenticate, (req, res) => controller.getMiReporteById(req, res));
+
 /** GET /api/reportes — Lista todos los reportes no eliminados (requiere autenticación) */
 router.get('/', authenticate, (req, res) => controller.list(req, res));
+
+/** PUT /api/reportes/:id — Editar reporte propio */
+router.put('/:id', authenticate, (req, res) => controller.updateOwn(req, res));
+
+/** POST /api/reportes/:id/solicitar-eliminacion — Solicitar eliminación de reporte propio */
+router.post('/:id/solicitar-eliminacion', authenticate, (req, res) => controller.solicitarEliminacion(req, res));
 
 /** GET /api/reportes/:id — Obtiene un reporte por su UUID (requiere autenticación) */
 router.get('/:id', authenticate, (req, res) => controller.getById(req, res));
