@@ -117,6 +117,8 @@ class EstadisticasDatasource {
     List<String>? tipos,
     String? fechaDesde,
     String? fechaHasta,
+    int? corregimientoId,
+    bool? esRural,
   }) async {
     final params = <String, String>{};
     if (comunas != null && comunas.isNotEmpty) params['comunas'] = comunas.join(',');
@@ -124,6 +126,8 @@ class EstadisticasDatasource {
     if (tipos != null && tipos.isNotEmpty) params['tipos'] = tipos.join(',');
     if (fechaDesde != null) params['fechaDesde'] = fechaDesde;
     if (fechaHasta != null) params['fechaHasta'] = fechaHasta;
+    if (corregimientoId != null) params['corregimiento_id'] = corregimientoId.toString();
+    if (esRural != null) params['es_rural'] = esRural.toString();
 
     final uri = Uri.parse('$_base/mapa/filtros').replace(queryParameters: params);
     final response = await http.get(uri, headers: await _headers);

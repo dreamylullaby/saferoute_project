@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../../core/app_theme.dart';
+import '../../../../services/auth_storage.dart';
 import '../../data/datasources/estadisticas_datasource.dart';
 
 class EstadisticasPage extends StatefulWidget {
@@ -26,6 +30,9 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
   String? _fechaDesde;
   String? _fechaHasta;
   bool _hayFiltros = false;
+  bool _modoRural = false;
+  String? _filtroCorregimiento;
+  List<Map<String, dynamic>> _corregimientos = [];
 
   static const _coloresTipo = {
     'atraco': AppColors.hurtoAtraco,
@@ -52,6 +59,20 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
   void initState() {
     super.initState();
     _cargar();
+    _cargarCorregimientos();
+  }
+
+  Future<void> _cargarCorregimientos() async {
+    try {
+      final base = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
+      final token = await AuthStorage.getToken();
+      final res = await http.get(Uri.parse('$base/api/reportes/corregimientos'),
+        headers: {'Authorization': 'Bearer $token'});
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (mounted) setState(() => _corregimientos = List<Map<String, dynamic>>.from(body['data'] ?? []));
+      }
+    } catch (_) {}
   }
 
   String _fmt(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -64,7 +85,7 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
       final finMesAnt = DateTime(hoy.year, hoy.month, 0);
       final inicioMesAnt = DateTime(hoy.year, hoy.month - 1, 1);
 
-      _hayFiltros = _filtroComuna != null || _filtroFranja != null || _filtroTipo != null || _fechaDesde != null || _fechaHasta != null;
+      _hayFiltros = _filtroComuna != null || _filtroFranja != null || _filtroTipo != null || _fechaDesde != null || _fechaHasta != null || _filtroCorregimiento != null || _modoRural;
 
       final resumenFuture = _hayFiltros
           ? _ds.getResumenFiltrado(
@@ -73,6 +94,8 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
               tipos: _filtroTipo != null ? [_filtroTipo!] : null,
               fechaDesde: _fechaDesde,
               fechaHasta: _fechaHasta,
+              corregimientoId: _filtroCorregimiento != null ? int.parse(_filtroCorregimiento!) : null,
+              esRural: _modoRural ? true : null,
             )
           : _ds.getResumenUsuario();
 
@@ -96,12 +119,17 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
   }
 
   void _limpiarFiltros() {
-    setState(() { _filtroComuna = null; _filtroFranja = null; _filtroTipo = null; _fechaDesde = null; _fechaHasta = null; });
+    setState(() { _filtroComuna = null; _filtroFranja = null; _filtroTipo = null; _fechaDesde = null; _fechaHasta = null; _filtroCorregimiento = null; _modoRural = false; });
     _cargar();
   }
 
   Future<void> _seleccionarFecha(bool esDesde) async {
-    final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime.now());
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: esDesde ? DateTime(2020) : (_fechaDesde != null ? DateTime.parse(_fechaDesde!) : DateTime(2020)),
+      lastDate: esDesde ? (_fechaHasta != null ? DateTime.parse(_fechaHasta!) : DateTime.now()) : DateTime.now(),
+    );
     if (picked == null || !mounted) return;
     setState(() => esDesde ? _fechaDesde = _fmt(picked) : _fechaHasta = _fmt(picked));
     _cargar();
@@ -110,6 +138,7 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
   Widget _buildFiltros(Color card, Color textM, Color textS) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = isDark ? const Color(0xFF475569) : AppColors.border;
+    const ruralColor = Color(0xFF16A34A);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -123,15 +152,77 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
           if (_hayFiltros) GestureDetector(onTap: _limpiarFiltros, child: Text('Limpiar', style: GoogleFonts.inter(fontSize: 12, color: AppColors.error, fontWeight: FontWeight.w500))),
         ]),
         const SizedBox(height: 16),
-        // Zona (Comuna)
-        Text('Zona (Comuna)', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 6),
-        _dropdownField(
-          value: _filtroComuna != null ? 'Comuna $_filtroComuna' : 'Todas las comunas',
-          onTap: () => _showFilterSheet('Comuna', List.generate(12, (i) => MapEntry('${i + 1}', 'Comuna ${i + 1}')), _filtroComuna, (v) { setState(() => _filtroComuna = v); _cargar(); }),
-          borderColor: borderColor, textM: textM, textS: textS,
+
+        // Toggle Urbano / Rural
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(children: [
+            Expanded(child: GestureDetector(
+              onTap: () { setState(() { _modoRural = false; _filtroCorregimiento = null; }); _cargar(); },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: !_modoRural ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.location_city, size: 16, color: !_modoRural ? Colors.white : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
+                  const SizedBox(width: 6),
+                  Text('Urbano', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: !_modoRural ? Colors.white : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub))),
+                ]),
+              ),
+            )),
+            Expanded(child: GestureDetector(
+              onTap: () { setState(() { _modoRural = true; _filtroComuna = null; }); _cargar(); },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: _modoRural ? ruralColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.park_outlined, size: 16, color: _modoRural ? Colors.white : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
+                  const SizedBox(width: 6),
+                  Text('Rural', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _modoRural ? Colors.white : (isDark ? const Color(0xFF94A3B8) : AppColors.textSub))),
+                ]),
+              ),
+            )),
+          ]),
         ),
+        const SizedBox(height: 16),
+
+        // Zona según modo
+        if (!_modoRural) ...[
+          Text('Zona (Comuna)', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          _dropdownField(
+            value: _filtroComuna != null ? 'Comuna $_filtroComuna' : 'Todas las comunas',
+            onTap: () => _showFilterSheet('Comuna', List.generate(12, (i) => MapEntry('${i + 1}', 'Comuna ${i + 1}')), _filtroComuna, (v) { setState(() => _filtroComuna = v); _cargar(); }),
+            borderColor: borderColor, textM: textM, textS: textS,
+          ),
+        ] else ...[
+          Text('Corregimiento', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          _dropdownField(
+            value: _filtroCorregimiento != null
+                ? _corregimientos.firstWhere((c) => '${c['id']}' == _filtroCorregimiento, orElse: () => {'nombre': 'Corregimiento $_filtroCorregimiento'})['nombre'] as String
+                : 'Todos los corregimientos',
+            onTap: () => _showFilterSheet(
+              'Corregimiento',
+              _corregimientos.map((c) => MapEntry('${c['id']}', c['nombre'] as String)).toList(),
+              _filtroCorregimiento,
+              (v) { setState(() => _filtroCorregimiento = v); _cargar(); },
+            ),
+            borderColor: borderColor, textM: textM, textS: textS,
+          ),
+        ],
         const SizedBox(height: 14),
+
         // Tipo de hurto
         Text('Tipo de hurto', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
@@ -258,8 +349,8 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
                 // Tendencia
                 if (_comparacion != null) _buildTendencia(cardColor, textMain, textSub),
                 if (_comparacion != null) const SizedBox(height: 16),
-                // Incidentes por Comuna
-                _buildBarrasComunas(cardColor, textMain, textSub),
+                // Incidentes por zona (Comuna o Corregimiento)
+                _buildBarrasZona(cardColor, textMain, textSub),
                 const SizedBox(height: 16),
                 // Incidentes por Horario
                 _buildLineaHorario(cardColor, textMain, textSub),
@@ -338,7 +429,56 @@ class _EstadisticasPageState extends State<EstadisticasPage> {
     );
   }
 
-  Widget _buildBarrasComunas(Color card, Color textM, Color textS) {
+  Widget _buildBarrasZona(Color card, Color textM, Color textS) {
+    if (_modoRural) {
+      // Modo rural: barras por corregimiento
+      final porComuna = Map<String, dynamic>.from(_resumen['porComuna'] ?? {});
+      // porComuna en rural puede tener IDs de corregimiento como keys
+      final entries = _corregimientos.map((c) {
+        final id = '${c['id']}';
+        final nombre = (c['nombre'] as String?) ?? '?';
+        final abrev = nombre.length > 6 ? nombre.substring(0, 6) : nombre;
+        return MapEntry(abrev, (porComuna[id] ?? 0) as int);
+      }).toList();
+      final maxVal = entries.isEmpty ? 0.0 : entries.map((e) => e.value).fold(0, (a, b) => a > b ? a : b).toDouble();
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border.withValues(alpha: 0.5))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Incidentes por Corregimiento', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: textM)),
+          const SizedBox(height: 16),
+          entries.isEmpty
+            ? Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('Sin datos rurales', style: GoogleFonts.inter(fontSize: 13, color: textS))))
+            : SizedBox(
+                height: 180,
+                child: BarChart(BarChartData(
+                  maxY: maxVal > 0 ? maxVal + 1 : 5,
+                  barGroups: entries.asMap().entries.map((e) {
+                    final isMax = e.value.value == maxVal.toInt() && maxVal > 0;
+                    return BarChartGroupData(x: e.key, barRods: [
+                      BarChartRodData(toY: e.value.value.toDouble(), color: isMax ? AppColors.altoRiesgo : const Color(0xFF16A34A), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
+                    ]);
+                  }).toList(),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
+                      final idx = v.toInt();
+                      if (idx < 0 || idx >= entries.length) return const SizedBox.shrink();
+                      return Padding(padding: const EdgeInsets.only(top: 6), child: Text(entries[idx].key, style: GoogleFonts.inter(fontSize: 8, color: textS)));
+                    })),
+                    leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28, getTitlesWidget: (v, _) => Text('${v.toInt()}', style: GoogleFonts.inter(fontSize: 10, color: textS)))),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => FlLine(color: AppColors.border.withValues(alpha: 0.3), strokeWidth: 0.5)),
+                  borderData: FlBorderData(show: false),
+                )),
+              ),
+        ]),
+      );
+    }
+
+    // Modo urbano: barras por comuna (original)
     final porComuna = Map<String, dynamic>.from(_resumen['porComuna'] ?? {});
     final entries = List.generate(12, (i) => MapEntry('C${i + 1}', (porComuna['${i + 1}'] ?? 0) as int));
     final maxVal = entries.map((e) => e.value).fold(0, (a, b) => a > b ? a : b).toDouble();
