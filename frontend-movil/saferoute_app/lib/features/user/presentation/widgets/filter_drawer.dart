@@ -176,6 +176,7 @@ class _FilterDrawerState extends State<FilterDrawer> {
                     FilterDateField(
                       label: 'Desde',
                       value: _localDesde,
+                      lastDate: _localHasta ?? DateTime.now(),
                       onPicked: (d) {
                         setState(() => _localDesde = d);
                         widget.onFechaDesdeChanged?.call(d);
@@ -185,6 +186,7 @@ class _FilterDrawerState extends State<FilterDrawer> {
                     FilterDateField(
                       label: 'Hasta',
                       value: _localHasta,
+                      firstDate: _localDesde,
                       onPicked: (d) {
                         setState(() => _localHasta = d);
                         widget.onFechaHastaChanged?.call(d);

@@ -104,6 +104,86 @@ export default class ReportRepositoryImpl extends ReportRepository {
   }
 
   /**
+   * Lista todos los corregimientos con su ID y nombre.
+   * @returns {Promise<Array>} [{ id, nombre }]
+   */
+  async listarCorregimientos() {
+    const { data, error } = await supabase
+      .from('corregimientos')
+      .select('id, nombre')
+      .order('nombre');
+
+    if (error) throw new Error(`Error al listar corregimientos: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Lista las veredas de un corregimiento específico.
+   * @param {number} corregimientoId
+   * @returns {Promise<Array>} [{ id, nombre, es_cabecera }]
+   */
+  async listarVeredasPorCorregimiento(corregimientoId) {
+    const { data, error } = await supabase
+      .from('veredas')
+      .select('id, nombre, es_cabecera')
+      .eq('corregimiento_id', corregimientoId)
+      .order('nombre');
+
+    if (error) throw new Error(`Error al listar veredas: ${error.message}`);
+    return data;
+  }
+
+  /**
+   * Detecta el corregimiento y sus veredas a partir de coordenadas.
+   * Usa la función RPC get_corregimiento_por_coordenadas.
+   * @param {number} lat
+   * @param {number} lng
+   * @returns {Promise<Object|null>} { corregimiento_id, corregimiento, veredas } o null
+   */
+  async buscarCorregimientoPorCoordenadas(lat, lng) {
+    const { data, error } = await supabase
+      .rpc('get_corregimiento_por_coordenadas', { lat, lng });
+
+    if (error) throw new Error(`Error al buscar corregimiento por coordenadas: ${error.message}`);
+    if (!data || data.length === 0) return null;
+    return data[0];
+  }
+
+  /**
+   * Busca veredas y corregimientos por texto (búsqueda fuzzy).
+   * @param {string} texto
+   * @returns {Promise<Array>} [{ nombre, tipo: 'corregimiento'|'vereda', corregimiento_nombre? }]
+   */
+  async buscarVeredaCorregimiento(texto) {
+    const term = `%${texto}%`;
+
+    // Buscar en corregimientos
+    const { data: corrs, error: e1 } = await supabase
+      .from('corregimientos')
+      .select('id, nombre')
+      .ilike('nombre', term)
+      .limit(5);
+
+    if (e1) throw new Error(`Error buscando corregimientos: ${e1.message}`);
+
+    // Buscar en veredas con join al corregimiento
+    const { data: veredas, error: e2 } = await supabase
+      .from('veredas')
+      .select('id, nombre, corregimiento_id, corregimientos(nombre)')
+      .ilike('nombre', term)
+      .limit(5);
+
+    if (e2) throw new Error(`Error buscando veredas: ${e2.message}`);
+
+    const resultados = [
+      ...corrs.map(c => ({ nombre: c.nombre, tipo: 'corregimiento', id: c.id })),
+      ...veredas.map(v => ({ nombre: v.nombre, tipo: 'vereda', id: v.id, corregimiento_nombre: v.corregimientos?.nombre })),
+    ];
+
+    return resultados;
+  }
+
+  /**
    * Obtiene reportes activos con solo los campos necesarios para pintar el mapa.
    * @returns {Promise<Array>} Lista reducida: id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado
    */

@@ -7,7 +7,7 @@ const ESTADOS = ["", "activo", "oculto"];
 
 const colores = {
   atraco:     "#b91c1c",
-  raponazo:   "#9d174d",
+  raponazo:   "#0891b2",
   fleteo:     "#d946ef",
   cosquilleo: "#7c3aed",
 };

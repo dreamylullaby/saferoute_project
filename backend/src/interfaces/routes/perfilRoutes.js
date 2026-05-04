@@ -7,6 +7,7 @@
 import express from "express";
 import { authenticate } from "../middlewares/auth.js";
 import {
+  getPerfil,
   actualizarPerfil,
   cambiarPassword,
   actualizarNotificaciones,
@@ -14,6 +15,9 @@ import {
 } from "../controllers/perfilController.js";
 
 const router = express.Router();
+
+/** GET /api/perfil — Obtiene datos del perfil del usuario autenticado */
+router.get("/", authenticate, getPerfil);
 
 /** PUT /api/perfil — Actualiza username y/o foto_url */
 router.put("/", authenticate, actualizarPerfil);

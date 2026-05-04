@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     password_hash   TEXT,
     foto_url        TEXT,
     rol             VARCHAR(20) NOT NULL CHECK (rol IN ('usuario', 'admin')),
-    auth_provider   VARCHAR(20) NOT NULL CHECK (auth_provider IN ('local', 'google')),
+    auth_provider   TEXT[]      NOT NULL CHECK (auth_provider <@ ARRAY['local', 'google']::TEXT[] AND array_length(auth_provider, 1) > 0),
     google_id       VARCHAR(255) UNIQUE,
     fecha_creacion  TIMESTAMP   NOT NULL DEFAULT now(),
     estado          VARCHAR(20) NOT NULL CHECK (estado IN ('activo', 'bloqueado', 'eliminado', 'oculto')),

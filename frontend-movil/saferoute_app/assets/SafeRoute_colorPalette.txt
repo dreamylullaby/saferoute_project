@@ -25,43 +25,43 @@ Colores seleccionados:
 
 Colores para la señalización con el mapa de calor: Se visualizan como zonas dependiendo de que tan alta es la incidencia en la zona con más reportes.
 Colores seleccionados:
-•	#22C55E  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
+•	#07c14bff  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
 
 •	#FACC15  Bajo riesgo: Área geográfica que presenta baja densidad de reportes de incidentes, indicando ocurrencias poco frecuentes en relación con las demás zonas analizadas.
 
-•	#F97316  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
+•	#be4f00ff  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
 
-•	#BE185D  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
+•	#c60052ff  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
 
 Colores para las estadísticas que se mostraran al usuario: Se utilizan colores en las gráficas y tarjetas (cards) para representar visualmente la incidencia del hurto por zona, facilitando una interpretación más clara, dinámica e intuitiva de la información estadística.
 Colores seleccionados:
 Colores funciones principales:
 •	#B91C1C  Hurto del tipo “Atraco”
 
-•	#9D174D  Hurto del tipo “Raponazo”
+•	#0891B2  Hurto del tipo “Raponazo”
 
 •	#D946EF  Hurto del tipo “Fleteo”
 
 •	#8A2BE2  Hurto del tipo “Cosquilleo”
 
-•	#22C55E  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
+•	#07c14bff  Zona segura: Área geográfica que presenta muy baja o nula densidad de reportes de incidentes en el periodo analizado, en comparación con otras zonas del mapa.
 
 •	#FACC15  Bajo riesgo: Área geográfica que presenta baja densidad de reportes de incidentes, indicando ocurrencias poco frecuentes en relación con las demás zonas analizadas.
 
-•	#F97316  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
+•	#be4f00ff  Riesgo medio: Área geográfica que presenta densidad moderada de reportes de incidentes, evidenciando una frecuencia intermedia en comparación con otras zonas del mapa.
 
-•	#BE185D  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
+•	#c60052ff  Alto riesgo: Área geográfica que presenta alta densidad de reportes de incidentes, reflejando mayor frecuencia de ocurrencia frente a las demás zonas analizadas.
 
 Comparativas por tiempo / tendencia:
 #10B981   Decremento en reportes o tendencias recientes.
 #F59E0B  Disminución o variación moderada entre periodos.
-#EF4444  Incremento fuerte o alerta de aumento.
+#620d0aff  Incremento fuerte o alerta de aumento.
 
 Comparativa por franja horaria (4 franjas): Se pueden usar tonos cálidos y distintos para diferenciar cada franja:
-#FBBF24  Mañana (6:00 – 11:59): (amarillo dorado)
-#F97316  Tarde (12:00 – 17:59): (naranja) (ya lo usamos para riesgo medio, pero si no se cruza visualmente en gráficos separados, sirve. Sino cambiar por una variante similar.)
-#BE185D  Noche (18:00 – 23:59): (magenta/rosa fuerte)
-#D946EF  Madrugada (00:00 – 5:59): (fucsia)
+#dd00a2ff  Mañana (6:00 – 11:59): (amarillo dorado)
+#245a6eff  Tarde (12:00 – 17:59): (naranja) (ya lo usamos para riesgo medio, pero si no se cruza visualmente en gráficos separados, sirve. Sino cambiar por una variante similar.)
+#19015fff  Noche (18:00 – 23:59): (magenta/rosa fuerte)
+#510055ff  Madrugada (00:00 – 5:59): (fucsia)
 
 Si hay conflicto visual con mapa de calor o tipos de hurto, se pueden aclarar con patrones o gradientes. La idea es que cada categoría tenga un color distinto de los riesgos/seguridad, pero aún armonice con todo.
 Nota importante: Hacer el estudio respectivo, el objetivo es mejorar el entendimiento de las estadísticas, pero no dejar cargado de calor el aplicativo.

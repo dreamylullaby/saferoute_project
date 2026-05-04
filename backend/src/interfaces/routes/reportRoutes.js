@@ -40,6 +40,18 @@ router.get('/mapa/filtros', authenticate, (req, res) => controller.getFiltered(r
 /** GET /api/reportes/barrios-por-coordenadas?lat=X&lng=Y — Barrios de la comuna detectada por coordenadas */
 router.get('/barrios-por-coordenadas', authenticate, (req, res) => controller.buscarBarriosPorCoordenadas(req, res));
 
+/** GET /api/reportes/corregimientos — Lista todos los corregimientos */
+router.get('/corregimientos', authenticate, (req, res) => controller.listarCorregimientos(req, res));
+
+/** GET /api/reportes/corregimientos-por-coordenadas?lat=X&lng=Y — Detecta corregimiento por coordenadas */
+router.get('/corregimientos-por-coordenadas', authenticate, (req, res) => controller.buscarCorregimientoPorCoordenadas(req, res));
+
+/** GET /api/reportes/corregimientos/:id/veredas — Veredas de un corregimiento */
+router.get('/corregimientos/:id/veredas', authenticate, (req, res) => controller.listarVeredas(req, res));
+
+/** GET /api/reportes/buscar-rural?q=texto — Busca veredas y corregimientos por texto */
+router.get('/buscar-rural', authenticate, (req, res) => controller.buscarRural(req, res));
+
 /** GET /api/reportes/barrios?q= — Busca barrios similares al texto ingresado */
 router.get('/barrios', authenticate, (req, res) => controller.buscarBarrios(req, res));
 

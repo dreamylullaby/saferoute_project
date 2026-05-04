@@ -282,9 +282,12 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                           modoCalor: notifier.modoCalor,
                           isDark: darkModeNotifier.value,
                           onToggleCalor: notifier.toggleModoCalor,
-                          onToggleDark: () => setState(() {
+                          onToggleDark: () {
                             darkModeNotifier.value = !darkModeNotifier.value;
-                          }),
+                            // No usar setState — el ValueNotifier y el key del TileLayer
+                            // se encargan de actualizar el mapa sin reconstruir el Scaffold
+                            (context as Element).markNeedsBuild();
+                          },
                           onMiUbicacion: _obtenerUbicacion,
                           onRegistrar: () => Navigator.pushNamed(context, '/reportar'),
                         ),

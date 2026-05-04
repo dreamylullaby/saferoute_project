@@ -31,12 +31,12 @@ CREATE TABLE public.usuarios (
     password_hash   TEXT,
     foto_url        TEXT,
     rol             VARCHAR(20) NOT NULL,
-    auth_provider   VARCHAR(20) NOT NULL,
+    auth_provider   TEXT[]      NOT NULL,
     google_id       VARCHAR(255) UNIQUE,
     fecha_creacion  TIMESTAMP   NOT NULL DEFAULT now(),
     estado          VARCHAR(20) NOT NULL,
     CONSTRAINT usuarios_rol_check           CHECK (rol           IN ('usuario', 'admin')),
-    CONSTRAINT usuarios_auth_provider_check CHECK (auth_provider IN ('local', 'google')),
+    CONSTRAINT usuarios_auth_provider_check CHECK (auth_provider <@ ARRAY['local', 'google']::TEXT[] AND array_length(auth_provider, 1) > 0),
     CONSTRAINT usuarios_estado_check        CHECK (estado        IN ('activo', 'bloqueado', 'eliminado', 'oculto'))
 );
 

@@ -207,3 +207,22 @@ CREATE INDEX idx_alertas_reporte           ON public.alertas (reporte_id);
 -- HU-13 Password resets
 CREATE INDEX idx_password_resets_token     ON public.password_resets (token);
 CREATE INDEX idx_password_resets_usuario   ON public.password_resets (usuario_id);
+
+
+-- =============================================================
+-- Función: geolocalización de corregimientos (zona rural)
+-- Los polígonos se cargan con: node --env-file=.env secciones-pasto/cargar_corregimientos.js
+-- =============================================================
+CREATE OR REPLACE FUNCTION public.get_corregimiento_por_coordenadas(
+    lat DOUBLE PRECISION, lng DOUBLE PRECISION
+)
+RETURNS TABLE(corregimiento_id INTEGER, corregimiento TEXT, veredas TEXT[])
+LANGUAGE sql AS $$
+    SELECT c.id, c.nombre,
+        ARRAY_AGG(v.nombre ORDER BY v.nombre) AS veredas
+    FROM public.corregimientos c
+    JOIN public.veredas v ON v.corregimiento_id = c.id
+    WHERE ST_Contains(c.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326))
+    GROUP BY c.id, c.nombre
+    LIMIT 1;
+$$;

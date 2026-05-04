@@ -43,7 +43,7 @@ class PerfilDatasource {
 
   /// Activa o desactiva las notificaciones.
   Future<void> toggleNotificaciones(bool activo) async {
-    final res = await http.patch(
+    final res = await http.put(
       Uri.parse('$_baseUrl/notificaciones'),
       headers: await _headers(),
       body: jsonEncode({'activo': activo}),
@@ -51,6 +51,36 @@ class PerfilDatasource {
     if (res.statusCode != 200) {
       final data = jsonDecode(res.body);
       throw Exception(data['message'] ?? 'Error al actualizar notificaciones');
+    }
+  }
+
+  /// Cambia la contraseña del usuario autenticado (solo auth_provider = 'local').
+  Future<void> cambiarPassword({required String passwordActual, required String nuevaPassword}) async {
+    final res = await http.put(
+      Uri.parse('$_baseUrl/password'),
+      headers: await _headers(),
+      body: jsonEncode({'passwordActual': passwordActual, 'nuevaPassword': nuevaPassword}),
+    );
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body);
+      throw Exception(data['message'] ?? 'Error al cambiar contraseña');
+    }
+  }
+
+  /// Elimina la cuenta del usuario autenticado.
+  /// Para usuarios locales requiere [password].
+  Future<void> eliminarCuenta({String? password}) async {
+    final body = <String, dynamic>{};
+    if (password != null && password.isNotEmpty) body['password'] = password;
+
+    final res = await http.delete(
+      Uri.parse(_baseUrl),
+      headers: await _headers(),
+      body: jsonEncode(body),
+    );
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body);
+      throw Exception(data['message'] ?? 'Error al eliminar cuenta');
     }
   }
 }
