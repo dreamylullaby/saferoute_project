@@ -227,18 +227,20 @@ export default class ReportRepositoryImpl extends ReportRepository {
    * @param {string}   [filtros.fechaHasta] - Fecha máxima del incidente (YYYY-MM-DD)
    * @returns {Promise<Array>} Reportes filtrados para el mapa
    */
-  async findForMapFiltered({ comunas, franjas, tipos, fechaDesde, fechaHasta } = {}) {
+  async findForMapFiltered({ comunas, franjas, tipos, fechaDesde, fechaHasta, corregimientos, zonaTipo } = {}) {
     let query = supabase
       .from('reportes')
-      .select('id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado, comuna')
+      .select('id, latitud, longitud, tipo_hurto, franja_horaria, fecha_incidente, barrio_ingresado, comuna, zona_tipo, corregimiento_id, vereda_id')
       .eq('estado', 'activo')
       .order('fecha_creacion', { ascending: false });
 
-    if (comunas?.length)    query = query.in('comuna', comunas);
-    if (franjas?.length)    query = query.in('franja_horaria', franjas);
-    if (tipos?.length)      query = query.in('tipo_hurto', tipos);
-    if (fechaDesde)         query = query.gte('fecha_incidente', fechaDesde);
-    if (fechaHasta)         query = query.lte('fecha_incidente', fechaHasta);
+    if (zonaTipo)               query = query.eq('zona_tipo', zonaTipo);
+    if (comunas?.length)        query = query.in('comuna', comunas);
+    if (corregimientos?.length) query = query.in('corregimiento_id', corregimientos);
+    if (franjas?.length)        query = query.in('franja_horaria', franjas);
+    if (tipos?.length)          query = query.in('tipo_hurto', tipos);
+    if (fechaDesde)             query = query.gte('fecha_incidente', fechaDesde);
+    if (fechaHasta)             query = query.lte('fecha_incidente', fechaHasta);
 
     const { data, error } = await query;
     if (error) throw new Error(`Error al obtener reportes filtrados: ${error.message}`);

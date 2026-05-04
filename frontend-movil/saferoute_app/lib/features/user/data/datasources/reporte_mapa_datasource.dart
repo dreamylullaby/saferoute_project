@@ -41,18 +41,24 @@ class ReporteMapaDatasource {
     List<String>? tipos,
     DateTime?     fechaDesde,
     DateTime?     fechaHasta,
+    List<int>?    corregimientos,
+    String?       zonaTipo,
   }) async {
     final params = <String, String>{};
-    if (comunas    != null && comunas.isNotEmpty)
-      params['comunas']    = comunas.join(',');
-    if (franjas    != null && franjas.isNotEmpty)
-      params['franjas']    = franjas.join(',');
-    if (tipos      != null && tipos.isNotEmpty)
-      params['tipos']      = tipos.join(',');
+    if (comunas         != null && comunas.isNotEmpty)
+      params['comunas']         = comunas.join(',');
+    if (corregimientos  != null && corregimientos.isNotEmpty)
+      params['corregimientos']  = corregimientos.join(',');
+    if (franjas         != null && franjas.isNotEmpty)
+      params['franjas']         = franjas.join(',');
+    if (tipos           != null && tipos.isNotEmpty)
+      params['tipos']           = tipos.join(',');
     if (fechaDesde != null)
       params['fechaDesde'] = fechaDesde.toIso8601String().substring(0, 10);
     if (fechaHasta != null)
       params['fechaHasta'] = fechaHasta.toIso8601String().substring(0, 10);
+    if (zonaTipo != null)
+      params['zonaTipo'] = zonaTipo;
 
     final uri = Uri.parse('$baseUrl/mapa/filtros').replace(queryParameters: params);
     final response = await http.get(uri, headers: await _authHeaders);

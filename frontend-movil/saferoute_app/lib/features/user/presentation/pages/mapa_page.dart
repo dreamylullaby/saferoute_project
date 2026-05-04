@@ -160,12 +160,15 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                 key: _scaffoldKey,
                 drawer: FilterDrawer(
                   comunasSeleccionadas: notifier.comunasSeleccionadas,
+                  corregimientosSeleccionados: notifier.corregimientosSeleccionados,
                   franjasSeleccionadas: notifier.franjasSeleccionadas,
                   tiposSeleccionados: notifier.tiposSeleccionados,
                   fechaDesde: notifier.fechaDesde,
                   fechaHasta: notifier.fechaHasta,
                   conteoFiltros: notifier.conteoFiltros,
                   hayFiltros: notifier.hayFiltros,
+                  modoRural: notifier.modoRural,
+                  onModoRuralChanged: (v) => notifier.setModoRural(v),
                   onFechaDesdeChanged: (d) => notifier.fechaDesde = d,
                   onFechaHastaChanged: (d) => notifier.fechaHasta = d,
                   onAplicar: () {
