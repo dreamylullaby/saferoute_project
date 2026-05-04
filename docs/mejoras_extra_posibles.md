@@ -55,8 +55,7 @@ Preguntar al asesor:
 ## 4. Mejoras y optimizaciones 
 
 1. **Usuario.**
-
-- Seleccion a la inversa. Cuando un usuario selecciona fechas en los filtros (también aplica a admin) no debe dejar que las fechas sean seleccionadas de forma inversa. Ejemplo: Debe seleccionar desde una fecha pasada hasta una fecha futura futura. *Comportamiento actual:* El usuario y admin pueden seleccionar ver reportes, usuarios o utilizar ese filtro si pone Desde: 01/04/2026 Hasta: 01/03/2026 (O sea, al revés. No hay lógica)
+Nop, ella
 
 - Sí hay un atraco en el momento (mismo día en que se reporta) si se debe mostrar la alerta o baner de hurto que aparece actualmente, pero si es un hurto antiguo a la fecha actual, no mostrar banner. Esto solo aumentaría la alerta del usuario innecesariamente.
 
@@ -64,19 +63,6 @@ Preguntar al asesor:
 
 - Por supuesto tambien debería implementarse en el reporte, solo que las coordenadas ya no serian obligatorias, por eso estas mismas pasaron a ser nullable, aunque si seria obligatorio el barrio. Claro que se va a implementar la logica de barrios y comunas, asi que hay que ver como sale. Pero el toggle tambien cambiaria ya que el mapa deberia leer las coordenadas de los corregimientos, ya no relacionar barrios y comunas, sino veredas y corregimientos.
 
-- El punto de ubicación del usuario para darle contexto de donde esta, tambien deberia funcionar en el mini mapa al reportar.
-
-- Hay algunos botones que necesitan un poco de padding con respecto a las palabras que contienen. Cuando llegues a esta parte, pideme fotos y te paso.
-
-- Los filtros no deben restablecerse si por ejemplo, yo pongo unos filtros y paso a modo nocturno, deben seguir los que puse, no volver a cero. Mantenerse a menos que el usuario de en el boton de restablecer. 
+- Los filtros no deben restablecerse si por ejemplo, yo pongo unos filtros y paso a modo nocturno, deben seguir los que puse, no volver a cero. Mantenerse a menos que el usuario de en el boton de restablecer. -- Explicarme porque se restablecen. 
 
 - El usuario puede editar todos los campos de su reporte. Revisar si, efectivamente le deja manipular todos los campos. 
-
-- Revisar la paleta de colores implementada en estadisticas, y indicadores de mapa, pues se actualizaon variaciones de colores y otros cambiaron completamente. Actualizalos en el code. 
-
-- Revisar el padding de abajo del perfil porque la barra de notificaciones esta tapando el boton de cerrar sesion. (me pides la foto)
-
-- Cambiar la forma del boton de "guardar" en el espacio de editar del usuario, volverlo mas redondo como el de cancelar o al de cancelar volverlo mas cuadrado como el de guardar. 
-
-- Revisar: ¿Si desactivo el boton de notificaciones y ubicacion se desactivan del dispositivo o son netamente demostrativas en la app? Si no se desactivan, mejor que ambos botones envie a la configuracion del usuario para que las desactive de raiz. No quitar logica ni mensajes de advertencia. Solo dirigir.
-

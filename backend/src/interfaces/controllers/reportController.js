@@ -81,13 +81,15 @@ class ReportController {
   /** GET /api/reportes/mapa/filtros */
   async getFiltered(req, res) {
     try {
-      const { comunas, franjas, tipos, fechaDesde, fechaHasta } = req.query;
+      const { comunas, franjas, tipos, fechaDesde, fechaHasta, corregimientos, zonaTipo } = req.query;
       const filtros = {
-        comunas:    comunas    ? comunas.split(',').map(Number) : undefined,
-        franjas:    franjas    ? franjas.split(',')             : undefined,
-        tipos:      tipos      ? tipos.split(',')               : undefined,
-        fechaDesde: fechaDesde || undefined,
-        fechaHasta: fechaHasta || undefined,
+        comunas:         comunas         ? comunas.split(',').map(Number)         : undefined,
+        corregimientos:  corregimientos  ? corregimientos.split(',').map(Number)  : undefined,
+        franjas:         franjas         ? franjas.split(',')                     : undefined,
+        tipos:           tipos           ? tipos.split(',')                       : undefined,
+        fechaDesde:      fechaDesde      || undefined,
+        fechaHasta:      fechaHasta      || undefined,
+        zonaTipo:        zonaTipo        || undefined,
       };
       const result = await this.GetFilteredMapReportsUC.execute(filtros);
       return res.status(200).json({ success: true, data: result });

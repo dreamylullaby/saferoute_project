@@ -21,11 +21,19 @@ class MapaNotifier extends ChangeNotifier {
   bool _modoCalor = false;
   String _ultimaActualizacion = DateTime.now().toUtc().toIso8601String();
 
-  final Set<int>    comunasSeleccionadas  = {};
-  final Set<String> franjasSeleccionadas  = {};
-  final Set<String> tiposSeleccionados    = {};
+  final Set<int>    comunasSeleccionadas       = {};
+  final Set<int>    corregimientosSeleccionados = {};
+  final Set<String> franjasSeleccionadas        = {};
+  final Set<String> tiposSeleccionados          = {};
   DateTime? fechaDesde;
   DateTime? fechaHasta;
+  bool _modoRural = false;
+
+  bool get modoRural => _modoRural;
+  void setModoRural(bool valor) {
+    _modoRural = valor;
+    notifyListeners();
+  }
 
   // Stream para navegación del mapa (el widget escucha y ejecuta mapController.move)
   final _navegacionController = StreamController<LatLng>.broadcast();
@@ -40,12 +48,13 @@ class MapaNotifier extends ChangeNotifier {
   bool get modoCalor => _modoCalor;
 
   bool get hayFiltros =>
-      comunasSeleccionadas.isNotEmpty || franjasSeleccionadas.isNotEmpty ||
-      tiposSeleccionados.isNotEmpty || fechaDesde != null || fechaHasta != null;
+      comunasSeleccionadas.isNotEmpty || corregimientosSeleccionados.isNotEmpty ||
+      franjasSeleccionadas.isNotEmpty || tiposSeleccionados.isNotEmpty ||
+      fechaDesde != null || fechaHasta != null;
 
   int get conteoFiltros =>
-      comunasSeleccionadas.length + franjasSeleccionadas.length +
-      tiposSeleccionados.length +
+      comunasSeleccionadas.length + corregimientosSeleccionados.length +
+      franjasSeleccionadas.length + tiposSeleccionados.length +
       (fechaDesde != null ? 1 : 0) + (fechaHasta != null ? 1 : 0);
 
   void toggleModoCalor() { _modoCalor = !_modoCalor; notifyListeners(); }
@@ -94,10 +103,12 @@ class MapaNotifier extends ChangeNotifier {
     try {
       final resultado = await _datasource.getReportesFiltrados(
         comunas: comunasSeleccionadas.isNotEmpty ? comunasSeleccionadas.toList() : null,
+        corregimientos: corregimientosSeleccionados.isNotEmpty ? corregimientosSeleccionados.toList() : null,
         franjas: franjasSeleccionadas.isNotEmpty ? franjasSeleccionadas.toList() : null,
         tipos: tiposSeleccionados.isNotEmpty ? tiposSeleccionados.toList() : null,
         fechaDesde: fechaDesde,
         fechaHasta: fechaHasta,
+        zonaTipo: _modoRural ? 'rural' : (comunasSeleccionadas.isNotEmpty ? 'urbana' : null),
       );
       _filtrados = resultado;
       _cargando = false;
@@ -124,10 +135,12 @@ class MapaNotifier extends ChangeNotifier {
 
   void limpiarFiltros() {
     comunasSeleccionadas.clear();
+    corregimientosSeleccionados.clear();
     franjasSeleccionadas.clear();
     tiposSeleccionados.clear();
     fechaDesde = null;
     fechaHasta = null;
+    _modoRural = false;
     _filtrados = List.from(_todos);
     notifyListeners();
   }

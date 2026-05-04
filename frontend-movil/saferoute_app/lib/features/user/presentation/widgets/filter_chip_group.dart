@@ -58,8 +58,9 @@ class FilterChipGroup<T> extends StatelessWidget {
       crossAxisCount: gridColumns,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
+      padding: EdgeInsets.zero,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 6,
       childAspectRatio: gridAspectRatio,
       children: items.map((item) => _buildChip(context, item)).toList(),
     );

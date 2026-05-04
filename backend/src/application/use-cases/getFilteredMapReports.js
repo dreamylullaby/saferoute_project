@@ -26,7 +26,7 @@ class GetFilteredMapReports {
    * @returns {Promise<Object[]>} Reportes filtrados para el mapa
    */
   async execute(filtros = {}) {
-    const { comunas, franjas, tipos, fechaDesde, fechaHasta } = filtros;
+    const { comunas, franjas, tipos, fechaDesde, fechaHasta, corregimientos, zonaTipo } = filtros;
 
     // Validar franjas
     if (franjas?.length) {
@@ -49,7 +49,11 @@ class GetFilteredMapReports {
         throw new Error(`Comunas inválidas: ${invalidas.join(', ')}. Rango permitido: 1-12`);
     }
 
-    return await this.reportRepository.findForMapFiltered({ comunas, franjas, tipos, fechaDesde, fechaHasta });
+    // Validar zonaTipo
+    if (zonaTipo && !['urbana', 'rural'].includes(zonaTipo))
+      throw new Error(`zonaTipo inválido: ${zonaTipo}. Valores permitidos: urbana, rural`);
+
+    return await this.reportRepository.findForMapFiltered({ comunas, franjas, tipos, fechaDesde, fechaHasta, corregimientos, zonaTipo });
   }
 }
 
