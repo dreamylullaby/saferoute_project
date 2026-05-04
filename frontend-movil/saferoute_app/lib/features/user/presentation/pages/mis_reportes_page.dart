@@ -134,9 +134,9 @@ class _MisReportesPageState extends State<MisReportesPage> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 try {
-                  final body = {'tipo_hurto': tipoHurto, 'descripcion': descCtrl.text.trim()};
-                  if (objetoHurtado != null) body['objeto_hurtado'] = objetoHurtado;
-                  if (numAgresores != null) body['numero_agresores'] = numAgresores;
+                  final body = <String, String>{'tipo_hurto': tipoHurto, 'descripcion': descCtrl.text.trim()};
+                  if (objetoHurtado != null) body['objeto_hurtado'] = objetoHurtado!;
+                  if (numAgresores != null) body['numero_agresores'] = numAgresores!;
                   final res = await http.put(Uri.parse('$_base/${r['id']}'), headers: await _headers, body: jsonEncode(body));
                   if (res.statusCode == 200) {
                     _mostrarMensaje('Reporte actualizado');
@@ -147,6 +147,10 @@ class _MisReportesPageState extends State<MisReportesPage> {
                   }
                 } catch (e) { _mostrarMensaje('Error de conexión', error: true); }
               },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: const Text('Guardar'),
             ),
           ],
@@ -203,7 +207,11 @@ class _MisReportesPageState extends State<MisReportesPage> {
               }
             } catch (e) { _mostrarMensaje('Error de conexión', error: true); }
           },
-          style: ElevatedButton.styleFrom(backgroundColor: AppColors.hurtoAtraco),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.hurtoAtraco,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
           child: const Text('Enviar solicitud'),
         ),
       ],

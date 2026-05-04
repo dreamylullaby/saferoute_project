@@ -74,6 +74,24 @@ class MapPickerSheet {
                             color: AppColors.error, size: 40),
                       ),
                     ]),
+                  // Punto de ubicación del usuario
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: centro,
+                      width: 22, height: 22,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [BoxShadow(
+                            color: Colors.blue.withOpacity(0.3),
+                            blurRadius: 8, spreadRadius: 3,
+                          )],
+                        ),
+                      ),
+                    ),
+                  ]),
                 ],
               ),
             ),

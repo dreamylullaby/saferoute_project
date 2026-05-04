@@ -71,7 +71,7 @@ export default function Dashboard() {
 
   var renderTab = function () {
     switch (activeTab) {
-      case "dashboard": return <TabDashboard />;
+      case "dashboard": return <TabDashboard key={Date.now()} />;
       case "incidentes": return <TabIncidentes onCountChange={function (n) { setCounts(function (c) { return { ...c, incidentes: n }; }); }} />;
       case "usuarios": return <TabUsuarios onCountChange={function (n) { setCounts(function (c) { return { ...c, usuarios: n }; }); }} />;
       case "estadisticas": return <TabEstadisticas />;

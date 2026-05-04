@@ -95,8 +95,14 @@ class CreateReport {
       estado: 'activo'
     });
 
-    // Enviar notificaciones push (fire and forget — no bloquea la respuesta)
-    this._enviarPushCercanos(reporte).catch(() => {});
+    // Enviar notificaciones push solo si el incidente es de hoy (no alertar por hechos pasados)
+    const hoy = new Date().toISOString().split('T')[0];
+    const fechaReporte = String(reporte.fecha_incidente).split('T')[0];
+    if (fechaReporte === hoy) {
+      this._enviarPushCercanos(reporte).catch(() => {});
+    } else {
+      console.log(`[Push] Reporte con fecha ${fechaReporte} (no es hoy ${hoy}), no se envía alerta.`);
+    }
 
     return reporte;
   }

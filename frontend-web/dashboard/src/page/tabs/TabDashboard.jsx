@@ -5,7 +5,7 @@ import { getResumen } from "../../services/reportService.js";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend, Filler);
 
-var CT = { atraco: "#B91C1C", raponazo: "#9D174D", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
+var CT = { atraco: "#B91C1C", raponazo: "#0891B2", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
 var CF = { "06:00-11:59": "#FBBF24", "12:00-17:59": "#F97316", "18:00-23:59": "#BE185D", "00:00-05:59": "#D946EF" };
 var NF = { "06:00-11:59": "Mañana (06:00-11:59)", "12:00-17:59": "Tarde (12:00-17:59)", "18:00-23:59": "Noche (18:00-23:59)", "00:00-05:59": "Madrugada (00:00-05:59)" };
 

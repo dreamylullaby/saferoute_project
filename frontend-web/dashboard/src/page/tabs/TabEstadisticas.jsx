@@ -6,7 +6,7 @@ import mapboxgl from "mapbox-gl";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
-var COLORES_TIPO = { atraco: "#B91C1C", raponazo: "#9D174D", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
+var COLORES_TIPO = { atraco: "#B91C1C", raponazo: "#0891B2", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
 var COLORES_FRANJA = { "06:00-11:59": "#FBBF24", "12:00-17:59": "#F97316", "18:00-23:59": "#BE185D", "00:00-05:59": "#D946EF" };
 var NOMBRES_FRANJA = { "06:00-11:59": "Mañana (06:00-11:59)", "12:00-17:59": "Tarde (12:00-17:59)", "18:00-23:59": "Noche (18:00-23:59)", "00:00-05:59": "Madrugada (00:00-05:59)" };
 

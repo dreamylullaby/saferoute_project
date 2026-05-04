@@ -31,7 +31,7 @@ CREATE TABLE public.usuarios (
     fecha_creacion timestamp without time zone DEFAULT now() NOT NULL,
     estado character varying(20) NOT NULL,
     fcm_token text,
-    CONSTRAINT usuarios_auth_provider_check CHECK (((auth_provider)::text = ANY (ARRAY['local', 'google']::text[]))),
+    CONSTRAINT usuarios_auth_provider_check CHECK (((auth_provider)::text[] <@ ARRAY['local', 'google']::text[] AND array_length(auth_provider, 1) > 0)),
     CONSTRAINT usuarios_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'bloqueado', 'eliminado', 'oculto']::text[]))),
     CONSTRAINT usuarios_rol_check CHECK (((rol)::text = ANY (ARRAY['usuario', 'admin']::text[]))),
     CONSTRAINT usuarios_pkey PRIMARY KEY (id),
@@ -452,6 +452,19 @@ LANGUAGE sql AS $$
     JOIN public.zonas z ON z.comuna = s.comuna
     WHERE ST_Contains(s.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326))
     GROUP BY s.comuna
+    LIMIT 1;
+$$;
+
+-- Obtener corregimiento y veredas por coordenadas geográficas
+CREATE FUNCTION public.get_corregimiento_por_coordenadas(lat double precision, lng double precision)
+RETURNS TABLE(corregimiento_id integer, corregimiento text, veredas text[])
+LANGUAGE sql AS $$
+    SELECT c.id, c.nombre,
+        ARRAY_AGG(v.nombre ORDER BY v.nombre) AS veredas
+    FROM public.corregimientos c
+    JOIN public.veredas v ON v.corregimiento_id = c.id
+    WHERE ST_Contains(c.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326))
+    GROUP BY c.id, c.nombre
     LIMIT 1;
 $$;
 

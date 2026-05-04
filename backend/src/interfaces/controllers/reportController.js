@@ -124,6 +124,61 @@ class ReportController {
     }
   }
 
+  /** GET /api/reportes/corregimientos — Lista todos los corregimientos */
+  async listarCorregimientos(req, res) {
+    try {
+      const data = await this.repository.listarCorregimientos();
+      return res.status(200).json({ success: true, data });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** GET /api/reportes/corregimientos/:id/veredas — Veredas de un corregimiento */
+  async listarVeredas(req, res) {
+    try {
+      const { id } = req.params;
+      const data = await this.repository.listarVeredasPorCorregimiento(Number(id));
+      return res.status(200).json({ success: true, data });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** GET /api/reportes/corregimientos-por-coordenadas?lat=X&lng=Y */
+  async buscarCorregimientoPorCoordenadas(req, res) {
+    try {
+      const { lat, lng } = req.query;
+      if (!lat || !lng) return res.status(400).json({ success: false, message: 'lat y lng son requeridos' });
+      const latNum = parseFloat(lat);
+      const lngNum = parseFloat(lng);
+      if (isNaN(latNum) || isNaN(lngNum))
+        return res.status(400).json({ success: false, message: 'lat y lng deben ser números válidos' });
+
+      const result = await this.repository.buscarCorregimientoPorCoordenadas(latNum, lngNum);
+      if (!result)
+        return res.status(200).json({ success: true, data: null, mensaje: 'coordenadas_sin_cobertura_rural' });
+
+      return res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  /** GET /api/reportes/buscar-rural?q=texto — Busca veredas y corregimientos por texto */
+  async buscarRural(req, res) {
+    try {
+      const { q } = req.query;
+      if (!q || q.trim().length < 2)
+        return res.status(200).json({ success: true, data: [] });
+
+      const data = await this.repository.buscarVeredaCorregimiento(q.trim());
+      return res.status(200).json({ success: true, data });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   /** GET /api/reportes/zonas/top?top=10&fechaDesde=&fechaHasta= */
   async getTopZonas(req, res) {
     try {

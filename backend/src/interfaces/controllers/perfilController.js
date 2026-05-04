@@ -4,6 +4,42 @@ import bcrypt from "bcrypt";
 import db from "../../infrastructure/database/dbScript/db.js";
 
 /**
+ * GET /api/perfil
+ * Obtiene los datos del perfil del usuario autenticado.
+ */
+export const getPerfil = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: usuario, error } = await db
+      .from("usuarios")
+      .select("id, username, correo, rol, auth_provider, foto_url, fecha_creacion, estado, fcm_token")
+      .eq("id", userId)
+      .single();
+
+    if (error || !usuario)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    // Verificar si tiene notificaciones activas
+    const { data: config } = await db
+      .from("configuracion_alertas")
+      .select("activo, radio_metros")
+      .eq("usuario_id", userId)
+      .single();
+
+    return res.status(200).json({
+      data: {
+        ...usuario,
+        notificaciones_activas: config?.activo ?? true,
+        radio_metros: config?.radio_metros ?? 500,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * PUT /api/perfil
  * Actualiza username y/o foto_url del usuario autenticado.
  * Body: { username?, foto_url? }
@@ -86,7 +122,8 @@ export const cambiarPassword = async (req, res) => {
     if (fetchError || !usuario)
       return res.status(404).json({ message: "Usuario no encontrado" });
 
-    if (usuario.auth_provider !== 'local')
+    const providers = Array.isArray(usuario.auth_provider) ? usuario.auth_provider : [usuario.auth_provider];
+    if (!providers.includes('local'))
       return res.status(400).json({ message: "Los usuarios con Google no pueden cambiar contraseña desde aquí" });
 
     const passwordValida = await bcrypt.compare(passwordActual, usuario.password_hash);
@@ -179,7 +216,8 @@ export const eliminarCuenta = async (req, res) => {
       return res.status(400).json({ message: "La cuenta ya no está activa" });
 
     // Usuarios locales deben confirmar con contraseña
-    if (usuario.auth_provider === "local") {
+    const providers = Array.isArray(usuario.auth_provider) ? usuario.auth_provider : [usuario.auth_provider];
+    if (providers.includes("local")) {
       if (!password)
         return res.status(400).json({ message: "Debes confirmar tu contraseña para eliminar la cuenta" });
 

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { getReportesAdmin, getReporteById, cambiarEstadoReporte, editarTipoHurtoReporte } from "../../services/reportService.js";
+import api from "../../services/api.js";
 
 var TIPOS = ["", "atraco", "raponazo", "cosquilleo", "fleteo"];
 var ESTADOS = ["", "activo", "oculto", "eliminado"];
 var COMUNAS = ["", ...Array.from({ length: 12 }, function (_, i) { return String(i + 1); })];
 var FRANJAS = ["", "00:00-05:59", "06:00-11:59", "12:00-17:59", "18:00-23:59"];
-var COLORES_TIPO = { atraco: "#B91C1C", raponazo: "#9D174D", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
+var COLORES_TIPO = { atraco: "#B91C1C", raponazo: "#0891B2", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
 var COLORES_ESTADO = { activo: { bg: "#DCFCE7", color: "#16A34A" }, oculto: { bg: "#FEF3C7", color: "#D97706" }, eliminado: { bg: "#FEE2E2", color: "#DC2626" } };
 var MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
 
@@ -96,13 +97,42 @@ export default function TabIncidentes({ onCountChange }) {
     } finally { setProcesando(false); }
   };
 
-  var exportarExcel = function () {
-    var headers = ["Fecha", "Comuna", "Tipo", "Barrio", "Franja", "Estado"];
-    var rows = reportes.map(function (r) { return [r.fecha_incidente, r.comuna ?? "", r.tipo_hurto, r.barrio_ingresado, r.franja_horaria, r.estado]; });
-    var csv = [headers, ...rows].map(function (r) { return r.join(","); }).join("\n");
-    var blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a"); a.href = url; a.download = "incidentes_saferoute_" + new Date().toISOString().split("T")[0] + ".csv"; a.click(); URL.revokeObjectURL(url);
+  var [formatoExport, setFormatoExport] = useState("excel");
+  var [exportando, setExportando] = useState(false);
+
+  var descargarReportes = async function () {
+    setExportando(true);
+    try {
+      var params = { formato: formatoExport };
+      if (filtros.fechaDesde) params.fechaDesde = filtros.fechaDesde;
+      if (filtros.fechaHasta) params.fechaHasta = filtros.fechaHasta;
+      if (filtros.estado) params.estado = filtros.estado;
+      if (filtros.comuna) params.zona = filtros.comuna;
+
+      var response = await api.get("/api/admin/reportes/export", { params: params, responseType: "blob" });
+
+      // Si el backend devuelve JSON (error o sin datos), leerlo
+      var contentType = response.headers["content-type"] || "";
+      if (contentType.includes("application/json")) {
+        var text = await response.data.text();
+        var json = JSON.parse(text);
+        setMensaje({ tipo: json.success === false ? "error" : "ok", texto: json.message });
+        setExportando(false);
+        return;
+      }
+
+      var ext = formatoExport === "csv" ? "csv" : "xlsx";
+      var blob = new Blob([response.data]);
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "reportes_saferoute_" + new Date().toISOString().split("T")[0] + "." + ext;
+      a.click();
+      URL.revokeObjectURL(url);
+      setMensaje({ tipo: "ok", texto: "Archivo descargado correctamente" });
+    } catch (err) {
+      setMensaje({ tipo: "error", texto: err.response?.data?.message || "Error al exportar" });
+    } finally { setExportando(false); }
   };
 
   var setFiltro = function (key, val) {
@@ -187,9 +217,19 @@ export default function TabIncidentes({ onCountChange }) {
           <select value={filtros.franja} onChange={function (e) { setFiltro("franja", e.target.value); }} style={{ ...FI, flex: "1 1 100px" }}>{FRANJAS.map(function (f) { return <option key={f} value={f}>{f || "Horario"}</option>; })}</select>
           <input type="date" value={filtros.fechaDesde} onChange={function (e) { setFiltro("fechaDesde", e.target.value); }} style={{ ...FI, flex: "1 1 120px" }} />
           <input type="date" value={filtros.fechaHasta} onChange={function (e) { setFiltro("fechaHasta", e.target.value); }} style={{ ...FI, flex: "1 1 120px" }} />
-          <button onClick={exportarExcel} style={BTN_EXPORT}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Exportar</span>
+          <select value={formatoExport} onChange={function (e) { setFormatoExport(e.target.value); }} style={{ ...FI, flex: "0 0 80px" }}>
+            <option value="excel">Excel</option>
+            <option value="csv">CSV</option>
+          </select>
+          <button onClick={descargarReportes} disabled={exportando} style={BTN_EXPORT}>
+            {exportando ? (
+              <span>Descargando...</span>
+            ) : (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Descargar</span>
+              </>
+            )}
           </button>
           <button onClick={function () { setFiltros({ busqueda: "", tipo_hurto: "", estado: "", comuna: "", franja: "", fechaDesde: "", fechaHasta: "" }); setPage(1); }} style={{ height: 38, padding: "0 14px", borderRadius: 8, border: "1px solid #CBD5E1", backgroundColor: "transparent", color: "#64748B", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>Limpiar</button>
         </div>

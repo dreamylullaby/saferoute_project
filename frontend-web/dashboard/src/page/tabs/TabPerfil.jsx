@@ -57,7 +57,7 @@ export default function TabPerfil() {
             <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 4 }}>{perfil.correo}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <span style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "#fff", padding: "3px 14px", borderRadius: 99, fontSize: 11, fontWeight: 500, fontFamily: "'Montserrat',sans-serif" }}>{perfil.rol === "admin" ? "Administrador" : "Usuario"}</span>
-              <span style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", padding: "3px 14px", borderRadius: 99, fontSize: 11, fontWeight: 400 }}>{perfil.auth_provider === "google" ? "Google" : "Autenticación local"}</span>
+              <span style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", padding: "3px 14px", borderRadius: 99, fontSize: 11, fontWeight: 400 }}>{Array.isArray(perfil.auth_provider) ? perfil.auth_provider.join(" + ") : perfil.auth_provider}</span>
             </div>
           </div>
         </div>
@@ -69,7 +69,7 @@ export default function TabPerfil() {
           <h3 style={TITLE}>Información de la cuenta</h3>
           <Row label="Correo electrónico" value={perfil.correo} />
           <Row label="Rol" value={perfil.rol === "admin" ? "Administrador" : "Usuario"} />
-          <Row label="Proveedor de autenticación" value={perfil.auth_provider === "google" ? "Google" : "Local"} />
+          <Row label="Proveedor de autenticación" value={Array.isArray(perfil.auth_provider) ? perfil.auth_provider.map(function(p) { return p === "google" ? "Google" : "Local"; }).join(" + ") : perfil.auth_provider} />
           <Row label="Miembro desde" value={fmtFecha(perfil.fecha_creacion)} />
           <Row label="Notificaciones" value={perfil.notificaciones_activas ? "Activas" : "Desactivadas"} />
           <div style={{ marginTop: 16, backgroundColor: "#F8FAFC", borderRadius: 8, padding: "10px 14px", border: "0.5px solid #E2E8F0" }}>
@@ -93,7 +93,7 @@ export default function TabPerfil() {
           {/* Seguridad — Cambiar contraseña */}
           <div style={CARD}>
             <h3 style={TITLE}>Seguridad</h3>
-            {perfil.auth_provider === "google" ? (
+            {(Array.isArray(perfil.auth_provider) ? !perfil.auth_provider.includes("local") : perfil.auth_provider === "google") ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0" }}>
                 <div>
                   <span style={{ fontSize: 13, color: "#1E293B", fontWeight: 500, display: "block" }}>Cambiar contraseña</span>

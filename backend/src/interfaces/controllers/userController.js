@@ -58,7 +58,7 @@ export const registerLocal = async (req, res) => {
         correo,
         password_hash,
         rol: "usuario",
-        auth_provider: "local",
+        auth_provider: ["local"],
         estado: "activo"
       })
       .select()
@@ -298,9 +298,14 @@ export const loginGoogle = async (req, res) => {
 
       if (existingUser) {
         // Vincular cuenta Google al usuario local existente
+        const updatedProviders = Array.isArray(existingUser.auth_provider)
+          ? existingUser.auth_provider
+          : [existingUser.auth_provider];
+        if (!updatedProviders.includes('google')) updatedProviders.push('google');
+
         const { error } = await db
           .from("usuarios")
-          .update({ google_id: uid, foto_url: picture || existingUser.foto_url })
+          .update({ google_id: uid, foto_url: picture || existingUser.foto_url, auth_provider: updatedProviders })
           .eq("id", existingUser.id);
 
         if (error) throw error;
@@ -315,7 +320,7 @@ export const loginGoogle = async (req, res) => {
             google_id: uid,
             foto_url: picture,
             rol: "usuario",
-            auth_provider: "google",
+            auth_provider: ["google"],
             estado: "activo"
           })
           .select()
@@ -441,8 +446,9 @@ export const forgotPassword = async (req, res) => {
       .eq("estado", "activo")
       .single();
 
-    // Si existe y es usuario local, generar token
-    if (usuario && usuario.auth_provider === 'local') {
+    // Si existe y tiene método local, generar token
+    const providers = usuario ? (Array.isArray(usuario.auth_provider) ? usuario.auth_provider : [usuario.auth_provider]) : [];
+    if (usuario && providers.includes('local')) {
       const token     = crypto.randomBytes(32).toString('hex');
       const expiracion = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
