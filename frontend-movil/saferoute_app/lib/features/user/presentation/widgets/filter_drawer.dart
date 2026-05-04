@@ -310,7 +310,7 @@ class _FilterDrawerState extends State<FilterDrawer> {
                       }).toList()),
                     ),
                   ],
-                  const SizedBox(height: 20), // ← ESPACIO: buscador barrio → título comuna
+                  const SizedBox(height: 28), // ← ESPACIO: buscador barrio → título comuna
                   _sectionTitle('Comuna', Icons.map_outlined, sectionText, accentColor),
                   const SizedBox(height: 8), // ← ESPACIO: título comuna → texto ayuda
                   Text('Buscar activa la comuna automáticamente', style: GoogleFonts.inter(fontSize: 12, color: isDark ? const Color(0xFF64748B) : AppColors.textSub, fontStyle: FontStyle.italic)),
@@ -382,7 +382,7 @@ class _FilterDrawerState extends State<FilterDrawer> {
                       }).toList()),
                     ),
                   ],
-                  const SizedBox(height: 20), // ← ESPACIO: buscador vereda → título corregimiento
+                  const SizedBox(height: 28), // ← ESPACIO: buscador vereda → título corregimiento
                   _sectionTitle('Corregimiento', Icons.park_outlined, sectionText, accentColor),
                   const SizedBox(height: 20), // ← ESPACIO: título corregimiento → chips corregimiento
                   _cargandoCorregimientos

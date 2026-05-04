@@ -55,11 +55,6 @@ Preguntar al asesor:
 ## 4. Mejoras y optimizaciones 
 
 1. **Usuario.**
-Nop, ella
-
-- Sí hay un atraco en el momento (mismo día en que se reporta) si se debe mostrar la alerta o baner de hurto que aparece actualmente, pero si es un hurto antiguo a la fecha actual, no mostrar banner. Esto solo aumentaría la alerta del usuario innecesariamente.
-
-- Buscador de barrios para hacer mas facil ver los incidentes si el usuario no sabe la comuna. Lógica de funcionamiento: Toggle Urbano/Rural: El usuario declara explícitamente su contexto y el drawer le responde mostrando lo que es relevante para él. Los 12 chips de comuna se reemplazan por chips de corregimiento cuando toca "Rural". Nunca ve las dos cosas a la vez, no hay saturación. Es la más limpia visualmente y la más honesta con el usuario rural — le dice que la app lo considera.
 
 - Por supuesto tambien debería implementarse en el reporte, solo que las coordenadas ya no serian obligatorias, por eso estas mismas pasaron a ser nullable, aunque si seria obligatorio el barrio. Claro que se va a implementar la logica de barrios y comunas, asi que hay que ver como sale. Pero el toggle tambien cambiaria ya que el mapa deberia leer las coordenadas de los corregimientos, ya no relacionar barrios y comunas, sino veredas y corregimientos.
 
