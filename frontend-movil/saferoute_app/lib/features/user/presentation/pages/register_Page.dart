@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
@@ -24,6 +25,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final confirmController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool isLoading = false;
+  bool _aceptaTerminos = false;
 
   void _mostrarError(String mensaje) => mostrarError(context, mensaje);
 
@@ -32,6 +34,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void register() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_aceptaTerminos) {
+      _mostrarError('Debes aceptar los Términos y Condiciones y la Política de Privacidad para registrarte.');
+      return;
+    }
     setState(() => isLoading = true);
 
     try {
@@ -165,6 +171,10 @@ class _RegisterPageState extends State<RegisterPage> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 16),
+
+                      // Términos y condiciones
+                      _buildTerminosCheckbox(),
                       const SizedBox(height: 24),
 
                       SubmitButton(
@@ -194,6 +204,84 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTerminosCheckbox() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24, height: 24,
+          child: Checkbox(
+            value: _aceptaTerminos,
+            onChanged: (v) => setState(() => _aceptaTerminos = v ?? false),
+            activeColor: AppColors.primary,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSub, height: 1.4),
+              children: [
+                const TextSpan(text: 'Acepto los '),
+                TextSpan(
+                  text: 'Términos y Condiciones',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                  recognizer: TapGestureRecognizer()..onTap = () => _mostrarTextoLegal('Términos y Condiciones'),
+                ),
+                const TextSpan(text: ' y la '),
+                TextSpan(
+                  text: 'Política de Privacidad',
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
+                  recognizer: TapGestureRecognizer()..onTap = () => _mostrarTextoLegal('Política de Privacidad'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _mostrarTextoLegal(String titulo) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: bgColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+            child: Row(children: [
+              Expanded(child: Text(titulo, style: GoogleFonts.montserrat(fontSize: 17, fontWeight: FontWeight.bold, color: textColor))),
+              IconButton(icon: Icon(Icons.close, color: textColor), onPressed: () => Navigator.pop(ctx)),
+            ]),
+          ),
+          Divider(height: 1, color: isDark ? const Color(0xFF475569) : AppColors.border),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\n'
+                'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'
+                'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.\n\n'
+                'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.\n\n'
+                'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.',
+                style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.6),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ]),
       ),
     );
   }
