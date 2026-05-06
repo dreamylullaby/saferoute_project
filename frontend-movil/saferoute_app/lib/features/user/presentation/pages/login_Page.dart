@@ -258,11 +258,11 @@ class _LoginPageState extends State<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
 
-                  Image.asset('assets/Logo_SafeRoute_Oficial_Color.png', height: 90),
+                  Image.asset('assets/Logo_CivicTrackIO_Color.png', height: 90),
                   const SizedBox(height: 16),
 
                   Text(
-                    'SAFEROUTE',
+                    'CivicTrackIO',
                     style: GoogleFonts.montserrat(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,

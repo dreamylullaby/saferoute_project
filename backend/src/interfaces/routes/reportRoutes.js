@@ -10,6 +10,9 @@ const router = express.Router();
 const repository = new ReportRepositoryImpl();
 const controller = new ReportController(repository);
 
+/** GET /api/reportes/stats-login — Stats públicas para la pantalla de login admin */
+router.get('/stats-login', (req, res) => controller.getStatsLogin(req, res));
+
 /** GET /api/reportes/zonas/top?top=10&fechaDesde=&fechaHasta= — Top N zonas con más hurtos */
 router.get('/zonas/top', authenticate, (req, res) => controller.getTopZonas(req, res));
 

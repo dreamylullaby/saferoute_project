@@ -74,12 +74,12 @@ class _SplashPageState extends State<SplashPage>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Image.asset(
-                    'assets/Logo_SafeRoute_Oficial_Color.png',
+                    'assets/Logo_CivicTrackIO_Color.png',
                     height: 110,
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'SAFEROUTE',
+                    'CivicTrackIO',
                     style: GoogleFonts.montserrat(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,

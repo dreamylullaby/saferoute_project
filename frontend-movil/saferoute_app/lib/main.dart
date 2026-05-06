@@ -33,9 +33,9 @@ void main() async {
     await Firebase.initializeApp(
       options: const FirebaseOptions(
         apiKey: "AIzaSyB-t6b7plOtez2YQGhSbJdYg3myQhH_JuI",
-        authDomain: "saferouteapp2026.firebaseapp.com",
-        projectId: "saferouteapp2026",
-        storageBucket: "saferouteapp2026.firebasestorage.app",
+        authDomain: "CIVICTRACKIOapp2026.firebaseapp.com",
+        projectId: "CIVICTRACKIOapp2026",
+        storageBucket: "CIVICTRACKIOapp2026.firebasestorage.app",
         messagingSenderId: "455431452213",
         appId: "1:455431452213:web:c53fe2b4a26145a0b4637c",
       ),
@@ -69,7 +69,7 @@ class MyApp extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: darkModeNotifier,
       builder: (context, isDark, _) => MaterialApp(
-        title: 'SafeRoute',
+        title: 'CivicTrackIO',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         darkTheme: AppTheme.darkTheme,

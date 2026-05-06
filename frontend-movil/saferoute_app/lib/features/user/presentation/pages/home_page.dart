@@ -20,7 +20,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SafeRoute'),
+        title: const Text('CivicTrackIO'),
         actions: [
           TextButton.icon(
             onPressed: () => cerrarSesion(context),
@@ -38,11 +38,11 @@ class HomePage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
 
-            Image.asset('assets/Logo_SafeRoute_Oficial_Color.png', height: 80),
+            Image.asset('assets/Logo_CivicTrackIO_Color.png', height: 80),
             const SizedBox(height: 20),
 
             Text(
-              'Bienvenido a SafeRoute',
+              'Bienvenido a CIVICTRACKIO',
               style: Theme.of(context).textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),

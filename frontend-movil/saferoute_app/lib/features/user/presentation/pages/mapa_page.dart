@@ -221,7 +221,7 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                               urlTemplate: darkModeNotifier.value
                                   ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=$token'
                                   : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=$token',
-                              userAgentPackageName: 'com.saferoute.app',
+                              userAgentPackageName: 'com.CIVICTRACKIO.app',
                             ),
                             if (notifier.modoCalor)
                               HeatmapLayer(

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api.js";
+import CustomSelect from "../../components/CustomSelect.jsx";
 
 /* Endpoints de Fer:
  * GET  /api/admin/solicitudes-eliminacion?estado=pendiente
@@ -145,9 +146,9 @@ export default function TabSolicitudes({ onCountChange }) {
 
       {/* Filtro */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <select value={filtroEstado} onChange={function (e) { setFiltroEstado(e.target.value); }} style={S.select}>
-          {ESTADOS_FILTRO.map(function (e) { return <option key={e} value={e}>{e ? e.charAt(0).toUpperCase() + e.slice(1) : "Todas"}</option>; })}
-        </select>
+        <div style={{ minWidth: 150 }}>
+          <CustomSelect value={filtroEstado} onChange={function (v) { setFiltroEstado(v); }} placeholder="Estado" options={ESTADOS_FILTRO.map(function (e) { return { label: e ? e.charAt(0).toUpperCase() + e.slice(1) : "Todas", value: e }; })} />
+        </div>
         <span style={{ fontSize: 13, color: "#64748B", marginLeft: "auto" }}>{solicitudes.length} solicitud{solicitudes.length !== 1 ? "es" : ""}</span>
       </div>
 
@@ -207,7 +208,7 @@ var S = {
   select: { padding: "10px 14px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 13, fontFamily: "'Inter',sans-serif", backgroundColor: "#fff", cursor: "pointer" },
   tableWrapper: { backgroundColor: "#fff", borderRadius: 12, border: "0.5px solid #CBD5E1", boxShadow: "0 1px 4px rgba(0,0,0,0.06)", overflow: "hidden" },
   table: { width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "'Inter',sans-serif" },
-  th: { padding: "12px 16px", textAlign: "left", color: "#64748B", fontWeight: 500, fontSize: 11, backgroundColor: "#F1F5F9", textTransform: "uppercase", letterSpacing: 0.5 },
+  th: { padding: "12px 16px", textAlign: "left", color: "#fff", fontWeight: 500, fontSize: 11, backgroundColor: "#2563EB", textTransform: "uppercase", letterSpacing: 0.5 },
   td: { padding: "12px 16px", color: "#1E293B" },
   overlay: { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9998 },
   modal: { backgroundColor: "#fff", borderRadius: 12, padding: 32, maxWidth: 420, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.15)" },

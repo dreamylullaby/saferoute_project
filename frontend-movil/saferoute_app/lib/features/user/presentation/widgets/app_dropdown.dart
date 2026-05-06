@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/app_theme.dart';
 
-/// Dropdown genérico reutilizable con estilo SafeRoute.
+/// Dropdown genérico reutilizable con estilo CIVICTRACKIO.
 class AppDropdown<T> extends StatelessWidget {
   const AppDropdown({
     super.key,

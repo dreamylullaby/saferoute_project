@@ -88,13 +88,13 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               children: [
                 Image.asset(
-                  'assets/Logo_SafeRoute_Oficial_Color.png',
+                  'assets/Logo_CivicTrackIO_Color.png',
                   height: 80,
                 ),
                 const SizedBox(height: 12),
 
                 Text(
-                  'SAFEROUTE',
+                  'CivicTrackIO',
                   style: GoogleFonts.montserrat(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

@@ -1,3 +1,8 @@
+**CivicTrackIO Definicion**
+
+CivicTrackIO representa una plataforma tecnológica de seguimiento ciudadano de incidentes, donde “Civic” indica el enfoque comunitario, 
+“Track” el monitoreo de eventos y “IO” la interacción digital del sistema.
+
 1️⃣ Título del aplicativo
 
 Tipografía: Montserrat Bold o Poppins Bold

@@ -23,16 +23,19 @@ export default class ReportRepositoryImpl extends ReportRepository {
         tipo_reportante:  data.tipo_reportante,
         fecha_incidente:  data.fecha_incidente,
         franja_horaria:   data.franja_horaria,
-        latitud:          data.latitud,
-        longitud:         data.longitud,
+        latitud:          data.latitud          ?? null,
+        longitud:         data.longitud         ?? null,
         direccion:        data.direccion        ?? null,
         tipo_hurto:       data.tipo_hurto,
         descripcion:      data.descripcion      ?? null,
         objeto_hurtado:   data.objeto_hurtado   ?? null,
         numero_agresores: data.numero_agresores ?? null,
         estado:           data.estado           ?? 'activo',
-        barrio_ingresado: data.barrio_ingresado
-        // zona_id lo asigna el trigger automáticamente
+        barrio_ingresado: data.barrio_ingresado,
+        zona_tipo:        data.zona_tipo        ?? 'urbana',
+        corregimiento_id: data.corregimiento_id ?? null,
+        vereda_id:        data.vereda_id        ?? null,
+        // zona_id lo asigna el trigger automáticamente (solo urbano)
       }])
       .select();
 
@@ -267,13 +270,13 @@ export default class ReportRepositoryImpl extends ReportRepository {
   /**
    * Lista reportes para el panel admin con filtros y paginación.
    */
-  async findForAdmin({ page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna } = {}) {
+  async findForAdmin({ page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda } = {}) {
     const from = (page - 1) * limit;
     const to   = from + limit - 1;
 
     let query = supabase
       .from('reportes')
-      .select('id, tipo_hurto, tipo_reportante, franja_horaria, fecha_incidente, barrio_ingresado, comuna, estado, fecha_creacion, descripcion, objeto_hurtado, numero_agresores, latitud, longitud', { count: 'exact' })
+      .select('id, tipo_hurto, tipo_reportante, franja_horaria, fecha_incidente, barrio_ingresado, comuna, estado, fecha_creacion, descripcion, objeto_hurtado, numero_agresores, latitud, longitud, zona_tipo, corregimiento_id, usuario_id', { count: 'exact' })
       .order('fecha_creacion', { ascending: false })
       .range(from, to);
 
@@ -281,27 +284,72 @@ export default class ReportRepositoryImpl extends ReportRepository {
     if (estado)     query = query.eq('estado', estado);
     else            query = query.neq('estado', 'eliminado');
 
-    if (tipo_hurto) query = query.eq('tipo_hurto', tipo_hurto);
-    if (fechaDesde) query = query.gte('fecha_incidente', fechaDesde);
-    if (fechaHasta) query = query.lte('fecha_incidente', fechaHasta);
-    if (comuna)     query = query.eq('comuna', Number(comuna));
+    if (tipo_hurto)       query = query.eq('tipo_hurto', tipo_hurto);
+    if (fechaDesde)       query = query.gte('fecha_incidente', fechaDesde);
+    if (fechaHasta)       query = query.lte('fecha_incidente', fechaHasta);
+    if (comuna)           query = query.eq('comuna', Number(comuna));
+    if (zona_tipo)        query = query.eq('zona_tipo', zona_tipo);
+    if (corregimiento_id) query = query.eq('corregimiento_id', Number(corregimiento_id));
 
     const { data, error, count } = await query;
     if (error) throw new Error(`Error al obtener reportes admin: ${error.message}`);
 
-    return { data, total: count, page, totalPages: Math.ceil(count / limit) };
+    // Enriquecer con username y nombre de corregimiento
+    const userIds = [...new Set(data.map(r => r.usuario_id).filter(Boolean))];
+    const corrIds = [...new Set(data.map(r => r.corregimiento_id).filter(Boolean))];
+
+    let userMap = {};
+    let corrMap = {};
+
+    if (userIds.length > 0) {
+      const { data: users } = await supabase.from('usuarios').select('id, username').in('id', userIds);
+      if (users) users.forEach(u => { userMap[u.id] = u.username; });
+    }
+    if (corrIds.length > 0) {
+      const { data: corrs } = await supabase.from('corregimientos').select('id, nombre').in('id', corrIds);
+      if (corrs) corrs.forEach(c => { corrMap[c.id] = c.nombre; });
+    }
+
+    const enriched = data.map(r => ({
+      ...r,
+      username: userMap[r.usuario_id] || null,
+      corregimiento_nombre: corrMap[r.corregimiento_id] || null,
+    }));
+
+    // Filtrar por búsqueda (barrio, username o corregimiento)
+    let filtered = enriched;
+    if (busqueda) {
+      const term = busqueda.toLowerCase();
+      filtered = enriched.filter(r => {
+        const username = r.username || '';
+        const barrio = r.barrio_ingresado || '';
+        const corr = r.corregimiento_nombre || '';
+        return username.toLowerCase().includes(term) || barrio.toLowerCase().includes(term) || corr.toLowerCase().includes(term);
+      });
+    }
+
+    return { data: filtered, total: busqueda ? filtered.length : count, page, totalPages: Math.ceil((busqueda ? filtered.length : count) / limit) };
   }
 
   /**
    * Retorna conteos de reportes agrupados por tipo y estado para el dashboard.
    */
-  async getResumen() {
-    const { data, error } = await supabase
+  async getResumen(zonaTipo) {
+    let query = supabase
       .from('reportes')
-      .select('tipo_hurto, estado, comuna, franja_horaria, fecha_incidente')
+      .select('tipo_hurto, estado, comuna, franja_horaria, fecha_incidente, corregimiento_id')
       .neq('estado', 'eliminado');
 
+    if (zonaTipo) query = query.eq('zona_tipo', zonaTipo);
+
+    const { data, error } = await query;
+
     if (error) throw new Error(`Error al obtener resumen: ${error.message}`);
+
+    // Obtener nombres de corregimientos
+    const { data: corregimientos } = await supabase.from('corregimientos').select('id, nombre');
+    const corrNombres = {};
+    if (corregimientos) corregimientos.forEach(c => { corrNombres[c.id] = c.nombre; });
 
     const total       = data.length;
     const porTipo     = {};
@@ -309,6 +357,7 @@ export default class ReportRepositoryImpl extends ReportRepository {
     const porComuna   = {};
     const porFranja   = {};
     const porFecha    = {};
+    const porCorregimiento = {};
     const recientes   = [];
 
     // Ordenar por fecha descendente para obtener los más recientes
@@ -320,10 +369,14 @@ export default class ReportRepositoryImpl extends ReportRepository {
       if (r.comuna) porComuna[r.comuna] = (porComuna[r.comuna] || 0) + 1;
       if (r.franja_horaria) porFranja[r.franja_horaria] = (porFranja[r.franja_horaria] || 0) + 1;
       if (r.fecha_incidente) porFecha[r.fecha_incidente] = (porFecha[r.fecha_incidente] || 0) + 1;
+      if (r.corregimiento_id) {
+        const nombre = corrNombres[r.corregimiento_id] || `Corr. ${r.corregimiento_id}`;
+        porCorregimiento[nombre] = (porCorregimiento[nombre] || 0) + 1;
+      }
       if (recientes.length < 5) recientes.push(r);
     }
 
-    return { total, porTipo, porEstado, porComuna, porFranja, porFecha, recientes };
+    return { total, porTipo, porEstado, porComuna, porFranja, porFecha, porCorregimiento, recientes };
   }
 
   /**
@@ -515,5 +568,24 @@ export default class ReportRepositoryImpl extends ReportRepository {
       throw new Error(`Error al crear solicitud: ${error.message}`);
     }
     return data;
+  }
+
+  /**
+   * Stats públicas para la pantalla de login del admin.
+   * Retorna conteos de reportes activos, usuarios, corregimientos y comunas.
+   */
+  async getStatsLogin() {
+    const [reportesRes, usuariosRes, corregimientosRes] = await Promise.all([
+      supabase.from('reportes').select('id', { count: 'exact', head: true }).eq('estado', 'activo'),
+      supabase.from('usuarios').select('id', { count: 'exact', head: true }),
+      supabase.from('corregimientos').select('id', { count: 'exact', head: true }),
+    ]);
+
+    return {
+      reportes: reportesRes.count ?? 0,
+      usuarios: usuariosRes.count ?? 0,
+      corregimientos: corregimientosRes.count ?? 0,
+      comunas: 12,
+    };
   }
 }
