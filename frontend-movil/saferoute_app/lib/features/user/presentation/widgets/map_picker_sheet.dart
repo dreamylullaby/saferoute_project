@@ -63,7 +63,7 @@ class MapPickerSheet {
                 children: [
                   TileLayer(
                     urlTemplate: mapStyle,
-                    userAgentPackageName: 'com.saferoute.app',
+                    userAgentPackageName: 'com.CIVICTRACKIO.app',
                   ),
                   if (puntoSeleccionado != null)
                     MarkerLayer(markers: [

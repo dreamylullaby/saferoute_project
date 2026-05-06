@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Paleta de colores del sistema SafeRoute.
+/// Paleta de colores del sistema CIVICTRACKIO.
 /// Incluye colores primarios, gradientes, mapa de calor,
 /// tipos de hurto, tendencias y franjas horarias.
 class AppColors {

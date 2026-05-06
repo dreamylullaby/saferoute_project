@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../../services/auth_storage.dart';
 
-/// Servicio de autocompletado de barrios (backend SafeRoute).
+/// Servicio de autocompletado de barrios (backend CIVICTRACKIO).
 class AutocompleteService {
   AutocompleteService(this._baseUrl);
 

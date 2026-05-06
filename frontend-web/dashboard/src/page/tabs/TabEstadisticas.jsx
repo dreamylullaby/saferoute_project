@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler } from "chart.js";
 import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { getResumen, getReportesMapa } from "../../services/reportService.js";
 import mapboxgl from "mapbox-gl";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler, ChartDataLabels);
 
 var COLORES_TIPO = { atraco: "#B91C1C", raponazo: "#0891B2", fleteo: "#D946EF", cosquilleo: "#8A2BE2" };
 var COLORES_FRANJA = { "06:00-11:59": "#FBBF24", "12:00-17:59": "#F97316", "18:00-23:59": "#BE185D", "00:00-05:59": "#D946EF" };
@@ -104,21 +105,41 @@ function addHeatmap(map, puntos) {
 
 export default function TabEstadisticas() {
   var [resumen, setResumen] = useState(null);
+  var [resumenZona, setResumenZona] = useState(null);
   var [cargando, setCargando] = useState(true);
   var [compDesde, setCompDesde] = useState("");
   var [compHasta, setCompHasta] = useState("");
+  var [modoRural, setModoRural] = useState(false);
+  var [corregimientos, setCorregimientos] = useState([]);
 
   useEffect(function () {
     getResumen().then(setResumen).catch(console.error).finally(function () { setCargando(false); });
+    import("../../services/api.js").then(function (mod) {
+      mod.default.get("/api/reportes/corregimientos").then(function (r) { setCorregimientos(r.data.data || []); }).catch(function () {});
+    });
   }, []);
+
+  useEffect(function () {
+    var cancelled = false;
+    setResumenZona(null);
+    var zona = modoRural ? "rural" : "urbana";
+    import("../../services/api.js").then(function (mod) {
+      mod.default.get("/api/reportes/admin/resumen", { params: { zona_tipo: zona } }).then(function (r) { if (!cancelled) setResumenZona(r.data.data); }).catch(console.error);
+    });
+    return function () { cancelled = true; };
+  }, [modoRural]);
+
+  function toggleModo(rural) { if (rural === modoRural) return; setResumenZona(null); setModoRural(rural); }
 
   if (cargando) return <p style={{ color: "#64748b", textAlign: "center", padding: 40, fontWeight: 300 }}>Cargando...</p>;
   if (!resumen) return <p style={{ color: "#64748b", textAlign: "center" }}>Error al cargar estadísticas</p>;
 
-  var porTipo = resumen.porTipo || {};
-  var porComuna = resumen.porComuna || {};
-  var porFranja = resumen.porFranja || {};
-  var porFecha = resumen.porFecha || {};
+  var d = resumenZona || resumen;
+  var porTipo = d.porTipo || {};
+  var porComuna = d.porComuna || {};
+  var porFranja = d.porFranja || {};
+  var porFecha = d.porFecha || {};
+  var porCorregimiento = d.porCorregimiento || {};
   var totalTipos = Object.values(porTipo).reduce(function (a, b) { return a + b; }, 0) || 1;
   var totalFranjas = Object.values(porFranja).reduce(function (a, b) { return a + b; }, 0) || 1;
 
@@ -168,19 +189,38 @@ export default function TabEstadisticas() {
   var comunaConMas = comunas.reduce(function (a, b) { return b.incidentes > a.incidentes ? b : a; }, comunas[0]);
   var franjaConMas = Object.entries(porFranja).sort(function (a, b) { return b[1] - a[1]; })[0];
 
+  // Corregimientos para modo rural
+  var corrEntries = Object.entries(porCorregimiento).sort(function (a, b) { return b[1] - a[1]; });
+  var corrMax = corrEntries[0];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }`}</style>
+
+      {/* Chip Urbano/Rural */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 8, padding: 3, height: 38, boxSizing: "border-box", position: "relative", overflow: "hidden", width: 180 }}>
+          <div style={{ position: "absolute", top: 3, left: modoRural ? "50%" : 3, width: "calc(50% - 3px)", height: "calc(100% - 6px)", borderRadius: 6, backgroundColor: modoRural ? "#16A34A" : "#2563EB", transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease", zIndex: 0 }} />
+          <button type="button" onClick={function () { toggleModo(false); }} style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 14px", border: "none", borderRadius: 6, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 500, cursor: "pointer", height: "100%", backgroundColor: "transparent", transition: "color 0.25s ease", flex: 1, justifyContent: "center", color: modoRural ? "#64748B" : "#fff", position: "relative", zIndex: 1 }}>Urbano</button>
+          <button type="button" onClick={function () { toggleModo(true); }} style={{ display: "flex", alignItems: "center", gap: 5, padding: "0 14px", border: "none", borderRadius: 6, fontSize: 13, fontFamily: "'Inter',sans-serif", fontWeight: 500, cursor: "pointer", height: "100%", backgroundColor: "transparent", transition: "color 0.25s ease", flex: 1, justifyContent: "center", color: modoRural ? "#fff" : "#64748B", position: "relative", zIndex: 1 }}>Rural</button>
+        </div>
+        <span style={{ fontSize: 12, color: "#64748B", fontWeight: 300 }}>{"Mostrando estadísticas " + (modoRural ? "rurales" : "urbanas") + " — " + totalGeneral + " reportes"}</span>
+      </div>
+
       {/* Resumen ejecutivo */}
       <div style={{ ...CARD, backgroundColor: "#EFF6FF", border: "0.5px solid #BFDBFE" }}>
         <p style={{ margin: 0, fontSize: 13, color: "#1E3A8A", fontWeight: 400, fontFamily: "'Inter',sans-serif", lineHeight: 1.6 }}>
-          {"Se registran " + totalGeneral + " incidentes en total. La comuna con mayor incidencia es la Comuna " + comunaConMas.numero + " con " + comunaConMas.incidentes + " reportes" + (comunaConMas.incidentes >= 6 ? " (alto riesgo)" : "") + ". " + (franjaConMas ? "La franja horaria más crítica es " + (NOMBRES_FRANJA[franjaConMas[0]] || franjaConMas[0]) + " con " + franjaConMas[1] + " incidentes." : "")}
+          {modoRural
+            ? "Se registran " + totalGeneral + " incidentes rurales." + (corrMax ? " El corregimiento con mayor incidencia es " + corrMax[0] + " con " + corrMax[1] + " reportes." : "") + (franjaConMas ? " La franja horaria más crítica es " + (NOMBRES_FRANJA[franjaConMas[0]] || franjaConMas[0]) + " con " + franjaConMas[1] + " incidentes." : "")
+            : "Se registran " + totalGeneral + " incidentes en total. La comuna con mayor incidencia es la Comuna " + comunaConMas.numero + " con " + comunaConMas.incidentes + " reportes" + (comunaConMas.incidentes >= 6 ? " (alto riesgo)" : "") + ". " + (franjaConMas ? "La franja horaria más crítica es " + (NOMBRES_FRANJA[franjaConMas[0]] || franjaConMas[0]) + " con " + franjaConMas[1] + " incidentes." : "")
+          }
         </p>
       </div>
 
       {/* Sección 1: Mapa de calor */}
       <div style={CARD}>
         <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <h3 style={CARD_TITLE_CENTER}>Mapa de Calor por Comuna</h3>
+          <h3 style={CARD_TITLE_CENTER}>{modoRural ? "Mapa de Calor Rural" : "Mapa de Calor por Comuna"}</h3>
           <p style={{ margin: "4px 0 0", fontSize: 12, color: "#64748b", fontWeight: 300 }}>Distribución de incidentes en Pasto</p>
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 20 }}>
@@ -191,8 +231,24 @@ export default function TabEstadisticas() {
           <div style={{ borderRadius: 10, overflow: "hidden", border: "0.5px solid #CBD5E1", minHeight: 380 }}>
             <MapaCalor />
           </div>
-          {/* Tarjetas de comunas */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, alignContent: "start" }}>
+          {/* Tarjetas de comunas o corregimientos */}
+          {modoRural ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, alignContent: "start", animation: "fadeIn 0.4s ease", maxHeight: 380, overflowY: "auto" }}>
+              {corregimientos.map(function (c) {
+                var val = porCorregimiento[c.nombre] || 0;
+                var nivel = getNivel(val);
+                return (
+                  <div key={c.id} style={{ borderRadius: 10, padding: 12, backgroundColor: nivel.bg, textAlign: "left", border: "0.5px solid " + nivel.color + "33" }}>
+                    <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: 0.5, textTransform: "uppercase", color: nivel.text }}>CORREG.</span>
+                    <span style={{ display: "block", fontSize: 13, fontWeight: 700, color: nivel.text, margin: "1px 0 4px", lineHeight: 1.2 }}>{c.nombre.length > 10 ? c.nombre.substring(0, 10) + "." : c.nombre}</span>
+                    <span style={{ fontSize: 10, fontWeight: 300, color: nivel.text }}>Incidentes</span>
+                    <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: nivel.color }}>{val}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, alignContent: "start", animation: "fadeIn 0.4s ease" }}>
             {comunas.map(function (c) { return (
               <div key={c.numero} style={{ borderRadius: 10, padding: 12, backgroundColor: c.nivel.bg, textAlign: "left", border: "0.5px solid " + c.nivel.color + "33" }}>
                 <span style={{ fontSize: 9, fontWeight: 500, letterSpacing: 0.5, textTransform: "uppercase", color: c.nivel.text }}>COMUNA</span>
@@ -201,7 +257,8 @@ export default function TabEstadisticas() {
                 <span style={{ display: "block", fontSize: 16, fontWeight: 700, color: c.nivel.color }}>{c.incidentes}</span>
               </div>
             ); })}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -234,7 +291,7 @@ export default function TabEstadisticas() {
         <div style={CARD}>
           <h3 style={CARD_TITLE}>Análisis por Franja Horaria</h3>
           <div style={{ maxWidth: 260, margin: "0 auto" }}>
-            <Doughnut data={{ labels: Object.keys(porFranja).map(function (f) { return NOMBRES_FRANJA[f] || f; }), datasets: [{ data: Object.values(porFranja), backgroundColor: Object.keys(porFranja).map(function (f) { return COLORES_FRANJA[f] || "#64748B"; }), borderWidth: 0, cutout: "60%" }] }} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+            <Doughnut data={{ labels: Object.keys(porFranja).map(function (f) { return NOMBRES_FRANJA[f] || f; }), datasets: [{ data: Object.values(porFranja), backgroundColor: Object.keys(porFranja).map(function (f) { return COLORES_FRANJA[f] || "#64748B"; }), borderWidth: 0, cutout: "60%" }] }} options={{ responsive: true, plugins: { legend: { display: false }, datalabels: { display: true, color: "#fff", font: { size: 14, weight: 700 }, formatter: function (value) { return value > 0 ? value : ""; } } } }} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px", marginTop: 14 }}>
             {Object.entries(porFranja).map(function (e) { return (<div key={e[0]} style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: COLORES_FRANJA[e[0]] || "#64748B", flexShrink: 0 }} /><span style={{ fontSize: 11, color: "#1E293B" }}>{NOMBRES_FRANJA[e[0]] || e[0]}</span><span style={{ fontSize: 11, fontWeight: 700, color: COLORES_FRANJA[e[0]] || "#1E293B" }}>{e[1]}</span></div>); })}

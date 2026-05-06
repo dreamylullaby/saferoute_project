@@ -13,6 +13,8 @@ import {
   ocultarUsuario,
   reactivarUsuario,
   eliminarUsuario,
+  hardDeleteUsuario,
+  hardDeleteReporte,
   cambiarEstadoReporte,
   editarTipoHurtoReporte,
   listarSolicitudesEliminacion,
@@ -42,11 +44,17 @@ router.patch("/usuarios/:id/reactivar", reactivarUsuario);
 /** PATCH /api/admin/usuarios/:id/eliminar — Elimina lógicamente un usuario */
 router.patch("/usuarios/:id/eliminar", eliminarUsuario);
 
+/** DELETE /api/admin/usuarios/:id/permanente — Hard delete de usuario */
+router.delete("/usuarios/:id/permanente", hardDeleteUsuario);
+
 /** PATCH /api/admin/reportes/:id/estado — Cambia el estado de un reporte */
 router.patch("/reportes/:id/estado", cambiarEstadoReporte);
 
 /** PATCH /api/admin/reportes/:id/tipo — Edita el tipo de hurto de un reporte */
 router.patch("/reportes/:id/tipo", editarTipoHurtoReporte);
+
+/** DELETE /api/admin/reportes/:id/permanente — Hard delete de reporte */
+router.delete("/reportes/:id/permanente", hardDeleteReporte);
 
 /** GET  /api/admin/solicitudes-eliminacion — Lista solicitudes (filtro por estado) */
 router.get("/solicitudes-eliminacion",              listarSolicitudesEliminacion);

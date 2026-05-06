@@ -158,8 +158,11 @@ class _ReportFormPageState extends State<_ReportFormPage> {
 
   // Rural state
   int? _corregimientoSeleccionado;
+  int? _veredaSeleccionada;
   List<Map<String, dynamic>> _corregimientos = [];
+  List<Map<String, dynamic>> _veredas = [];
   bool _cargandoCorregimientos = false;
+  bool _cargandoVeredas = false;
 
   // Selección de campos comunes
   String? tipoReportante;
@@ -238,6 +241,27 @@ class _ReportFormPageState extends State<_ReportFormPage> {
       }
     } catch (_) {
       if (mounted) setState(() => _cargandoCorregimientos = false);
+    }
+  }
+
+  Future<void> _cargarVeredas(int corregimientoId) async {
+    setState(() { _cargandoVeredas = true; _veredas = []; _veredaSeleccionada = null; });
+    try {
+      final base = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
+      final token = await AuthStorage.getToken();
+      final res = await http.get(
+        Uri.parse('$base/api/reportes/corregimientos/$corregimientoId/veredas'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (mounted) setState(() {
+          _veredas = List<Map<String, dynamic>>.from(body['data'] ?? []);
+          _cargandoVeredas = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _cargandoVeredas = false);
     }
   }
 
@@ -374,6 +398,7 @@ class _ReportFormPageState extends State<_ReportFormPage> {
         body['es_rural'] = true;
         body['vereda'] = veredaController.text.trim();
         body['corregimiento_id'] = _corregimientoSeleccionado;
+        if (_veredaSeleccionada != null) body['vereda_id'] = _veredaSeleccionada;
         if (_latitud != null && _longitud != null) {
           body['latitud'] = _latitud;
           body['longitud'] = _longitud;
@@ -699,22 +724,54 @@ class _ReportFormPageState extends State<_ReportFormPage> {
                 child: Text(c['nombre'] ?? '', style: GoogleFonts.inter(fontSize: 14)),
               ),
             )).toList(),
-            onChanged: (v) => setState(() => _corregimientoSeleccionado = v),
+            onChanged: (v) { setState(() => _corregimientoSeleccionado = v); if (v != null) _cargarVeredas(v); },
           ),
       const SizedBox(height: 15),
 
-      // Vereda
-      TextFormField(
-        controller: veredaController,
-        validator: _validarVereda,
-        decoration: InputDecoration(
-          labelText: 'Nombre de la vereda *',
-          prefixIcon: Icon(Icons.terrain, color: accentColor),
-          helperText: 'Escribe el nombre de la vereda donde ocurrió el incidente',
-          helperStyle: GoogleFonts.inter(fontSize: 12, color: mutedColor),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+      // Vereda (dropdown dinámico según corregimiento)
+      _cargandoVeredas
+        ? const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
+        : _veredas.isEmpty && _corregimientoSeleccionado != null
+          ? TextFormField(
+              controller: veredaController,
+              validator: _validarVereda,
+              decoration: InputDecoration(
+                labelText: 'Nombre de la vereda *',
+                prefixIcon: Icon(Icons.terrain, color: accentColor),
+                helperText: 'No se encontraron veredas. Escribe el nombre manualmente.',
+                helperStyle: GoogleFonts.inter(fontSize: 12, color: mutedColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            )
+          : DropdownButtonFormField<int>(
+              value: _veredaSeleccionada,
+              menuMaxHeight: 300,
+              borderRadius: BorderRadius.circular(14),
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              icon: Icon(Icons.keyboard_arrow_down_rounded, color: accentColor),
+              decoration: InputDecoration(
+                labelText: 'Vereda *',
+                prefixIcon: Icon(Icons.terrain, color: accentColor),
+                helperText: _corregimientoSeleccionado == null ? 'Selecciona primero un corregimiento' : null,
+                helperStyle: GoogleFonts.inter(fontSize: 12, color: mutedColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) => v == null && _corregimientoSeleccionado != null ? 'Campo obligatorio' : null,
+              items: _veredas.map((v) => DropdownMenuItem<int>(
+                value: v['id'] as int,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(v['nombre'] ?? '', style: GoogleFonts.inter(fontSize: 14)),
+                ),
+              )).toList(),
+              onChanged: _corregimientoSeleccionado == null ? null : (v) {
+                setState(() {
+                  _veredaSeleccionada = v;
+                  final vereda = _veredas.firstWhere((x) => x['id'] == v, orElse: () => {});
+                  veredaController.text = vereda['nombre'] ?? '';
+                });
+              },
+            ),
       const SizedBox(height: 15),
 
       // Ubicación en mapa (opcional en rural)

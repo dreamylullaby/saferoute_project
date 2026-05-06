@@ -89,7 +89,8 @@ export default function Dashboard() {
           <div style={S.logoRow}>
             <div style={S.logoCircle}><IcoShield /></div>
             <div>
-              <div style={S.logoText}>SafeRoute</div>
+              <div style={S.logoText}>Civic</div>
+              <div style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 15, color: "rgba(255,255,255,0.9)", marginTop: -4, letterSpacing: 1 }}>Track<span style={{ color: "#3B82F6", fontWeight: 700, fontSize: 16 }}>IO</span></div>
               <div style={S.logoSub}>Panel de Administración</div>
             </div>
           </div>
@@ -145,7 +146,7 @@ export default function Dashboard() {
 }
 
 var S = {
-  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", backgroundColor: "#F1F5F9" },
+  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", backgroundColor: "var(--bg-main)" },
   /* Sidebar */
   sidebar: { width: 220, background: "linear-gradient(180deg, #1E1E7C, #333C87, #6D6DF9)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "24px 0", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 100 },
   sidebarTop: { display: "flex", flexDirection: "column", gap: 32 },
@@ -162,12 +163,12 @@ var S = {
   logoutBtn: { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", border: "none", backgroundColor: "transparent", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 14, fontFamily: "'Inter', sans-serif", width: "100%" },
   /* Main */
   mainArea: { marginLeft: 220, flex: 1, display: "flex", flexDirection: "column" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", backgroundColor: "#fff", borderBottom: "1px solid #CBD5E1" },
-  headerTitle: { margin: 0, fontSize: 20, fontWeight: 600, color: "#1E293B", fontFamily: "'Inter', sans-serif" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", backgroundColor: "var(--bg-card)", borderBottom: "1px solid var(--border-color)", transition: "background-color 0.3s ease" },
+  headerTitle: { margin: 0, fontSize: 20, fontWeight: 600, color: "var(--text-primary)", fontFamily: "'Inter', sans-serif" },
   headerRight: { display: "flex", alignItems: "center", gap: 12 },
   headerInfo: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
-  headerName: { fontSize: 13, fontWeight: 600, color: "#1E293B" },
-  headerRole: { fontSize: 11, color: "#64748B", fontWeight: 300 },
+  headerName: { fontSize: 13, fontWeight: 600, color: "var(--text-primary)" },
+  headerRole: { fontSize: 11, color: "var(--text-secondary)", fontWeight: 300 },
   headerAvatar: { width: 38, height: 38, borderRadius: "50%", backgroundColor: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Montserrat', sans-serif" },
   content: { padding: 24, flex: 1 },
 };

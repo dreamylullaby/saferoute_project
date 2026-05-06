@@ -229,6 +229,98 @@ export const eliminarUsuario = async (req, res) => {
 };
 
 /**
+ * DELETE /api/admin/usuarios/:id/permanente
+ * Elimina permanentemente un usuario de la BD (hard delete).
+ * Solo se permite si el usuario ya tiene estado 'eliminado'.
+ */
+export const hardDeleteUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    if (id === adminId)
+      return res.status(400).json({ success: false, message: "No puedes eliminarte a ti mismo" });
+
+    const { data: usuario, error: fetchError } = await db
+      .from("usuarios")
+      .select("id, rol, estado, username")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !usuario)
+      return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+
+    if (usuario.rol === "admin")
+      return res.status(403).json({ success: false, message: "No se puede eliminar permanentemente a un administrador" });
+
+    if (usuario.estado !== "eliminado")
+      return res.status(400).json({ success: false, message: "Solo se pueden eliminar permanentemente usuarios con estado 'eliminado'" });
+
+    const { error } = await db
+      .from("usuarios")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    await db.from("auditoria_usuarios").insert({
+      admin_id:   adminId,
+      usuario_id: id,
+      accion:     "eliminar",
+      detalle:    `Usuario ${usuario.username} eliminado permanentemente (hard delete)`,
+    }).catch(() => {});
+
+    return res.status(200).json({ success: true, message: "Usuario eliminado permanentemente" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * DELETE /api/admin/reportes/:id/permanente
+ * Elimina permanentemente un reporte de la BD (hard delete).
+ * Solo se permite si el reporte ya tiene estado 'eliminado'.
+ */
+export const hardDeleteReporte = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    const { data: reporte, error: fetchError } = await db
+      .from("reportes")
+      .select("id, estado, tipo_hurto, barrio_ingresado")
+      .eq("id", id)
+      .single();
+
+    if (fetchError || !reporte)
+      return res.status(404).json({ success: false, message: "Reporte no encontrado" });
+
+    if (reporte.estado !== "eliminado")
+      return res.status(400).json({ success: false, message: "Solo se pueden eliminar permanentemente reportes con estado 'eliminado'" });
+
+    const { error } = await db
+      .from("reportes")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+
+    await db.from("auditoria_reportes").insert({
+      admin_id:     adminId,
+      reporte_id:   id,
+      accion:       "eliminar_permanente",
+      estado_anterior: "eliminado",
+      estado_nuevo:    null,
+      detalle:      `Reporte ${reporte.tipo_hurto} en ${reporte.barrio_ingresado} eliminado permanentemente`,
+    }).catch(() => {});
+
+    return res.status(200).json({ success: true, message: "Reporte eliminado permanentemente" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
  * PATCH /api/admin/reportes/:id/estado
  * Cambia el estado de un reporte (activo, oculto, eliminado).
  * Body: { estado, motivo? }

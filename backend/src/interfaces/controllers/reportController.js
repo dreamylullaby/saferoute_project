@@ -230,15 +230,18 @@ class ReportController {
   /** GET /api/reportes/admin — listado paginado con filtros (solo admin) */
   async listAdmin(req, res) {
     try {
-      const { page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna } = req.query;
+      const { page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda } = req.query;
       const result = await this.repository.findForAdmin({
-        page:       Number(page),
-        limit:      Number(limit),
-        tipo_hurto: tipo_hurto || undefined,
-        estado:     estado     || undefined,
-        fechaDesde: fechaDesde || undefined,
-        fechaHasta: fechaHasta || undefined,
-        comuna:     comuna     || undefined,
+        page:             Number(page),
+        limit:            Number(limit),
+        tipo_hurto:       tipo_hurto       || undefined,
+        estado:           estado           || undefined,
+        fechaDesde:       fechaDesde       || undefined,
+        fechaHasta:       fechaHasta       || undefined,
+        comuna:           comuna           || undefined,
+        zona_tipo:        zona_tipo        || undefined,
+        corregimiento_id: corregimiento_id || undefined,
+        busqueda:         busqueda         || undefined,
       });
       return res.status(200).json({ success: true, ...result });
     } catch (error) {
@@ -249,7 +252,8 @@ class ReportController {
   /** GET /api/reportes/admin/resumen — conteos para tarjetas del dashboard (solo admin) */
   async getResumen(req, res) {
     try {
-      const result = await this.repository.getResumen();
+      const { zona_tipo } = req.query;
+      const result = await this.repository.getResumen(zona_tipo || null);
       return res.status(200).json({ success: true, data: result });
     } catch (error) {
       return res.status(500).json({ success: false, message: error.message });
@@ -371,6 +375,15 @@ class ReportController {
     } catch (error) {
       const status = error.message.includes('pendiente') ? 409 : 500;
       return res.status(status).json({ success: false, message: error.message });
+    }
+  }
+  /** GET /api/reportes/stats-login — Stats públicas para pantalla de login admin */
+  async getStatsLogin(req, res) {
+    try {
+      const stats = await this.repository.getStatsLogin();
+      return res.status(200).json({ success: true, data: stats });
+    } catch (error) {
+      return res.status(200).json({ success: true, data: { reportes: 0, usuarios: 0, corregimientos: 0, comunas: 12 } });
     }
   }
 }
