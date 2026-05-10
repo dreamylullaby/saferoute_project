@@ -172,8 +172,7 @@ void main() {
       fileName: '.env',
       isOptional: true,
       mergeWith: {
-        'MAPBOX_TOKEN':
-            'pk.eyJ1Ijoic2FyYWhjYWxkZXJvbiIsImEiOiJjbW5tcGp6NW8xbnRtMnJxNDUwODJibnJtIn0.AVoo31Ev683L4GnZFj3qgQ',
+        'MAPBOX_TOKEN': 'test-mapbox-token',
         'API_BASE_URL': 'http://localhost:3000',
       },
     );
