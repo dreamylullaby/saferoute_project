@@ -57,12 +57,6 @@ class CreateReport {
         `franja_horaria inválida. Valores permitidos: ${Report.franja_horaria.join(', ')}`
       );
 
-    if (data.latitud === undefined || data.latitud === null)
-      throw new Error('latitud es obligatoria');
-
-    if (data.longitud === undefined || data.longitud === null)
-      throw new Error('longitud es obligatoria');
-
     if (!data.tipo_hurto)
       throw new Error('tipo_hurto es obligatorio');
 
@@ -71,8 +65,36 @@ class CreateReport {
         `tipo_hurto inválido. Valores permitidos: ${Report.tipo_hurto.join(', ')}`
       );
 
-    if (!data.barrio_ingresado || data.barrio_ingresado.trim() === '')
-      throw new Error('barrio_ingresado es obligatorio');
+    // Validación condicional según zona (rural vs urbana)
+    const esRural = data.es_rural === true || data.zona_tipo === 'rural';
+
+    if (esRural) {
+      // Rural: corregimiento obligatorio, vereda como barrio_ingresado, coordenadas opcionales
+      if (!data.corregimiento_id)
+        throw new Error('corregimiento_id es obligatorio para reportes rurales');
+
+      // Usar vereda como barrio_ingresado si no viene
+      if (!data.barrio_ingresado || data.barrio_ingresado.trim() === '') {
+        if (data.vereda && data.vereda.trim() !== '') {
+          data.barrio_ingresado = data.vereda.trim();
+        } else {
+          throw new Error('vereda es obligatoria para reportes rurales');
+        }
+      }
+      data.zona_tipo = 'rural';
+    } else {
+      // Urbana: latitud, longitud y barrio obligatorios
+      if (data.latitud === undefined || data.latitud === null)
+        throw new Error('latitud es obligatoria');
+
+      if (data.longitud === undefined || data.longitud === null)
+        throw new Error('longitud es obligatoria');
+
+      if (!data.barrio_ingresado || data.barrio_ingresado.trim() === '')
+        throw new Error('barrio_ingresado es obligatorio');
+
+      data.zona_tipo = 'urbana';
+    }
 
     //Campos opcionales
     if (data.objeto_hurtado && !Report.objeto_hurtado.includes(data.objeto_hurtado))
@@ -95,8 +117,14 @@ class CreateReport {
       estado: 'activo'
     });
 
-    // Enviar notificaciones push (fire and forget — no bloquea la respuesta)
-    this._enviarPushCercanos(reporte).catch(() => {});
+    // Enviar notificaciones push solo si el incidente es de hoy (no alertar por hechos pasados)
+    const hoy = new Date().toISOString().split('T')[0];
+    const fechaReporte = String(reporte.fecha_incidente).split('T')[0];
+    if (fechaReporte === hoy) {
+      this._enviarPushCercanos(reporte).catch(() => {});
+    } else {
+      console.log(`[Push] Reporte con fecha ${fechaReporte} (no es hoy ${hoy}), no se envía alerta.`);
+    }
 
     return reporte;
   }

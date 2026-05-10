@@ -31,8 +31,8 @@ CREATE TABLE public.usuarios (
     fecha_creacion timestamp without time zone DEFAULT now() NOT NULL,
     estado character varying(20) NOT NULL,
     fcm_token text,
-    CONSTRAINT usuarios_auth_provider_check CHECK (((auth_provider)::text = ANY (ARRAY['local', 'google']::text[]))),
-    CONSTRAINT usuarios_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'bloqueado', 'eliminado']::text[]))),
+    CONSTRAINT usuarios_auth_provider_check CHECK (((auth_provider)::text[] <@ ARRAY['local', 'google']::text[] AND array_length(auth_provider, 1) > 0)),
+    CONSTRAINT usuarios_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'bloqueado', 'eliminado', 'oculto']::text[]))),
     CONSTRAINT usuarios_rol_check CHECK (((rol)::text = ANY (ARRAY['usuario', 'admin']::text[]))),
     CONSTRAINT usuarios_pkey PRIMARY KEY (id),
     CONSTRAINT usuarios_correo_key UNIQUE (correo),
@@ -224,6 +224,30 @@ CREATE TABLE public.zonas_riesgo (
     CONSTRAINT zonas_riesgo_pkey PRIMARY KEY (id)
 );
 
+-- Solicitudes de eliminación de reportes
+CREATE TABLE public.solicitudes_eliminacion (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    reporte_id uuid NOT NULL,
+    usuario_id uuid NOT NULL,
+    estado_solicitud character varying(20) DEFAULT 'pendiente' NOT NULL,
+    motivo text,
+    fecha_solicitud timestamp without time zone DEFAULT now() NOT NULL,
+    fecha_resolucion timestamp without time zone,
+    admin_id uuid,
+    CONSTRAINT solicitudes_eliminacion_estado_check CHECK (((estado_solicitud)::text = ANY (ARRAY['pendiente', 'aprobada', 'rechazada']::text[]))),
+    CONSTRAINT solicitudes_eliminacion_pkey PRIMARY KEY (id)
+);
+
+-- Aceptación de términos y condiciones
+CREATE TABLE public.aceptacion_terminos (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    usuario_id uuid NOT NULL,
+    version_terminos character varying(10) DEFAULT 'v1.0' NOT NULL,
+    fecha_aceptacion timestamp without time zone DEFAULT now() NOT NULL,
+    ip_origen character varying(45),
+    CONSTRAINT aceptacion_terminos_pkey PRIMARY KEY (id)
+);
+
 -- ============================================================
 -- 3. FOREIGN KEYS (Relaciones)
 -- ============================================================
@@ -292,6 +316,20 @@ ALTER TABLE ONLY public.auditoria_usuarios
 
 ALTER TABLE ONLY public.auditoria_usuarios
     ADD CONSTRAINT auditoria_usuarios_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+-- solicitudes_eliminacion -> reportes / usuarios
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_reporte_fkey FOREIGN KEY (reporte_id) REFERENCES public.reportes(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_usuario_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
+
+ALTER TABLE ONLY public.solicitudes_eliminacion
+    ADD CONSTRAINT solicitudes_eliminacion_admin_fkey FOREIGN KEY (admin_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+
+-- aceptacion_terminos -> usuarios
+ALTER TABLE ONLY public.aceptacion_terminos
+    ADD CONSTRAINT aceptacion_terminos_usuario_fkey FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE CASCADE;
 
 -- ============================================================
 -- 4. ÍNDICES
@@ -367,6 +405,16 @@ CREATE INDEX idx_zonas_geom ON public.zonas USING gist (geom);
 CREATE INDEX idx_corregimientos_geom ON public.corregimientos USING gist (geom);
 CREATE INDEX idx_veredas_corregimiento ON public.veredas USING btree (corregimiento_id);
 
+-- Solicitudes eliminación
+CREATE INDEX idx_solicitudes_estado ON public.solicitudes_eliminacion USING btree (estado_solicitud);
+CREATE INDEX idx_solicitudes_reporte ON public.solicitudes_eliminacion USING btree (reporte_id);
+CREATE INDEX idx_solicitudes_usuario ON public.solicitudes_eliminacion USING btree (usuario_id);
+CREATE UNIQUE INDEX uniq_solicitud_pendiente_por_reporte ON public.solicitudes_eliminacion USING btree (reporte_id) WHERE ((estado_solicitud)::text = 'pendiente');
+
+-- Aceptación términos
+CREATE INDEX idx_aceptacion_usuario ON public.aceptacion_terminos USING btree (usuario_id);
+CREATE INDEX idx_aceptacion_version ON public.aceptacion_terminos USING btree (version_terminos);
+
 -- ============================================================
 -- 5. FUNCIONES
 -- ============================================================
@@ -404,6 +452,19 @@ LANGUAGE sql AS $$
     JOIN public.zonas z ON z.comuna = s.comuna
     WHERE ST_Contains(s.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326))
     GROUP BY s.comuna
+    LIMIT 1;
+$$;
+
+-- Obtener corregimiento y veredas por coordenadas geográficas
+CREATE FUNCTION public.get_corregimiento_por_coordenadas(lat double precision, lng double precision)
+RETURNS TABLE(corregimiento_id integer, corregimiento text, veredas text[])
+LANGUAGE sql AS $$
+    SELECT c.id, c.nombre,
+        ARRAY_AGG(v.nombre ORDER BY v.nombre) AS veredas
+    FROM public.corregimientos c
+    JOIN public.veredas v ON v.corregimiento_id = c.id
+    WHERE ST_Contains(c.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326))
+    GROUP BY c.id, c.nombre
     LIMIT 1;
 $$;
 

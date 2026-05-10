@@ -5,7 +5,7 @@
  */
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { loginLocal, loginGoogle, registerLocal, loginAdmin, logoutUser, updateUsername, updateFcmToken, forgotPassword, resetPassword } from "../controllers/userController.js";
+import { loginLocal, loginGoogle, registerLocal, loginAdmin, logoutUser, updateUsername, updateFcmToken, forgotPassword, resetPassword, getTerminos } from "../controllers/userController.js";
 import { authenticate, requireAdmin } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -21,6 +21,9 @@ const authLimiter = rateLimit({
 
 /** POST /api/auth/register — Registro de usuario local */
 router.post("/register", registerLocal);
+
+/** GET /api/auth/terminos — Consultar términos y condiciones vigentes (público) */
+router.get("/terminos", getTerminos);
 
 /** POST /api/auth/login — Login con correo y contraseña */
 router.post("/login", loginLocal);

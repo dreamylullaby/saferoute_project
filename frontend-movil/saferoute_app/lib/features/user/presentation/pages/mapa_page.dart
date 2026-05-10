@@ -160,12 +160,15 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                 key: _scaffoldKey,
                 drawer: FilterDrawer(
                   comunasSeleccionadas: notifier.comunasSeleccionadas,
+                  corregimientosSeleccionados: notifier.corregimientosSeleccionados,
                   franjasSeleccionadas: notifier.franjasSeleccionadas,
                   tiposSeleccionados: notifier.tiposSeleccionados,
                   fechaDesde: notifier.fechaDesde,
                   fechaHasta: notifier.fechaHasta,
                   conteoFiltros: notifier.conteoFiltros,
                   hayFiltros: notifier.hayFiltros,
+                  modoRural: notifier.modoRural,
+                  onModoRuralChanged: (v) => notifier.setModoRural(v),
                   onFechaDesdeChanged: (d) => notifier.fechaDesde = d,
                   onFechaHastaChanged: (d) => notifier.fechaHasta = d,
                   onAplicar: () {
@@ -218,7 +221,7 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                               urlTemplate: darkModeNotifier.value
                                   ? 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/{z}/{x}/{y}?access_token=$token'
                                   : 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/{z}/{x}/{y}?access_token=$token',
-                              userAgentPackageName: 'com.saferoute.app',
+                              userAgentPackageName: 'com.CIVICTRACKIO.app',
                             ),
                             if (notifier.modoCalor)
                               HeatmapLayer(
@@ -282,9 +285,12 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                           modoCalor: notifier.modoCalor,
                           isDark: darkModeNotifier.value,
                           onToggleCalor: notifier.toggleModoCalor,
-                          onToggleDark: () => setState(() {
+                          onToggleDark: () {
                             darkModeNotifier.value = !darkModeNotifier.value;
-                          }),
+                            // No usar setState — el ValueNotifier y el key del TileLayer
+                            // se encargan de actualizar el mapa sin reconstruir el Scaffold
+                            (context as Element).markNeedsBuild();
+                          },
                           onMiUbicacion: _obtenerUbicacion,
                           onRegistrar: () => Navigator.pushNamed(context, '/reportar'),
                         ),

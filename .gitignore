@@ -95,3 +95,4 @@ backend/src/config/firebase-key.json
 # DATABASE METADATA
 #############################
 supabase/.temp
+*.md

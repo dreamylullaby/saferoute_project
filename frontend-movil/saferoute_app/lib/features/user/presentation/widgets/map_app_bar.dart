@@ -71,7 +71,7 @@ class MapAppBar extends StatelessWidget {
                   ),
                   Icon(Icons.location_on, color: AppColors.primary, size: 18),
                   const SizedBox(width: 6),
-                  Text('SafeRoute',
+                  Text('CivicTrackIO',
                       style: GoogleFonts.montserrat(
                           fontWeight: FontWeight.bold, fontSize: 15,
                           color: isDark ? Colors.white : AppColors.primaryDark)),

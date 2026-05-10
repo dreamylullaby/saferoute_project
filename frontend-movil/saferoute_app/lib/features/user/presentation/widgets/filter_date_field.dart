@@ -7,6 +7,8 @@ import '../../../../../core/app_theme.dart';
 class FilterDateField extends StatelessWidget {
   final String label;
   final DateTime? value;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
   final void Function(DateTime) onPicked;
 
   const FilterDateField({
@@ -14,6 +16,8 @@ class FilterDateField extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onPicked,
+    this.firstDate,
+    this.lastDate,
   });
 
   @override
@@ -47,8 +51,8 @@ class FilterDateField extends StatelessWidget {
             final picked = await showDatePicker(
               context: context,
               initialDate: value ?? DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime.now(),
+              firstDate: firstDate ?? DateTime(2020),
+              lastDate: lastDate ?? DateTime.now(),
             );
             if (picked != null) onPicked(picked);
           },

@@ -6,6 +6,7 @@ import TabIncidentes from "./tabs/TabIncidentes.jsx";
 import TabUsuarios from "./tabs/TabUsuarios.jsx";
 import TabEstadisticas from "./tabs/TabEstadisticas.jsx";
 import TabPerfil from "./tabs/TabPerfil.jsx";
+import TabSolicitudes from "./tabs/TabSolicitudes.jsx";
 
 /* ── SVG Icons ── */
 function IcoDashboard() {
@@ -19,6 +20,9 @@ function IcoUsuarios() {
 }
 function IcoEstadisticas() {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>);
+}
+function IcoSolicitudes() {
+  return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>);
 }
 function IcoLogout() {
   return (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>);
@@ -35,6 +39,7 @@ var NAV_ITEMS = [
   { id: "incidentes", label: "Incidentes", Ico: IcoIncidentes },
   { id: "usuarios", label: "Usuarios", Ico: IcoUsuarios },
   { id: "estadisticas", label: "Estadísticas", Ico: IcoEstadisticas },
+  { id: "solicitudes", label: "Solicitudes", Ico: IcoSolicitudes },
 ];
 
 var SECTION_TITLES = {
@@ -42,6 +47,7 @@ var SECTION_TITLES = {
   incidentes: "Gestión de Incidentes",
   usuarios: "Gestión de Usuarios",
   estadisticas: "Estadísticas y Análisis",
+  solicitudes: "Solicitudes de Eliminación",
   perfil: "Mi Perfil",
 };
 
@@ -65,10 +71,11 @@ export default function Dashboard() {
 
   var renderTab = function () {
     switch (activeTab) {
-      case "dashboard": return <TabDashboard />;
+      case "dashboard": return <TabDashboard key={Date.now()} />;
       case "incidentes": return <TabIncidentes onCountChange={function (n) { setCounts(function (c) { return { ...c, incidentes: n }; }); }} />;
       case "usuarios": return <TabUsuarios onCountChange={function (n) { setCounts(function (c) { return { ...c, usuarios: n }; }); }} />;
       case "estadisticas": return <TabEstadisticas />;
+      case "solicitudes": return <TabSolicitudes onCountChange={function (n) { setCounts(function (c) { return { ...c, solicitudes: n }; }); }} />;
       case "perfil": return <TabPerfil />;
       default: return null;
     }
@@ -82,7 +89,8 @@ export default function Dashboard() {
           <div style={S.logoRow}>
             <div style={S.logoCircle}><IcoShield /></div>
             <div>
-              <div style={S.logoText}>SafeRoute</div>
+              <div style={S.logoText}>Civic</div>
+              <div style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 500, fontSize: 15, color: "rgba(255,255,255,0.9)", marginTop: -4, letterSpacing: 1 }}>Track<span style={{ color: "#3B82F6", fontWeight: 700, fontSize: 16 }}>IO</span></div>
               <div style={S.logoSub}>Panel de Administración</div>
             </div>
           </div>
@@ -95,6 +103,9 @@ export default function Dashboard() {
                   <span>{item.label}</span>
                   {item.id === "incidentes" && counts.incidentes > 0 && (
                     <span style={S.badge}>{counts.incidentes}</span>
+                  )}
+                  {item.id === "solicitudes" && counts.solicitudes > 0 && (
+                    <span style={S.badge}>{counts.solicitudes}</span>
                   )}
                 </button>
               );
@@ -135,7 +146,7 @@ export default function Dashboard() {
 }
 
 var S = {
-  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", backgroundColor: "#F1F5F9" },
+  layout: { display: "flex", minHeight: "100vh", fontFamily: "'Inter', sans-serif", backgroundColor: "var(--bg-main)" },
   /* Sidebar */
   sidebar: { width: 220, background: "linear-gradient(180deg, #1E1E7C, #333C87, #6D6DF9)", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "24px 0", position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 100 },
   sidebarTop: { display: "flex", flexDirection: "column", gap: 32 },
@@ -152,12 +163,12 @@ var S = {
   logoutBtn: { display: "flex", alignItems: "center", gap: 12, padding: "10px 0", border: "none", backgroundColor: "transparent", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 14, fontFamily: "'Inter', sans-serif", width: "100%" },
   /* Main */
   mainArea: { marginLeft: 220, flex: 1, display: "flex", flexDirection: "column" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", backgroundColor: "#fff", borderBottom: "1px solid #CBD5E1" },
-  headerTitle: { margin: 0, fontSize: 20, fontWeight: 600, color: "#1E293B", fontFamily: "'Inter', sans-serif" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", backgroundColor: "var(--bg-card)", borderBottom: "1px solid var(--border-color)", transition: "background-color 0.3s ease" },
+  headerTitle: { margin: 0, fontSize: 20, fontWeight: 600, color: "var(--text-primary)", fontFamily: "'Inter', sans-serif" },
   headerRight: { display: "flex", alignItems: "center", gap: 12 },
   headerInfo: { display: "flex", flexDirection: "column", alignItems: "flex-end" },
-  headerName: { fontSize: 13, fontWeight: 600, color: "#1E293B" },
-  headerRole: { fontSize: 11, color: "#64748B", fontWeight: 300 },
+  headerName: { fontSize: 13, fontWeight: 600, color: "var(--text-primary)" },
+  headerRole: { fontSize: 11, color: "var(--text-secondary)", fontWeight: 300 },
   headerAvatar: { width: 38, height: 38, borderRadius: "50%", backgroundColor: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Montserrat', sans-serif" },
   content: { padding: 24, flex: 1 },
 };

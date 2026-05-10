@@ -73,28 +73,33 @@ class _PerfilPageState extends State<PerfilPage> {
 
   Future<void> _toggleNotificaciones(bool valor) async {
     if (!valor) {
-      // Mostrar advertencia antes de desactivar
       final confirmar = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Desactivar notificaciones'),
           content: const Text(
-            'Se recomienda mantener las notificaciones activas para recibir alertas de seguridad en tiempo real.'),
+            'Se recomienda mantener las notificaciones activas para recibir alertas de seguridad en tiempo real.\n\n'
+            'Se abrirá la configuración del dispositivo para gestionar los permisos de notificación.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Desactivar')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abrir configuración')),
           ],
         ),
       );
-      if (confirmar != true) return;
-    }
-    try {
-      await _datasource.toggleNotificaciones(valor);
-      if (!mounted) return;
-      setState(() => _perfil!['notificaciones_activas'] = valor);
-    } catch (e) {
-      if (!mounted) return;
-      mostrarError(context, 'Error al actualizar notificaciones');
+      if (confirmar == true) {
+        try {
+          await Geolocator.openAppSettings();
+        } catch (_) {
+          if (mounted) mostrarError(context, 'Esta función solo está disponible en dispositivos móviles');
+        }
+      }
+    } else {
+      // Activar: abrir configuración para que habilite notificaciones
+      try {
+        await Geolocator.openAppSettings();
+      } catch (_) {
+        if (mounted) mostrarError(context, 'Esta función solo está disponible en dispositivos móviles');
+      }
     }
   }
 
@@ -142,6 +147,143 @@ class _PerfilPageState extends State<PerfilPage> {
     await UserRemoteDatasource().logout();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+  }
+
+  void _mostrarCambiarPassword() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final borderC = isDark ? const Color(0xFF475569) : AppColors.border;
+    final actualCtrl = TextEditingController();
+    final nuevaCtrl = TextEditingController();
+    final confirmarCtrl = TextEditingController();
+
+    showDialog(context: context, builder: (ctx) {
+      return StatefulBuilder(builder: (ctx, setDialogState) {
+        String? error;
+        return AlertDialog(
+          backgroundColor: dialogBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Cambiar contraseña', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: textM)),
+          content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: actualCtrl, obscureText: true, decoration: InputDecoration(labelText: 'Contraseña actual', filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)))),
+            const SizedBox(height: 12),
+            TextField(controller: nuevaCtrl, obscureText: true, decoration: InputDecoration(labelText: 'Nueva contraseña', filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)))),
+            const SizedBox(height: 12),
+            TextField(controller: confirmarCtrl, obscureText: true, decoration: InputDecoration(labelText: 'Confirmar nueva contraseña', filled: true, fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: borderC)))),
+          ])),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
+            ElevatedButton(
+              onPressed: () async {
+                if (actualCtrl.text.isEmpty || nuevaCtrl.text.isEmpty || confirmarCtrl.text.isEmpty) {
+                  mostrarError(context, 'Todos los campos son obligatorios');
+                  return;
+                }
+                if (nuevaCtrl.text.length < 6) {
+                  mostrarError(context, 'La nueva contraseña debe tener al menos 6 caracteres');
+                  return;
+                }
+                if (nuevaCtrl.text != confirmarCtrl.text) {
+                  mostrarError(context, 'Las contraseñas no coinciden');
+                  return;
+                }
+                Navigator.pop(ctx);
+                try {
+                  await _datasource.cambiarPassword(passwordActual: actualCtrl.text, nuevaPassword: nuevaCtrl.text);
+                  if (!mounted) return;
+                  mostrarExito(context, 'Contraseña actualizada correctamente');
+                } catch (e) {
+                  if (!mounted) return;
+                  mostrarError(context, e.toString().replaceFirst('Exception: ', ''));
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cambiar'),
+            ),
+          ],
+        );
+      });
+    });
+  }
+
+  void _confirmarEliminarCuenta() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textM = isDark ? const Color(0xFFE2E8F0) : AppColors.textMain;
+    final textS = isDark ? const Color(0xFF94A3B8) : AppColors.textSub;
+    final tieneLocal = _perfil?['auth_provider'] is List
+        ? (_perfil!['auth_provider'] as List).contains('local')
+        : _perfil?['auth_provider'] == 'local';
+    final passwordCtrl = TextEditingController();
+
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      backgroundColor: dialogBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Row(children: [
+        const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+        const SizedBox(width: 8),
+        Text('Eliminar cuenta', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.error)),
+      ]),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('Esta acción es irreversible. Tu cuenta será eliminada y tus datos personales anonimizados.',
+            style: GoogleFonts.inter(fontSize: 14, color: textM, height: 1.5)),
+        const SizedBox(height: 8),
+        Text('Tus reportes se mantendrán de forma anónima en el sistema.',
+            style: GoogleFonts.inter(fontSize: 13, color: textS)),
+        if (tieneLocal) ...[
+          const SizedBox(height: 16),
+          Text('Confirma tu contraseña:', style: GoogleFonts.inter(fontSize: 12, color: textS, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 6),
+          TextField(
+            controller: passwordCtrl,
+            obscureText: true,
+            decoration: InputDecoration(
+              hintText: 'Contraseña actual',
+              filled: true,
+              fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            ),
+          ),
+        ],
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancelar', style: GoogleFonts.inter(color: textS))),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(ctx);
+            await _ejecutarEliminarCuenta(tieneLocal ? passwordCtrl.text : null);
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+          child: const Text('Eliminar mi cuenta'),
+        ),
+      ],
+    ));
+  }
+
+  Future<void> _ejecutarEliminarCuenta(String? password) async {
+    try {
+      await _datasource.eliminarCuenta(password: password);
+      await FirebaseAuth.instance.signOut();
+      await UserRemoteDatasource().logout();
+      if (!mounted) return;
+      showDialog(context: context, barrierDismissible: false, builder: (ctx) => AlertDialog(
+        title: const Text('Cuenta eliminada'),
+        content: const Text('Tu cuenta ha sido eliminada exitosamente. Serás redirigido al inicio.'),
+        actions: [TextButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(ctx, '/login', (_) => false),
+          child: const Text('Aceptar'),
+        )],
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      mostrarError(context, e.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   /// Genera iniciales del username (máximo 2 caracteres).
@@ -240,11 +382,19 @@ class _PerfilPageState extends State<PerfilPage> {
                           Row(children: [
                             Expanded(child: OutlinedButton(
                               onPressed: () => setState(() => _editando = false),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              ),
                               child: const Text('Cancelar'),
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: ElevatedButton(
                               onPressed: _guardarCambios,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                              ),
                               child: const Text('Guardar'),
                             )),
                           ]),
@@ -281,10 +431,26 @@ class _PerfilPageState extends State<PerfilPage> {
                         const SizedBox(height: 24),
 
                         // Seguridad
-                        _seccionTitulo('Seguridad'),
+                        // Seguridad (solo si tiene método local)
+                        if (_perfil!['auth_provider'] is List
+                            ? (_perfil!['auth_provider'] as List).contains('local')
+                            : _perfil!['auth_provider'] == 'local') ...[
+                          _seccionTitulo('Seguridad'),
+                          const SizedBox(height: 8),
+                          _actionTile(Icons.lock_outline, 'Cambiar contraseña',
+                              'Actualiza tu contraseña de acceso',
+                              _mostrarCambiarPassword,
+                              cardColor, mutedColor),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // Zona peligrosa
+                        _seccionTitulo('Zona peligrosa'),
                         const SizedBox(height: 8),
-                        _actionTile(Icons.lock_outline, 'Cambiar contraseña',
-                            'Próximamente', null, cardColor, mutedColor, enabled: false),
+                        _actionTile(Icons.delete_forever_outlined, 'Eliminar cuenta',
+                            'Elimina tu cuenta y anonimiza tus datos',
+                            _confirmarEliminarCuenta, cardColor, mutedColor,
+                            enabled: true, danger: true),
 
                         const SizedBox(height: 24),
 
@@ -303,6 +469,7 @@ class _PerfilPageState extends State<PerfilPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 40),
                       ]),
                     ),
                   ]),
@@ -359,11 +526,12 @@ class _PerfilPageState extends State<PerfilPage> {
   }
 
   Widget _actionTile(IconData icon, String label, String subtitle,
-      VoidCallback? onTap, Color cardColor, Color mutedColor, {bool enabled = true}) {
+      VoidCallback? onTap, Color cardColor, Color mutedColor, {bool enabled = true, bool danger = false}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = enabled
+    final iconColor = danger ? AppColors.error : (enabled ? AppColors.primary : mutedColor);
+    final textColor = danger ? AppColors.error : (enabled
         ? (isDark ? const Color(0xFFE2E8F0) : AppColors.textMain)
-        : mutedColor;
+        : mutedColor);
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
@@ -372,7 +540,7 @@ class _PerfilPageState extends State<PerfilPage> {
         decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(12),
             boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)]),
         child: Row(children: [
-          Icon(icon, size: 20, color: enabled ? AppColors.primary : mutedColor),
+          Icon(icon, size: 20, color: iconColor),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(label, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),

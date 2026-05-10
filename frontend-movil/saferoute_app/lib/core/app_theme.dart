@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Paleta de colores del sistema SafeRoute.
+/// Paleta de colores del sistema CIVICTRACKIO.
 /// Incluye colores primarios, gradientes, mapa de calor,
 /// tipos de hurto, tendencias y franjas horarias.
 class AppColors {
@@ -30,27 +30,27 @@ class AppColors {
   );
 
   // Mapa de calor
-  static const zonaSegura  = Color(0xFF22C55E);
+  static const zonaSegura  = Color(0xFF07C14B);
   static const bajoRiesgo  = Color(0xFFFACC15);
-  static const riesgoMedio = Color(0xFFF97316);
-  static const altoRiesgo  = Color(0xFFBE185D);
+  static const riesgoMedio = Color(0xFFBE4F00);
+  static const altoRiesgo  = Color(0xFFC60052);
 
   // Tipos de hurto
   static const hurtoAtraco     = Color(0xFFB91C1C);
-  static const hurtoRaponazo   = Color(0xFF9D174D);
+  static const hurtoRaponazo   = Color(0xFF0891B2);
   static const hurtoFleteo     = Color(0xFFD946EF);
   static const hurtoCosquilleo = Color(0xFF8A2BE2);
 
   // Tendencias
   static const tendenciaDecremento = Color(0xFF10B981);
   static const tendenciaVariacion  = Color(0xFFF59E0B);
-  static const tendenciaIncremento = Color(0xFFEF4444);
+  static const tendenciaIncremento = Color(0xFF620D0A);
 
   // Franjas horarias
-  static const franjaMannana   = Color(0xFFFBBF24);
-  static const franjaTarde     = Color(0xFFF97316);
-  static const franjaNoche     = Color(0xFFBE185D);
-  static const franjaMadrugada = Color(0xFFD946EF);
+  static const franjaMannana   = Color(0xFFDD00A2);
+  static const franjaTarde     = Color(0xFF245A6E);
+  static const franjaNoche     = Color(0xFF19015F);
+  static const franjaMadrugada = Color(0xFF510055);
 
   // Estado activo de filtros (índigo del header)
   static const filterActive    = Color(0xFF333C87);

@@ -44,7 +44,7 @@ export default function ForgotPassword() {
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1 style={styles.titulo}>SAFEROUTE</h1>
+        <h1 style={styles.titulo}>CIVICTRACKIO</h1>
         <p style={styles.subtitulo}>Recuperar contraseña</p>
 
         <form onSubmit={handleSubmit}>
@@ -54,7 +54,7 @@ export default function ForgotPassword() {
               type="email"
               value={correo}
               onChange={(e) => setCorreo(e.target.value)}
-              placeholder="admin@saferoute.com"
+              placeholder="admin@civictrackio.com"
               style={styles.input}
             />
           </div>

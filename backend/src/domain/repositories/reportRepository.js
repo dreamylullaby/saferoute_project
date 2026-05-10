@@ -73,6 +73,10 @@ class ReportRepository {
   async getEstadisticasPorPeriodo(opciones) {}
   async getComparacionPeriodos(opciones) {}
   async getTopZonas(opciones) {}
+  async findByUsuario(usuarioId) {}
+  async findByIdAndUsuario(id, usuarioId) {}
+  async updateOwn(id, usuarioId, data) {}
+  async crearSolicitudEliminacion(reporteId, usuarioId, motivo) {}
 }
 
 export default ReportRepository;

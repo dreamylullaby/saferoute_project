@@ -10,6 +10,9 @@ const router = express.Router();
 const repository = new ReportRepositoryImpl();
 const controller = new ReportController(repository);
 
+/** GET /api/reportes/stats-login — Stats públicas para la pantalla de login admin */
+router.get('/stats-login', (req, res) => controller.getStatsLogin(req, res));
+
 /** GET /api/reportes/zonas/top?top=10&fechaDesde=&fechaHasta= — Top N zonas con más hurtos */
 router.get('/zonas/top', authenticate, (req, res) => controller.getTopZonas(req, res));
 
@@ -40,11 +43,35 @@ router.get('/mapa/filtros', authenticate, (req, res) => controller.getFiltered(r
 /** GET /api/reportes/barrios-por-coordenadas?lat=X&lng=Y — Barrios de la comuna detectada por coordenadas */
 router.get('/barrios-por-coordenadas', authenticate, (req, res) => controller.buscarBarriosPorCoordenadas(req, res));
 
+/** GET /api/reportes/corregimientos — Lista todos los corregimientos */
+router.get('/corregimientos', authenticate, (req, res) => controller.listarCorregimientos(req, res));
+
+/** GET /api/reportes/corregimientos-por-coordenadas?lat=X&lng=Y — Detecta corregimiento por coordenadas */
+router.get('/corregimientos-por-coordenadas', authenticate, (req, res) => controller.buscarCorregimientoPorCoordenadas(req, res));
+
+/** GET /api/reportes/corregimientos/:id/veredas — Veredas de un corregimiento */
+router.get('/corregimientos/:id/veredas', authenticate, (req, res) => controller.listarVeredas(req, res));
+
+/** GET /api/reportes/buscar-rural?q=texto — Busca veredas y corregimientos por texto */
+router.get('/buscar-rural', authenticate, (req, res) => controller.buscarRural(req, res));
+
 /** GET /api/reportes/barrios?q= — Busca barrios similares al texto ingresado */
 router.get('/barrios', authenticate, (req, res) => controller.buscarBarrios(req, res));
 
+/** GET /api/reportes/mis-reportes — Reportes del usuario autenticado */
+router.get('/mis-reportes', authenticate, (req, res) => controller.getMisReportes(req, res));
+
+/** GET /api/reportes/mis-reportes/:id — Detalle de reporte propio */
+router.get('/mis-reportes/:id', authenticate, (req, res) => controller.getMiReporteById(req, res));
+
 /** GET /api/reportes — Lista todos los reportes no eliminados (requiere autenticación) */
 router.get('/', authenticate, (req, res) => controller.list(req, res));
+
+/** PUT /api/reportes/:id — Editar reporte propio */
+router.put('/:id', authenticate, (req, res) => controller.updateOwn(req, res));
+
+/** POST /api/reportes/:id/solicitar-eliminacion — Solicitar eliminación de reporte propio */
+router.post('/:id/solicitar-eliminacion', authenticate, (req, res) => controller.solicitarEliminacion(req, res));
 
 /** GET /api/reportes/:id — Obtiene un reporte por su UUID (requiere autenticación) */
 router.get('/:id', authenticate, (req, res) => controller.getById(req, res));

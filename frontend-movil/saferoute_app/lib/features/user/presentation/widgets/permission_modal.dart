@@ -49,7 +49,7 @@ class PermissionModals {
           iconBgColor: AppColors.primary,
           titulo: 'Permitir acceso a ubicación',
           descripcion:
-              'SafeRoute usa tu ubicación para mostrar incidentes cercanos y permitir reportes precisos.',
+              'CIVICTRACKIO usa tu ubicación para mostrar incidentes cercanos y permitir reportes precisos.',
           textoBoton: 'Permitir acceso a ubicación',
           textoCancelar: 'Ahora no',
           onAceptar: () async {

@@ -1,14 +1,11 @@
-/**
- * @module perfilController
- * @description Controlador HTTP para gestión de perfil de usuario.
- * Maneja consulta, actualización de datos y toggle de notificaciones.
- */
+// src/interfaces/controllers/perfilController.js
 
+import bcrypt from "bcrypt";
 import db from "../../infrastructure/database/dbScript/db.js";
 
 /**
  * GET /api/perfil
- * Retorna los datos del perfil del usuario autenticado.
+ * Obtiene los datos del perfil del usuario autenticado.
  */
 export const getPerfil = async (req, res) => {
   try {
@@ -16,119 +13,230 @@ export const getPerfil = async (req, res) => {
 
     const { data: usuario, error } = await db
       .from("usuarios")
-      .select("id, correo, username, foto_url, fecha_creacion, rol, auth_provider")
+      .select("id, username, correo, rol, auth_provider, foto_url, fecha_creacion, estado, fcm_token")
       .eq("id", userId)
       .single();
 
     if (error || !usuario)
-      return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+      return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Obtener estado de notificaciones
+    // Verificar si tiene notificaciones activas
     const { data: config } = await db
       .from("configuracion_alertas")
       .select("activo, radio_metros")
       .eq("usuario_id", userId)
       .single();
 
-    return res.json({
-      success: true,
+    return res.status(200).json({
       data: {
         ...usuario,
         notificaciones_activas: config?.activo ?? true,
-        radio_alertas: config?.radio_metros ?? 500,
-      }
+        radio_metros: config?.radio_metros ?? 500,
+      },
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
 /**
- * PATCH /api/perfil
+ * PUT /api/perfil
  * Actualiza username y/o foto_url del usuario autenticado.
+ * Body: { username?, foto_url? }
  */
-export const updatePerfil = async (req, res) => {
+export const actualizarPerfil = async (req, res) => {
   try {
-    const userId = req.user.id;
     const { username, foto_url } = req.body;
+    const userId = req.user.id;
 
-    const updates = {};
+    if (!username && foto_url === undefined)
+      return res.status(400).json({ message: "Debes enviar al menos un campo: username o foto_url" });
+
+    const campos = {};
 
     if (username !== undefined) {
-      const trimmed = username.trim();
-      if (trimmed.length < 3)
-        return res.status(400).json({ success: false, message: "El apodo debe tener al menos 3 caracteres" });
+      if (typeof username !== 'string' || username.trim().length < 3)
+        return res.status(400).json({ message: "El apodo debe tener al menos 3 caracteres" });
 
-      // Verificar duplicado (excluyendo al propio usuario)
+      // Verificar que no esté en uso por otro usuario
       const { data: existing } = await db
         .from("usuarios")
         .select("id")
-        .eq("username", trimmed)
+        .eq("username", username.trim())
         .neq("id", userId)
         .single();
 
       if (existing)
-        return res.status(409).json({ success: false, message: "Ese apodo ya está en uso" });
+        return res.status(409).json({ message: "Ese apodo ya está en uso, elige otro" });
 
-      updates.username = trimmed;
+      campos.username = username.trim();
     }
 
     if (foto_url !== undefined) {
-      updates.foto_url = foto_url.trim() || null;
+      if (foto_url !== null && typeof foto_url !== 'string')
+        return res.status(400).json({ message: "foto_url debe ser una URL válida o null" });
+      campos.foto_url = foto_url;
     }
-
-    if (Object.keys(updates).length === 0)
-      return res.status(400).json({ success: false, message: "No hay campos para actualizar" });
 
     const { data: updated, error } = await db
       .from("usuarios")
-      .update(updates)
+      .update(campos)
       .eq("id", userId)
-      .select("id, correo, username, foto_url, rol")
+      .select("id, username, correo, foto_url, rol")
       .single();
 
     if (error) throw error;
 
-    return res.json({ success: true, data: updated });
+    return res.status(200).json({ success: true, data: updated });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
 /**
- * PATCH /api/perfil/notificaciones
- * Activa o desactiva las notificaciones del usuario autenticado.
+ * PUT /api/perfil/password
+ * Cambia la contraseña del usuario autenticado.
+ * Solo para usuarios con auth_provider = 'local'.
+ * Body: { passwordActual, nuevaPassword }
  */
-export const toggleNotificaciones = async (req, res) => {
+export const cambiarPassword = async (req, res) => {
   try {
+    const { passwordActual, nuevaPassword } = req.body;
     const userId = req.user.id;
-    const { activo } = req.body;
 
-    if (typeof activo !== "boolean")
-      return res.status(400).json({ success: false, message: "El campo 'activo' debe ser true o false" });
+    if (!passwordActual || !nuevaPassword)
+      return res.status(400).json({ message: "passwordActual y nuevaPassword son obligatorios" });
 
-    // Upsert: crear config si no existe, actualizar si existe
-    const { data: existing } = await db
-      .from("configuracion_alertas")
-      .select("id")
-      .eq("usuario_id", userId)
+    if (nuevaPassword.length < 8)
+      return res.status(400).json({ message: "La nueva contraseña debe tener al menos 8 caracteres" });
+
+    if (passwordActual === nuevaPassword)
+      return res.status(400).json({ message: "La nueva contraseña debe ser diferente a la actual" });
+
+    const { data: usuario, error: fetchError } = await db
+      .from("usuarios")
+      .select("id, password_hash, auth_provider")
+      .eq("id", userId)
       .single();
 
-    if (existing) {
-      const { error } = await db
-        .from("configuracion_alertas")
-        .update({ activo, fecha_actualizacion: new Date().toISOString() })
-        .eq("usuario_id", userId);
-      if (error) throw error;
-    } else {
-      const { error } = await db
-        .from("configuracion_alertas")
-        .insert({ usuario_id: userId, activo });
-      if (error) throw error;
+    if (fetchError || !usuario)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const providers = Array.isArray(usuario.auth_provider) ? usuario.auth_provider : [usuario.auth_provider];
+    if (!providers.includes('local'))
+      return res.status(400).json({ message: "Los usuarios con Google no pueden cambiar contraseña desde aquí" });
+
+    const passwordValida = await bcrypt.compare(passwordActual, usuario.password_hash);
+    if (!passwordValida)
+      return res.status(401).json({ message: "La contraseña actual es incorrecta" });
+
+    const password_hash = await bcrypt.hash(nuevaPassword, 12);
+
+    const { error: updateError } = await db
+      .from("usuarios")
+      .update({ password_hash })
+      .eq("id", userId);
+
+    if (updateError) throw updateError;
+
+    return res.status(200).json({ success: true, message: "Contraseña actualizada correctamente" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * PUT /api/perfil/notificaciones
+ * Activa/desactiva alertas y configura el radio.
+ * Body: { activo, radio_metros? }
+ */
+export const actualizarNotificaciones = async (req, res) => {
+  try {
+    const { activo, radio_metros } = req.body;
+    const userId = req.user.id;
+
+    if (activo === undefined)
+      return res.status(400).json({ message: "El campo 'activo' es obligatorio" });
+
+    if (typeof activo !== 'boolean')
+      return res.status(400).json({ message: "'activo' debe ser un valor booleano" });
+
+    if (radio_metros !== undefined) {
+      if (typeof radio_metros !== 'number' || !Number.isInteger(radio_metros))
+        return res.status(400).json({ message: "radio_metros debe ser un número entero" });
+      if (radio_metros < 100 || radio_metros > 5000)
+        return res.status(400).json({ message: "radio_metros debe estar entre 100 y 5000 metros" });
     }
 
-    return res.json({ success: true, data: { activo } });
+    const { data, error } = await db
+      .from("configuracion_alertas")
+      .upsert(
+        {
+          usuario_id:          userId,
+          activo,
+          radio_metros:        radio_metros ?? 500,
+          fecha_actualizacion: new Date().toISOString(),
+        },
+        { onConflict: "usuario_id" }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return res.status(200).json({ success: true, data });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * DELETE /api/perfil
+ * Elimina la cuenta del usuario autenticado.
+ * - Usuarios locales: requiere confirmar con password actual
+ * - Usuarios Google: no requiere contraseña
+ * Llama a la función RPC eliminar_cuenta_usuario que anonimiza los datos.
+ * Los reportes quedan reasignados al usuario anónimo por la FK ON DELETE SET DEFAULT.
+ */
+export const eliminarCuenta = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user.id;
+
+    const { data: usuario, error: fetchError } = await db
+      .from("usuarios")
+      .select("id, auth_provider, password_hash, estado")
+      .eq("id", userId)
+      .single();
+
+    if (fetchError || !usuario)
+      return res.status(404).json({ message: "Usuario no encontrado" });
+
+    if (usuario.estado !== "activo")
+      return res.status(400).json({ message: "La cuenta ya no está activa" });
+
+    // Usuarios locales deben confirmar con contraseña
+    const providers = Array.isArray(usuario.auth_provider) ? usuario.auth_provider : [usuario.auth_provider];
+    if (providers.includes("local")) {
+      if (!password)
+        return res.status(400).json({ message: "Debes confirmar tu contraseña para eliminar la cuenta" });
+
+      const passwordValida = await bcrypt.compare(password, usuario.password_hash);
+      if (!passwordValida)
+        return res.status(401).json({ message: "Contraseña incorrecta" });
+    }
+
+    // Llamar a la función RPC que anonimiza y elimina datos sensibles
+    const { error: rpcError } = await db.rpc("eliminar_cuenta_usuario", {
+      p_usuario_id: userId,
+    });
+
+    if (rpcError) throw new Error(rpcError.message);
+
+    return res.status(200).json({
+      message: "Cuenta eliminada correctamente. Tus reportes han sido conservados de forma anónima.",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };

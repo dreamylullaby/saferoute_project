@@ -5,7 +5,7 @@ export default function TabResumen() {
   return (
     <div style={styles.container}>
       <iframe
-        title="SafeRoute - Dashboard Looker Studio"
+        title="CivicTrackIO - Dashboard Looker Studio"
         width="100%"
         height="900"
         src="https://datastudio.google.com/embed/reporting/2eac45b8-40c6-45ad-9f37-b0bbd7f8bcdd/page/AdEwF"

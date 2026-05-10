@@ -16,15 +16,20 @@ Guía rápida para levantar todo el entorno de desarrollo.
 ### Instalar Android SDK Command-line Tools (para correr en celular)
 
 1. Descargar `Windowscommandlinetools-win-14742923_latest.zip` desde https://developer.android.com/studio#command-line-tools-only
-2. Crear la carpeta `C:\Android\` si no existe
+2. Crear toda la ruta de carpetas manualmente:
+   ```
+   mkdir C:\Android\cmdline-tools\latest
+   ```
+   Esto crea `C:\Android\`, `cmdline-tools\` y `latest\` de una sola vez.
 3. Extraer el contenido del zip dentro de `C:\Android\cmdline-tools\latest\`
-   - La estructura debe quedar: `C:\Android\cmdline-tools\latest\bin\sdkmanager.bat`
+   - El zip trae una carpeta `cmdline-tools` adentro. Copiar el contenido de esa carpeta (bin, lib, etc.) a `C:\Android\cmdline-tools\latest\`
+   - Verificar que exista: `C:\Android\cmdline-tools\latest\bin\sdkmanager.bat`
 4. Abrir una terminal y ejecutar:
    ```
    C:\Android\cmdline-tools\latest\bin\sdkmanager.bat --sdk_root=C:\Android "platform-tools" "platforms;android-34" "build-tools;34.0.0"
    ```
 5. Aceptar las licencias cuando lo pida
-6. Configurar las variables de entorno:
+6. (Opcional) Si `flutter doctor` no detecta el Android SDK, configurar variables de entorno:
    - `ANDROID_HOME` = `C:\Android`
    - Agregar al `PATH`: `C:\Android\platform-tools` y `C:\Android\cmdline-tools\latest\bin`
 7. Verificar con `flutter doctor` que detecte el Android SDK
