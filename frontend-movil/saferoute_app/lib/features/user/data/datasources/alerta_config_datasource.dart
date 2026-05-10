@@ -20,7 +20,7 @@ class AlertaConfigDatasource {
   /// GET /api/alertas/configuracion
   /// Retorna la configuración actual o los valores por defecto.
   Future<AlertaConfigModel> getConfig() async {
-    final response = await _client.get(
+    final response = await http.get(
       Uri.parse('$_base/configuracion'),
       headers: await _headers,
     );
@@ -37,13 +37,10 @@ class AlertaConfigDatasource {
     required int radioMetros,
     required bool activo,
   }) async {
-    final response = await _client.put(
+    final response = await http.put(
       Uri.parse('$_base/configuracion'),
       headers: await _headers,
-      body: jsonEncode({
-        'radio_metros': radioMetros,
-        'activo': activo,
-      }),
+      body: jsonEncode({'radio_metros': radioMetros, 'activo': activo}),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -63,9 +60,7 @@ class AlertaConfigDatasource {
       'lat': latitud.toString(),
       'lng': longitud.toString(),
     });
-
-    final response = await _client.get(uri, headers: await _headers);
-
+    final response = await http.get(uri, headers: await _headers);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return List<Map<String, dynamic>>.from(data['data']['alertas']);

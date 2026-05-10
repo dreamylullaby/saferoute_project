@@ -3,24 +3,23 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/app_theme.dart';
 import '../../data/datasources/alerta_config_datasource.dart';
-import '../../data/models/alerta_config_model.dart';
 import '../../../../services/location_service.dart';
 
 /// Pantalla de configuración de alertas por proximidad.
 /// Permite al usuario ajustar el radio de alerta y activar/desactivar notificaciones.
 class AlertaConfigPage extends StatefulWidget {
-  const AlertaConfigPage({super.key, this.datasource});
+  const AlertaConfigPage({super.key, this.datasource, this.locationService});
   final AlertaConfigDatasource? datasource;
+  final LocationService? locationService;
 
   @override
   State<AlertaConfigPage> createState() => _AlertaConfigPageState();
 }
 
 class _AlertaConfigPageState extends State<AlertaConfigPage> {
-  late final AlertaConfigDatasource _datasource =
-      widget.datasource ?? AlertaConfigDatasource();
+  late final AlertaConfigDatasource _datasource;
+  late final LocationService _locationService;
 
-  AlertaConfigModel? _config;
   bool _cargando = true;
   bool _guardando = false;
   String? _error;
@@ -43,7 +42,6 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
       final config = await _datasource.getConfig();
       if (!mounted) return;
       setState(() {
-        _config = config;
         _radioMetros = config.radioMetros;
         _activo = config.activo;
         _cargando = false;
@@ -63,15 +61,12 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
   Future<void> _guardar() async {
     setState(() => _guardando = true);
     try {
-      final updated = await _datasource.saveConfig(
+      await _datasource.saveConfig(
         radioMetros: _radioMetros,
         activo: _activo,
       );
       if (!mounted) return;
-      setState(() {
-        _config = updated;
-        _guardando = false;
-      });
+      setState(() => _guardando = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Configuración guardada'),
@@ -200,7 +195,7 @@ class _AlertaConfigPageState extends State<AlertaConfigPage> {
                             ),
                             Switch(
                               value: _activo,
-                              activeColor: AppColors.primary,
+                              activeThumbColor: AppColors.primary,
                               onChanged: (v) => setState(() => _activo = v),
                             ),
                           ],
