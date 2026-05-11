@@ -2,7 +2,9 @@
 -- Migración 011: Vista dashboard de incidentes (HU-10)
 -- =============================================================
 
-CREATE OR REPLACE VIEW public.vw_dashboard_incidentes AS
+DROP VIEW IF EXISTS public.vw_dashboard_incidentes CASCADE;
+
+CREATE VIEW public.vw_dashboard_incidentes AS
 SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     (EXTRACT(year FROM i.fecha_incidente))::integer AS anio,
     (EXTRACT(month FROM i.fecha_incidente))::integer AS mes,
@@ -10,6 +12,9 @@ SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     i.franja_horaria,
     (i.comuna)::text AS comuna,
     z.barrio,
+    c.nombre AS corregimiento,
+    v.nombre AS vereda,
+    i.tiene_coordenadas,
     i.cantidad_reportes,
     i.latitud_centro, i.longitud_centro,
     public.calcular_nivel_riesgo(i.cantidad_reportes) AS nivel_riesgo,
@@ -20,6 +25,8 @@ SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     i.fecha_creacion
 FROM public.incidentes i
 LEFT JOIN public.zonas z ON i.zona_id = z.id
+LEFT JOIN public.corregimientos c ON i.corregimiento_id = c.id
+LEFT JOIN public.veredas v ON i.vereda_id = v.id
 JOIN public.reportes r ON r.id = i.reporte_principal_id
 WHERE r.estado = 'activo';
 

@@ -44,14 +44,15 @@ export default class ReportRepositoryImpl extends ReportRepository {
   }
 
   /**
-   * Obtiene todos los reportes no eliminados con datos de zona incluidos.
+   * Obtiene todos los reportes activos con datos de zona incluidos.
+   * Solo muestra reportes con estado 'activo' (excluye ocultos y eliminados).
    * @throws {Error} Si Supabase retorna un error en la consulta
    */
   async findAll() {
     const { data, error } = await supabase
       .from('reportes')
       .select('*, zonas(barrio)')
-      .neq('estado', 'eliminado')
+      .eq('estado', 'activo')
       .order('fecha_creacion', { ascending: false });
 
     if (error) throw new Error(`Error al obtener reportes: ${error.message}`);
@@ -270,26 +271,29 @@ export default class ReportRepositoryImpl extends ReportRepository {
   /**
    * Lista reportes para el panel admin con filtros y paginación.
    */
-  async findForAdmin({ page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda } = {}) {
+  async findForAdmin({ page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda, franja_horaria } = {}) {
     const from = (page - 1) * limit;
     const to   = from + limit - 1;
 
     let query = supabase
       .from('reportes')
       .select('id, tipo_hurto, tipo_reportante, franja_horaria, fecha_incidente, barrio_ingresado, comuna, estado, fecha_creacion, descripcion, objeto_hurtado, numero_agresores, latitud, longitud, zona_tipo, corregimiento_id, usuario_id', { count: 'exact' })
-      .order('fecha_creacion', { ascending: false })
-      .range(from, to);
+      .order('fecha_creacion', { ascending: false });
 
     // Si se filtra por un estado específico, usar ese; si no, excluir eliminados por defecto
     if (estado)     query = query.eq('estado', estado);
     else            query = query.neq('estado', 'eliminado');
 
     if (tipo_hurto)       query = query.eq('tipo_hurto', tipo_hurto);
+    if (franja_horaria)   query = query.eq('franja_horaria', franja_horaria);
     if (fechaDesde)       query = query.gte('fecha_incidente', fechaDesde);
     if (fechaHasta)       query = query.lte('fecha_incidente', fechaHasta);
     if (comuna)           query = query.eq('comuna', Number(comuna));
     if (zona_tipo)        query = query.eq('zona_tipo', zona_tipo);
     if (corregimiento_id) query = query.eq('corregimiento_id', Number(corregimiento_id));
+
+    // Paginar DESPUÉS de filtrar
+    query = query.range(from, to);
 
     const { data, error, count } = await query;
     if (error) throw new Error(`Error al obtener reportes admin: ${error.message}`);
@@ -316,15 +320,24 @@ export default class ReportRepositoryImpl extends ReportRepository {
       corregimiento_nombre: corrMap[r.corregimiento_id] || null,
     }));
 
-    // Filtrar por búsqueda (barrio, username o corregimiento)
+    // Filtrar por búsqueda: solo por zona (comuna/corregimiento) y usuario
+    // Usa coincidencia de palabras completas (startsWith o match exacto de número)
     let filtered = enriched;
     if (busqueda) {
-      const term = busqueda.toLowerCase();
+      const term = busqueda.toLowerCase().trim();
       filtered = enriched.filter(r => {
-        const username = r.username || '';
-        const barrio = r.barrio_ingresado || '';
-        const corr = r.corregimiento_nombre || '';
-        return username.toLowerCase().includes(term) || barrio.toLowerCase().includes(term) || corr.toLowerCase().includes(term);
+        const username = (r.username || '').toLowerCase();
+        const corr = (r.corregimiento_nombre || '').toLowerCase();
+        const comuna = r.comuna ? String(r.comuna) : '';
+
+        // Coincidencia por palabra: username empieza con el término o contiene la palabra
+        const matchUser = username.split(/\s+/).some(w => w.startsWith(term)) || username === term;
+        // Coincidencia por comuna: número exacto
+        const matchComuna = comuna === term || ('comuna ' + comuna).startsWith(term);
+        // Coincidencia por corregimiento: alguna palabra empieza con el término
+        const matchCorr = corr.split(/\s+/).some(w => w.startsWith(term));
+
+        return matchUser || matchComuna || matchCorr;
       });
     }
 

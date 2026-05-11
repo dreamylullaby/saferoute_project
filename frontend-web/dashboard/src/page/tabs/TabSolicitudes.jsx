@@ -18,11 +18,12 @@ function truncId(id) { return id ? id.substring(0, 8) + "…" : "—"; }
 export default function TabSolicitudes({ onCountChange }) {
   var [solicitudes, setSolicitudes] = useState([]);
   var [cargando, setCargando] = useState(true);
-  var [filtroEstado, setFiltroEstado] = useState("pendiente");
+  var [filtroEstado, setFiltroEstado] = useState("");
   var [modal, setModal] = useState(null); // { id, accion: "aprobar"|"rechazar", reporte }
   var [detalle, setDetalle] = useState(null);
   var [procesando, setProcesando] = useState(false);
   var [mensaje, setMensaje] = useState(null);
+  var [razonRechazo, setRazonRechazo] = useState("");
 
   var cargar = useCallback(function () {
     setCargando(true);
@@ -55,11 +56,13 @@ export default function TabSolicitudes({ onCountChange }) {
   var ejecutarAccion = function () {
     if (!modal) return;
     setProcesando(true);
-    api.post("/api/admin/solicitudes-eliminacion/" + modal.id + "/" + modal.accion)
+    var body = modal.accion === "rechazar" && razonRechazo.trim() ? { razon: razonRechazo.trim() } : {};
+    api.post("/api/admin/solicitudes-eliminacion/" + modal.id + "/" + modal.accion, body)
       .then(function () {
         setMensaje({ tipo: "ok", texto: "Solicitud " + (modal.accion === "aprobar" ? "aprobada" : "rechazada") + " correctamente" });
         setModal(null);
         setDetalle(null);
+        setRazonRechazo("");
         cargar();
       })
       .catch(function (err) {
@@ -89,12 +92,18 @@ export default function TabSolicitudes({ onCountChange }) {
         <div style={S.overlay} onClick={function () { setModal(null); }}>
           <div style={S.modal} onClick={function (e) { e.stopPropagation(); }}>
             <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 600, color: "#1E293B" }}>Confirmar acción</h3>
-            <p style={{ margin: "0 0 20px", fontSize: 14, color: "#64748B", lineHeight: 1.5 }}>
+            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#64748B", lineHeight: 1.5 }}>
               ¿Estás seguro de <strong>{modal.accion}</strong> esta solicitud?
               {modal.accion === "aprobar" && " El reporte será marcado como eliminado."}
             </p>
+            {modal.accion === "rechazar" && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, color: "#64748B", fontWeight: 500, display: "block", marginBottom: 6 }}>Razón del rechazo (se notificará al usuario)</label>
+                <textarea value={razonRechazo} onChange={function (e) { setRazonRechazo(e.target.value); }} placeholder="Explica brevemente por qué se rechaza esta solicitud..." style={{ width: "100%", minHeight: 80, padding: "10px 12px", borderRadius: 8, border: "1px solid #E2E8F0", fontSize: 13, fontFamily: "'Inter',sans-serif", resize: "vertical", boxSizing: "border-box" }} />
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={function () { setModal(null); }} disabled={procesando} style={S.btnCancelar}>Cancelar</button>
+              <button onClick={function () { setModal(null); setRazonRechazo(""); }} disabled={procesando} style={S.btnCancelar}>Cancelar</button>
               <button onClick={ejecutarAccion} disabled={procesando} style={modal.accion === "aprobar" ? S.btnAprobar : S.btnRechazar}>
                 {procesando ? "Procesando..." : (modal.accion === "aprobar" ? "Aprobar" : "Rechazar")}
               </button>
@@ -112,7 +121,7 @@ export default function TabSolicitudes({ onCountChange }) {
               <button onClick={function () { setDetalle(null); }} style={{ background: "none", border: "none", fontSize: 18, cursor: "pointer", color: "#64748B" }}>✕</button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <DetRow label="ID Solicitud" value={truncId(detalle.id)} />
+              <DetRow label="ID Solicitud" value={<span style={{ display: "flex", alignItems: "center", gap: 6 }}>{truncId(detalle.id)}<button onClick={function () { navigator.clipboard.writeText(detalle.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#64748B" }} title="Copiar ID"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></span>} />
               <DetRow label="Estado" value={badgeEstado(detalle.estado_solicitud)} />
               <DetRow label="Fecha solicitud" value={fmtFecha(detalle.fecha_solicitud)} />
               <DetRow label="Motivo" value={detalle.motivo || "Sin motivo"} />
@@ -120,7 +129,7 @@ export default function TabSolicitudes({ onCountChange }) {
               {detalle.reportes && (
                 <>
                   <div style={{ height: 1, backgroundColor: "#F1F5F9", margin: "8px 0" }} />
-                  <DetRow label="Reporte ID" value={truncId(detalle.reportes?.id || detalle.reporte_id)} />
+                  <DetRow label="Reporte ID" value={<span style={{ display: "flex", alignItems: "center", gap: 6 }}>{truncId(detalle.reportes?.id || detalle.reporte_id)}<button onClick={function () { navigator.clipboard.writeText(detalle.reportes?.id || detalle.reporte_id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "#64748B" }} title="Copiar ID"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></span>} />
                   <DetRow label="Tipo hurto" value={detalle.reportes?.tipo_hurto} />
                   <DetRow label="Fecha incidente" value={detalle.reportes?.fecha_incidente} />
                   <DetRow label="Barrio" value={detalle.reportes?.barrio_ingresado} />

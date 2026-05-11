@@ -230,7 +230,7 @@ class ReportController {
   /** GET /api/reportes/admin — listado paginado con filtros (solo admin) */
   async listAdmin(req, res) {
     try {
-      const { page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda } = req.query;
+      const { page = 1, limit = 10, tipo_hurto, estado, fechaDesde, fechaHasta, comuna, zona_tipo, corregimiento_id, busqueda, franja_horaria } = req.query;
       const result = await this.repository.findForAdmin({
         page:             Number(page),
         limit:            Number(limit),
@@ -242,6 +242,7 @@ class ReportController {
         zona_tipo:        zona_tipo        || undefined,
         corregimiento_id: corregimiento_id || undefined,
         busqueda:         busqueda         || undefined,
+        franja_horaria:   franja_horaria   || undefined,
       });
       return res.status(200).json({ success: true, ...result });
     } catch (error) {
