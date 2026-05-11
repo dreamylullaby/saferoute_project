@@ -29,6 +29,7 @@ function filtrarDatos(resumen, desde, hasta, comuna, tipo, franja, corregimiento
   import("../../services/reportService.js").then(function (mod) {
     var params = { page: 1, limit: 500 };
     if (tipo) params.tipo_hurto = tipo;
+    if (franja) params.franja_horaria = franja;
     if (comuna) params.comuna = comuna;
     if (desde) params.fechaDesde = desde;
     if (hasta) params.fechaHasta = hasta;
@@ -36,7 +37,6 @@ function filtrarDatos(resumen, desde, hasta, comuna, tipo, franja, corregimiento
     if (zonaTipo) params.zona_tipo = zonaTipo;
     mod.getReportesAdmin(params).then(function (res) {
       var data = res.data || [];
-      if (franja) { data = data.filter(function (r) { return r.franja_horaria === franja; }); }
       var r = { total: data.length, porTipo: {}, porEstado: {}, porComuna: {}, porFranja: {}, porFecha: {}, porCorregimiento: {} };
       data.forEach(function (rep) {
         if (rep.tipo_hurto) r.porTipo[rep.tipo_hurto] = (r.porTipo[rep.tipo_hurto] || 0) + 1;
@@ -67,6 +67,8 @@ function TabDashboard() {
   var [modoRural, setModoRural] = useState(false);
   var [corregimientos, setCorregimientos] = useState([]);
   var [topBarrios, setTopBarrios] = useState([]);
+  var [drillZona, setDrillZona] = useState(null); // { tipo: "comuna"|"corregimiento", valor: string|number }
+  var [drillData, setDrillData] = useState(null);
 
   useEffect(function () {
     getResumen().then(setResumen).catch(console.error).finally(function () { setCargando(false); });
@@ -82,6 +84,25 @@ function TabDashboard() {
     getResumenZona(zona).then(function (data) { if (!cancelled) setResumenZona(data); }).catch(console.error);
     return function () { cancelled = true; };
   }, [modoRural]);
+
+  // Drill-down: clic en barra de comuna/corregimiento
+  useEffect(function () {
+    if (!drillZona) { setDrillData(null); return; }
+    var params = { page: 1, limit: 500, zona_tipo: modoRural ? "rural" : "urbana" };
+    if (drillZona.tipo === "comuna") params.comuna = drillZona.valor;
+    if (drillZona.tipo === "corregimiento") params.corregimiento_id = drillZona.valor;
+    import("../../services/reportService.js").then(function (mod) {
+      mod.getReportesAdmin(params).then(function (res) {
+        var data = res.data || [];
+        var porTipoDrill = {}; var porFranjaDrill = {};
+        data.forEach(function (r) {
+          if (r.tipo_hurto) porTipoDrill[r.tipo_hurto] = (porTipoDrill[r.tipo_hurto] || 0) + 1;
+          if (r.franja_horaria) porFranjaDrill[r.franja_horaria] = (porFranjaDrill[r.franja_horaria] || 0) + 1;
+        });
+        setDrillData({ porTipo: porTipoDrill, porFranja: porFranjaDrill, total: data.length });
+      });
+    });
+  }, [drillZona]);
 
   if (cargando) return React.createElement("p", { style: { color: "#64748b", textAlign: "center", padding: 60, fontWeight: 300 } }, "Cargando dashboard...");
   if (!resumen) return React.createElement("p", { style: { color: "#64748b", textAlign: "center" } }, "Error al cargar datos");
@@ -155,8 +176,26 @@ function TabDashboard() {
   } else if (picoMsg) { tendMsg = picoMsg; }
 
   function aplicar() { filtrarDatos(resumen, fDesde, fHasta, modoRural ? "" : fComuna, fTipo, fFranja, modoRural ? fCorregimiento : "", modoRural ? "rural" : "urbana", setFiltrado, setCargFiltro); }
-  function limpiar() { setFDesde(""); setFHasta(""); setFComuna(""); setFCorregimiento(""); setFTipo(""); setFFranja(""); setFiltrado(null); }
-  function toggleModo(rural) { if (rural === modoRural) return; setResumenZona(null); setModoRural(rural); setFComuna(""); setFCorregimiento(""); setFiltrado(null); }
+  function limpiar() { setFDesde(""); setFHasta(""); setFComuna(""); setFCorregimiento(""); setFTipo(""); setFFranja(""); setFiltrado(null); setDrillZona(null); }
+  function toggleModo(rural) { if (rural === modoRural) return; setResumenZona(null); setModoRural(rural); setFComuna(""); setFCorregimiento(""); setFiltrado(null); setDrillZona(null); }
+
+  function handleBarClick(idx) {
+    if (modoRural) {
+      var corrNombre = corregimientos[idx]?.nombre;
+      var corrId = corregimientos[idx]?.id;
+      if (drillZona && drillZona.tipo === "corregimiento" && drillZona.valor === corrId) { setDrillZona(null); return; }
+      if (corrId) setDrillZona({ tipo: "corregimiento", valor: corrId, label: corrNombre });
+    } else {
+      var comunaNum = idx + 1;
+      if (drillZona && drillZona.tipo === "comuna" && drillZona.valor === comunaNum) { setDrillZona(null); return; }
+      setDrillZona({ tipo: "comuna", valor: comunaNum, label: "Comuna " + comunaNum });
+    }
+  }
+
+  // Datos para donuts: si hay drill-down activo, usar esos datos
+  var donutTipo = drillData ? drillData.porTipo : porTipo;
+  var donutFranja = drillData ? drillData.porFranja : porFranja;
+  var donutTotalTipos = Object.values(donutTipo).reduce(function (a, b) { return a + b; }, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -211,15 +250,16 @@ function TabDashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={{ ...CARD, padding: 20, maxHeight: 380, display: "flex", flexDirection: "column" }}>
           <h3 style={CT_T}>Distribución por Tipo de Hurto</h3>
+          {drillZona && <p style={{ margin: "-10px 0 8px", fontSize: 11, color: "#2563EB", fontWeight: 500 }}>Filtrando: {drillZona.label} — clic de nuevo para restablecer</p>}
           <div style={{ position: "relative", maxWidth: 260, margin: "0 auto", flex: 1, display: "flex", alignItems: "center" }}>
-            <Doughnut data={{ labels: Object.keys(porTipo).map(cap), datasets: [{ data: Object.values(porTipo), backgroundColor: Object.keys(porTipo).map(function (t) { return CT[t] || "#64748B"; }), borderWidth: 0, cutout: "68%" }] }} options={{ responsive: true, plugins: { legend: { display: false }, datalabels: { display: true, color: "#fff", font: { size: 13, weight: 700 }, formatter: function (value) { return value > 0 ? value : ""; } } } }} />
+            <Doughnut data={{ labels: Object.keys(donutTipo).map(cap), datasets: [{ data: Object.values(donutTipo), backgroundColor: Object.keys(donutTipo).map(function (t) { return CT[t] || "#64748B"; }), borderWidth: 0, cutout: "68%" }] }} options={{ responsive: true, plugins: { legend: { display: false }, datalabels: { display: true, color: "#fff", font: { size: 13, weight: 700 }, formatter: function (value) { return value > 0 ? value : ""; } } } }} />
             <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", textAlign: "center" }}>
-              <div style={{ fontSize: 26, fontWeight: 600, color: "#1E293B" }}>{totalTipos || ""}</div>
-              <div style={{ fontSize: 11, color: "#64748B", fontWeight: 300 }}>{totalTipos ? "Total" : ""}</div>
+              <div style={{ fontSize: 26, fontWeight: 600, color: "#1E293B" }}>{donutTotalTipos || ""}</div>
+              <div style={{ fontSize: 11, color: "#64748B", fontWeight: 300 }}>{donutTotalTipos ? "Total" : ""}</div>
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 14, flexWrap: "wrap" }}>
-            {Object.entries(porTipo).map(function (e) { return (<div key={e[0]} style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: CT[e[0]] || "#64748B" }} /><span style={{ fontSize: 13, color: "#1E293B" }}>{cap(e[0])}</span><span style={{ fontSize: 13, fontWeight: 700, color: CT[e[0]] || "#1E293B" }}>{e[1]}</span></div>); })}
+            {Object.entries(donutTipo).map(function (e) { return (<div key={e[0]} style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: CT[e[0]] || "#64748B" }} /><span style={{ fontSize: 13, color: "#1E293B" }}>{cap(e[0])}</span><span style={{ fontSize: 13, fontWeight: 700, color: CT[e[0]] || "#1E293B" }}>{e[1]}</span></div>); })}
           </div>
         </div>
 
@@ -235,7 +275,7 @@ function TabDashboard() {
           <div style={{ flex: 1 }}>
             <Bar
               data={{ labels: modoRural ? corrLabels : cLabels, datasets: [{ label: "Incidentes", data: modoRural ? corrValues : cValues, backgroundColor: modoRural ? corrColors : cColors, borderRadius: 4, borderSkipped: false, barPercentage: 0.7, categoryPercentage: 0.8 }] }}
-              options={{ responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20 } }, plugins: { legend: { display: false }, tooltip: { enabled: true }, datalabels: { anchor: "end", align: "top", font: { size: 11, weight: 600 }, color: "#1E293B", display: function (ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; } } }, scales: { y: { display: false }, x: { ticks: { font: { size: modoRural ? 9 : 11 }, maxRotation: modoRural ? 45 : 0 }, grid: { display: false } } } }}
+              options={{ responsive: true, maintainAspectRatio: false, onClick: function (evt, elements) { if (elements.length > 0) handleBarClick(elements[0].index); }, layout: { padding: { top: 20 } }, plugins: { legend: { display: false }, tooltip: { enabled: true }, datalabels: { anchor: "end", align: "top", font: { size: 11, weight: 600 }, color: "#1E293B", display: function (ctx) { return ctx.dataset.data[ctx.dataIndex] > 0; } } }, scales: { y: { display: false }, x: { ticks: { font: { size: modoRural ? 9 : 11 }, maxRotation: modoRural ? 45 : 0 }, grid: { display: false } } } }}
             />
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
@@ -263,18 +303,20 @@ function TabDashboard() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <div style={{ ...CARD, padding: 20, maxHeight: 380, display: "flex", flexDirection: "column" }}>
           <h3 style={{ ...CT_T, marginBottom: 4 }}>Por Franja Horaria</h3>
-          {franjaMax && <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748B", fontWeight: 300 }}>{"La franja " + (NF[franjaMax[0]] || franjaMax[0]) + " concentra el mayor número de incidentes (" + franjaMax[1] + ")"}</p>}
+          {drillZona && <p style={{ margin: "0 0 8px", fontSize: 11, color: "#2563EB", fontWeight: 500 }}>Filtrando: {drillZona.label}</p>}
+          {!drillZona && franjaMax && <p style={{ margin: "0 0 12px", fontSize: 12, color: "#64748B", fontWeight: 300 }}>{"La franja " + (NF[franjaMax[0]] || franjaMax[0]) + " concentra el mayor número de incidentes (" + franjaMax[1] + ")"}</p>}
           <div style={{ maxWidth: 260, margin: "0 auto", flex: 1, display: "flex", alignItems: "center" }}>
-            <Doughnut data={{ labels: Object.keys(porFranja).map(function (f) { return NF[f] || f; }), datasets: [{ data: Object.values(porFranja), backgroundColor: Object.keys(porFranja).map(function (f) { return CF[f] || "#64748B"; }), borderWidth: 0, cutout: "60%" }] }} options={{ responsive: true, plugins: { legend: { display: false }, datalabels: { display: true, color: "#fff", font: { size: 13, weight: 700 }, formatter: function (value) { return value > 0 ? value : ""; } } } }} />
+            <Doughnut data={{ labels: Object.keys(donutFranja).map(function (f) { return NF[f] || f; }), datasets: [{ data: Object.values(donutFranja), backgroundColor: Object.keys(donutFranja).map(function (f) { return CF[f] || "#64748B"; }), borderWidth: 0, cutout: "60%" }] }} options={{ responsive: true, plugins: { legend: { display: false }, datalabels: { display: true, color: "#fff", font: { size: 13, weight: 700 }, formatter: function (value) { return value > 0 ? value : ""; } } } }} />
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 14, marginTop: 14, flexWrap: "wrap" }}>
-            {Object.entries(porFranja).map(function (e) { return (<div key={e[0]} style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: CF[e[0]] || "#64748B" }} /><span style={{ fontSize: 13, color: "#1E293B" }}>{NF[e[0]] || e[0]}</span><span style={{ fontSize: 13, fontWeight: 700, color: CF[e[0]] || "#1E293B" }}>{e[1]}</span></div>); })}
+            {Object.entries(donutFranja).map(function (e) { return (<div key={e[0]} style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: CF[e[0]] || "#64748B" }} /><span style={{ fontSize: 13, color: "#1E293B" }}>{NF[e[0]] || e[0]}</span><span style={{ fontSize: 13, fontWeight: 700, color: CF[e[0]] || "#1E293B" }}>{e[1]}</span></div>); })}
           </div>
         </div>
 
         {/* Top 5 — cambia según modo */}
         <div style={{ ...CARD, padding: 20, maxHeight: 380, display: "flex", flexDirection: "column" }}>
-          <h3 style={{ ...CT_T, marginBottom: 8 }}>{modoRural ? "Top 5 Corregimientos" : "Top 5 Barrios"}</h3>
+          <h3 style={{ ...CT_T, marginBottom: 4 }}>{modoRural ? "Top 5 Corregimientos" : "Top 5 Barrios"}</h3>
+          <p style={{ margin: "0 0 8px", fontSize: 11, color: "#94A3B8", fontWeight: 300, fontStyle: "italic" }}>Vista general — no se actualiza con los filtros aplicados</p>
           {(() => {
             var items = modoRural ? topCorregimientos : topBarrios;
             var loading = !resumenZona && !filtrado;

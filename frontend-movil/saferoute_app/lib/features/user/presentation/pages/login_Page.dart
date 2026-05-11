@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../core/app_theme.dart';
 import '../../../../../core/app_dialog.dart';
 import '../widgets/input_Field.dart';
@@ -65,22 +66,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void loginWithGoogle() async {
-    // Mostrar diálogo de aceptación de términos antes de continuar
-    final acepta = await _mostrarDialogoTerminos();
-    if (acepta != true) return;
-
     setState(() => isLoading = true);
 
     try {
       UserCredential userCredential;
 
       if (kIsWeb) {
-        // Web: usar popup
         final googleProvider = GoogleAuthProvider();
         userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
       } else {
-        // Android/iOS: usar google_sign_in nativo
-        // signOut previo para forzar el selector de cuentas
+        // Android/iOS: primero elegir cuenta
         final googleSignIn = GoogleSignIn();
         await googleSignIn.signOut();
         final googleUser = await googleSignIn.signIn();
@@ -88,6 +83,21 @@ class _LoginPageState extends State<LoginPage> {
           setState(() => isLoading = false);
           return; // El usuario canceló
         }
+
+        // Verificar si ya aceptó T&C antes (por email)
+        final prefs = await SharedPreferences.getInstance();
+        final yaAcepto = prefs.getBool('tc_accepted_${googleUser.email}') ?? false;
+
+        if (!yaAcepto) {
+          // Mostrar diálogo de T&C
+          setState(() => isLoading = false);
+          final acepta = await _mostrarDialogoTerminos();
+          if (acepta != true) return;
+          setState(() => isLoading = true);
+          // Guardar que aceptó
+          await prefs.setBool('tc_accepted_${googleUser.email}', true);
+        }
+
         final googleAuth = await googleUser.authentication;
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,

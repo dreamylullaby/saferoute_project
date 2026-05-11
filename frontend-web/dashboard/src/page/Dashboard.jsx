@@ -170,5 +170,5 @@ var S = {
   headerName: { fontSize: 13, fontWeight: 600, color: "var(--text-primary)" },
   headerRole: { fontSize: 11, color: "var(--text-secondary)", fontWeight: 300 },
   headerAvatar: { width: 38, height: 38, borderRadius: "50%", backgroundColor: "#2563EB", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Montserrat', sans-serif" },
-  content: { padding: 24, flex: 1 },
+  content: { padding: 24, flex: 1, maxWidth: 1200, width: "100%", margin: "0 auto", boxSizing: "border-box" },
 };

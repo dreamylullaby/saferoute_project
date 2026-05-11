@@ -107,6 +107,7 @@ CREATE TABLE public.reportes (
     corregimiento_id integer,
     vereda_id integer,
     incidente_id uuid,
+    coordenadas_exactas boolean DEFAULT true NOT NULL,
     CONSTRAINT reportes_estado_check CHECK (((estado)::text = ANY (ARRAY['activo', 'oculto', 'eliminado']::text[]))),
     CONSTRAINT reportes_franja_horaria_check CHECK (((franja_horaria)::text = ANY (ARRAY['00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59']::text[]))),
     CONSTRAINT reportes_numero_agresores_check CHECK (((numero_agresores)::text = ANY (ARRAY['1', '2', '3+', 'desconocido']::text[]))),
@@ -128,12 +129,17 @@ CREATE TABLE public.incidentes (
     longitud_centro numeric(9,6),
     zona_id integer,
     comuna integer,
+    corregimiento_id integer,
+    vereda_id integer,
     cantidad_reportes integer DEFAULT 1 NOT NULL,
+    tiene_coordenadas boolean DEFAULT true NOT NULL,
     fecha_creacion timestamp without time zone DEFAULT now() NOT NULL,
     CONSTRAINT chk_incidente_comuna CHECK ((comuna IS NULL OR (comuna >= 1 AND comuna <= 12))),
     CONSTRAINT incidentes_franja_horaria_check CHECK (((franja_horaria)::text = ANY (ARRAY['00:00-05:59', '06:00-11:59', '12:00-17:59', '18:00-23:59']::text[]))),
     CONSTRAINT incidentes_tipo_hurto_check CHECK (((tipo_hurto)::text = ANY (ARRAY['atraco', 'raponazo', 'cosquilleo', 'fleteo']::text[]))),
-    CONSTRAINT incidentes_pkey PRIMARY KEY (id)
+    CONSTRAINT incidentes_pkey PRIMARY KEY (id),
+    CONSTRAINT fk_incidente_corregimiento FOREIGN KEY (corregimiento_id) REFERENCES public.corregimientos(id),
+    CONSTRAINT fk_incidente_vereda FOREIGN KEY (vereda_id) REFERENCES public.veredas(id)
 );
 
 -- Alertas a usuarios por cercanía
@@ -367,6 +373,10 @@ CREATE INDEX idx_incidentes_tipo_hurto ON public.incidentes USING btree (tipo_hu
 CREATE INDEX idx_incidentes_zona ON public.incidentes USING btree (zona_id);
 CREATE INDEX idx_incidentes_comuna ON public.incidentes USING btree (comuna);
 CREATE INDEX idx_incidentes_coords ON public.incidentes USING btree (latitud_centro, longitud_centro);
+CREATE INDEX idx_incidentes_corregimiento ON public.incidentes USING btree (corregimiento_id);
+CREATE INDEX idx_incidentes_vereda ON public.incidentes USING btree (vereda_id);
+CREATE INDEX idx_incidentes_tiene_coords ON public.incidentes USING btree (tiene_coordenadas);
+CREATE INDEX idx_reportes_coordenadas_exactas ON public.reportes USING btree (coordenadas_exactas);
 
 -- Alertas
 CREATE INDEX idx_alertas_usuario_leida ON public.alertas USING btree (usuario_id, leida);
@@ -469,7 +479,7 @@ LANGUAGE sql AS $$
 $$;
 
 -- Eliminar cuenta de usuario (soft delete + anonimización)
-CREATE FUNCTION public.eliminar_cuenta_usuario(p_usuario_id uuid)
+CREATE OR REPLACE FUNCTION public.eliminar_cuenta_usuario(p_usuario_id UUID)
 RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -482,7 +492,7 @@ BEGIN
 
     UPDATE public.usuarios
     SET estado        = 'eliminado',
-        username      = NULL,
+        username      = 'eliminado_' || p_usuario_id,
         correo        = 'eliminado_' || p_usuario_id || '@saferoute.invalid',
         password_hash = NULL,
         foto_url      = NULL,
@@ -544,7 +554,7 @@ END;
 $$;
 
 -- Asignar o crear incidente agrupando reportes cercanos
-CREATE FUNCTION public.asignar_o_crear_incidente()
+CREATE OR REPLACE FUNCTION public.asignar_o_crear_incidente()
 RETURNS trigger
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -619,7 +629,7 @@ CREATE TRIGGER trigger_asignar_zona
     EXECUTE FUNCTION public.asignar_zona_automatica();
 
 CREATE TRIGGER trigger_asignar_incidente
-    AFTER INSERT ON public.reportes
+    BEFORE INSERT ON public.reportes
     FOR EACH ROW
     EXECUTE FUNCTION public.asignar_o_crear_incidente();
 
@@ -638,6 +648,8 @@ FROM public.reportes
 GROUP BY estado;
 
 -- Dashboard de incidentes
+DROP VIEW IF EXISTS public.vw_dashboard_incidentes CASCADE;
+
 CREATE VIEW public.vw_dashboard_incidentes AS
 SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     (EXTRACT(year FROM i.fecha_incidente))::integer AS anio,
@@ -646,6 +658,9 @@ SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     i.franja_horaria,
     (i.comuna)::text AS comuna,
     z.barrio,
+    c.nombre AS corregimiento,
+    v.nombre AS vereda,
+    i.tiene_coordenadas,
     i.cantidad_reportes,
     i.latitud_centro, i.longitud_centro,
     public.calcular_nivel_riesgo(i.cantidad_reportes) AS nivel_riesgo,
@@ -656,6 +671,8 @@ SELECT i.id, i.tipo_hurto, i.fecha_incidente,
     i.fecha_creacion
 FROM public.incidentes i
 LEFT JOIN public.zonas z ON i.zona_id = z.id
+LEFT JOIN public.corregimientos c ON i.corregimiento_id = c.id
+LEFT JOIN public.veredas v ON i.vereda_id = v.id
 JOIN public.reportes r ON r.id = i.reporte_principal_id
 WHERE r.estado = 'activo';
 
@@ -720,6 +737,21 @@ LEFT JOIN public.veredas v ON r.vereda_id = v.id
 LEFT JOIN public.usuarios u_autor ON r.usuario_id = u_autor.id
 LEFT JOIN public.usuarios u_admin ON r.actualizado_por = u_admin.id
 ORDER BY r.fecha_incidente DESC, r.fecha_creacion DESC;
+
+-- Notificaciones para usuarios (mensajes del sistema)
+CREATE TABLE IF NOT EXISTS public.notificaciones_usuario (
+    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id      UUID        NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    titulo          VARCHAR(100) NOT NULL,
+    mensaje         TEXT        NOT NULL,
+    tipo            VARCHAR(30) NOT NULL CHECK (tipo IN ('solicitud_aprobada', 'solicitud_rechazada', 'reporte_oculto', 'reporte_restaurado', 'sistema')),
+    referencia_id   UUID,
+    leida           BOOLEAN     NOT NULL DEFAULT false,
+    fecha_creacion  TIMESTAMP   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_notificaciones_usuario ON public.notificaciones_usuario (usuario_id, leida);
+CREATE INDEX idx_notificaciones_fecha ON public.notificaciones_usuario (fecha_creacion DESC);
 
 -- Tendencias por zona y tipo de hurto
 CREATE VIEW public.vw_tendencias_zona_tipo AS
