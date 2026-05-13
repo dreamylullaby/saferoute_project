@@ -10,12 +10,16 @@ class MapAppBar extends StatelessWidget {
     required this.conteoFiltros,
     required this.totalReportes,
     required this.onMenuTap,
+    this.notificacionesSinLeer = 0,
+    this.onNotificacionesTap,
   });
 
   final bool hayFiltros;
   final int conteoFiltros;
   final int totalReportes;
   final VoidCallback onMenuTap;
+  final int notificacionesSinLeer;
+  final VoidCallback? onNotificacionesTap;
 
   @override
   Widget build(BuildContext context) {
@@ -91,6 +95,32 @@ class MapAppBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            // Campana de notificaciones
+            GestureDetector(
+              onTap: onNotificacionesTap,
+              child: Container(
+                width: 38, height: 38,
+                decoration: BoxDecoration(
+                  color: barBg,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
+                ),
+                child: Stack(children: [
+                  Center(child: Icon(Icons.notifications_outlined, color: barText, size: 22)),
+                  if (notificacionesSinLeer > 0)
+                    Positioned(
+                      top: 4, right: 4,
+                      child: Container(
+                        width: 16, height: 16,
+                        decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: Text('$notificacionesSinLeer',
+                            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
           ]),
         ),
       ),

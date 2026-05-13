@@ -49,7 +49,7 @@ class PermissionModals {
           iconBgColor: AppColors.primary,
           titulo: 'Permitir acceso a ubicación',
           descripcion:
-              'CIVICTRACKIO usa tu ubicación para mostrar incidentes cercanos y permitir reportes precisos.',
+              'Al habilitar la ubicación autorizas a CivicTrackIO a recolectar y usar tu posición geográfica para mostrar reportes cercanos, calcular zonas de riesgo y mejorar la experiencia de prevención. Puedes revocar el permiso en cualquier momento desde la configuración del dispositivo.',
           textoBoton: 'Permitir acceso a ubicación',
           textoCancelar: 'Ahora no',
           onAceptar: () async {
