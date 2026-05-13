@@ -16,12 +16,12 @@ export const enviarCorreoRecuperacion = async (correo, token, plataforma = 'web'
     : `${process.env.FRONTEND_APP_URL}?token=${token}`;
 
   await resend.emails.send({
-    from:    process.env.RESEND_FROM_EMAIL,
+    from:    process.env.RESEND_FROM_EMAIL || 'noreply@mail.civictrackio.com',
     to:      correo,
-    subject: 'Recuperación de contraseña — SafeRoute',
+    subject: 'Recuperación de contraseña — CivicTrackIO',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">SafeRoute</h2>
+        <h2 style="color: #2563eb;">CivicTrackIO</h2>
         <p>Recibimos una solicitud para restablecer tu contraseña.</p>
         <p>Haz clic en el siguiente enlace para continuar. El enlace expira en <strong>1 hora</strong>.</p>
         <a href="${enlace}"
@@ -35,6 +35,30 @@ export const enviarCorreoRecuperacion = async (correo, token, plataforma = 'web'
         <p style="color:#94a3b8;font-size:12px;">
           O copia este enlace en tu navegador:<br/>
           <span style="word-break:break-all;">${enlace}</span>
+        </p>
+      </div>
+    `,
+  });
+};
+
+/**
+ * Envía un correo de confirmación cuando la contraseña fue cambiada exitosamente.
+ * @param {string} correo - Correo del usuario
+ */
+export const enviarCorreoPasswordCambiada = async (correo) => {
+  await resend.emails.send({
+    from:    process.env.RESEND_FROM_EMAIL || 'noreply@mail.civictrackio.com',
+    to:      correo,
+    subject: 'Contraseña actualizada — CivicTrackIO',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color: #2563eb;">CivicTrackIO</h2>
+        <p>Tu contraseña fue actualizada exitosamente.</p>
+        <p style="color:#64748b;font-size:13px;">
+          Si no realizaste este cambio, contacta al soporte inmediatamente.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;">
+          Este es un correo automático, no responder.
         </p>
       </div>
     `,

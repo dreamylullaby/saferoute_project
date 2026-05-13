@@ -282,6 +282,18 @@ class _ReportFormPageState extends State<_ReportFormPage> {
     _geoService = GeoService(dotenv.env['MAPBOX_TOKEN'] ?? '');
     _autocompleteService = AutocompleteService(dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000');
 
+    // Preseleccionar franja horaria según la hora actual
+    final hora = DateTime.now().hour;
+    if (hora >= 0 && hora <= 5) {
+      franjaHoraria = '00:00-05:59';
+    } else if (hora >= 6 && hora <= 11) {
+      franjaHoraria = '06:00-11:59';
+    } else if (hora >= 12 && hora <= 17) {
+      franjaHoraria = '12:00-17:59';
+    } else {
+      franjaHoraria = '18:00-23:59';
+    }
+
     if (_esRural) {
       _cargarCorregimientos();
     }
