@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/app_theme.dart';
@@ -39,6 +41,8 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
   StreamSubscription<LatLng>? _navSub;
   StreamSubscription<int>? _nuevosSub;
   LatLng? _userLocation;
+  int _notifSinLeer = 0;
+  Timer? _notifTimer;
 
   @override
   void initState() {
@@ -77,6 +81,8 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
     });
 
     _obtenerUbicacion();
+    _cargarNotifCount();
+    _notifTimer = Timer.periodic(const Duration(seconds: 60), (_) => _cargarNotifCount());
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) PermissionModals.mostrarSiNecesario(context);
@@ -96,11 +102,28 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _navSub?.cancel();
     _nuevosSub?.cancel();
+    _notifTimer?.cancel();
     _notifier.dispose();
     _notifService.dispose();
     _inactivityService.dispose();
     _mapController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarNotifCount() async {
+    try {
+      final base = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
+      final token = await AuthStorage.getToken();
+      final res = await http.get(
+        Uri.parse('$base/api/perfil/mensajes'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode == 200 && mounted) {
+        final body = jsonDecode(res.body);
+        final data = List<Map<String, dynamic>>.from(body['data'] ?? []);
+        setState(() => _notifSinLeer = data.where((n) => n['leida'] != true).length);
+      }
+    } catch (_) {}
   }
 
   Future<void> _obtenerUbicacion() async {
@@ -276,6 +299,11 @@ class _MapaPageState extends State<MapaPage> with WidgetsBindingObserver {
                           conteoFiltros: notifier.conteoFiltros,
                           totalReportes: notifier.filtrados.length,
                           onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+                          notificacionesSinLeer: _notifSinLeer,
+                          onNotificacionesTap: () async {
+                            await Navigator.pushNamed(context, '/notificaciones');
+                            _cargarNotifCount();
+                          },
                         ),
                         Positioned(
                           bottom: 90 + MediaQuery.of(context).padding.bottom, left: 16,

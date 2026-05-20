@@ -480,22 +480,24 @@ export const editarTipoHurtoReporte = async (req, res) => {
  */
 export const listarSolicitudesEliminacion = async (req, res) => {
   try {
-    const { estado = 'pendiente' } = req.query;
+    const { estado } = req.query;
 
     const estadosValidos = ['pendiente', 'aprobada', 'rechazada'];
-    if (!estadosValidos.includes(estado))
+    if (estado && !estadosValidos.includes(estado))
       return res.status(400).json({ success: false, message: `estado inválido. Valores: ${estadosValidos.join(', ')}` });
 
-    const { data, error } = await db
+    let query = db
       .from('solicitudes_eliminacion')
       .select(`
         id, estado_solicitud, motivo, fecha_solicitud, fecha_resolucion,
         reportes(id, tipo_hurto, barrio_ingresado, estado, fecha_incidente),
         usuarios!solicitudes_eliminacion_usuario_id_fkey(id, username, correo)
       `)
-      .eq('estado_solicitud', estado)
       .order('fecha_solicitud', { ascending: false });
 
+    if (estado) query = query.eq('estado_solicitud', estado);
+
+    const { data, error } = await query;
     if (error) throw error;
 
     return res.status(200).json({ success: true, data });
@@ -576,6 +578,15 @@ export const aprobarSolicitud = async (req, res) => {
 
     if (updateError) throw updateError;
 
+    // Notificar al usuario
+    await db.from('notificaciones_usuario').insert({
+      usuario_id:    solicitud.usuario_id,
+      titulo:        'Solicitud de eliminación aprobada',
+      mensaje:       'Tu solicitud de eliminación de reporte fue aprobada. El reporte ha sido eliminado.',
+      tipo:          'solicitud_aprobada',
+      referencia_id: solicitud.reporte_id,
+    }).catch(() => {});
+
     return res.status(200).json({ success: true, message: 'Solicitud aprobada. Reporte eliminado.', data: updated });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -589,11 +600,12 @@ export const aprobarSolicitud = async (req, res) => {
 export const rechazarSolicitud = async (req, res) => {
   try {
     const { id }  = req.params;
+    const { razon } = req.body || {};
     const adminId = req.user.id;
 
     const { data: solicitud, error: fetchError } = await db
       .from('solicitudes_eliminacion')
-      .select('id, estado_solicitud')
+      .select('id, estado_solicitud, usuario_id, reporte_id')
       .eq('id', id)
       .single();
 
@@ -615,6 +627,15 @@ export const rechazarSolicitud = async (req, res) => {
       .single();
 
     if (updateError) throw updateError;
+
+    // Crear notificación para el usuario
+    await db.from('notificaciones_usuario').insert({
+      usuario_id:    solicitud.usuario_id,
+      titulo:        'Solicitud de eliminación rechazada',
+      mensaje:       razon || 'Tu solicitud de eliminación de reporte fue rechazada por el administrador.',
+      tipo:          'solicitud_rechazada',
+      referencia_id: solicitud.reporte_id,
+    }).catch(() => {});
 
     return res.status(200).json({ success: true, message: 'Solicitud rechazada.', data: updated });
   } catch (error) {
@@ -687,9 +708,10 @@ export const exportarReportes = async (req, res) => {
     }
 
     // Excel con exceljs
-    const ExcelJS = (await import('exceljs')).default;
+    const exceljs = await import('exceljs');
+    const ExcelJS = exceljs.default || exceljs;
     const workbook  = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reportes SafeRoute');
+    const worksheet = workbook.addWorksheet('Reportes CivicTrackIO');
 
     worksheet.columns = columnas.map(c => ({
       header: c.replace(/_/g, ' ').toUpperCase(),
@@ -713,6 +735,9 @@ export const exportarReportes = async (req, res) => {
     return res.end();
 
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    console.error('=== ERROR EXPORT EXCEL ===');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    return res.status(500).json({ success: false, message: error.message, stack: error.stack });
   }
 };

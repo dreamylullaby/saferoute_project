@@ -16,6 +16,7 @@ import 'features/user/presentation/pages/perfil_page.dart';
 import 'features/user/presentation/pages/estadisticas_page.dart';
 import 'features/user/presentation/pages/ranking_zonas_page.dart';
 import 'features/user/presentation/pages/mis_reportes_page.dart';
+import 'features/user/presentation/pages/notificaciones_page.dart';
 import 'features/user/presentation/pages/forgot_password_page.dart';
 import 'features/user/presentation/pages/reset_password_page.dart';
 
@@ -93,6 +94,7 @@ class MyApp extends StatelessWidget {
           '/estadisticas':    (context) => AuthGuard(child: const EstadisticasPage()),
           '/ranking':         (context) => AuthGuard(child: const RankingZonasPage()),
           '/mis-reportes':    (context) => AuthGuard(child: const MisReportesPage()),
+          '/notificaciones':  (context) => AuthGuard(child: const NotificacionesPage()),
           '/forgot-password': (context) => const ForgotPasswordPage(),
         },
         onGenerateRoute: (settings) {

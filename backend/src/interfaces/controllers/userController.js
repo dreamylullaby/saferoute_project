@@ -95,34 +95,98 @@ export const registerLocal = async (req, res) => {
 
 /**
  * GET /api/auth/terminos
- * Retorna el texto de los términos y condiciones vigentes.
+ * Retorna el texto de los términos y condiciones y política de privacidad vigentes.
  */
 export const getTerminos = (req, res) => {
   res.json({
-    version: 'v1.0',
-    fecha_vigencia: '2026-01-01',
-    contenido: `TÉRMINOS Y CONDICIONES DE USO — SafeRoute v1.0
+    version: 'v2.0',
+    fecha_vigencia: '2026-05-14',
+    terminos: `TÉRMINOS Y CONDICIONES DE USO DE CIVICTRACKIO
 
-1. ACEPTACIÓN
-Al registrarte en SafeRoute aceptas estos términos en su totalidad.
+Versión final. Fecha de entrada en vigencia: 14 de mayo de 2026.
+Nombre comercial: CivicTrackIO
+Correo de contacto: civictrackio@gmail.com
 
-2. USO DEL SERVICIO
-SafeRoute es una plataforma para reportar y consultar incidentes de hurto en la ciudad de Pasto. El uso indebido, fraudulento o malintencionado del sistema está prohibido.
+1. Identificación y objeto
+El presente documento establece los términos y condiciones que regulan el acceso, navegación y uso de CivicTrackIO, plataforma tecnológica orientada a la prevención ciudadana mediante geolocalización, reporte colaborativo de incidentes y visualización de zonas de riesgo. El uso de la plataforma implica la aceptación plena, expresa e incondicional de lo aquí dispuesto.
 
-3. DATOS PERSONALES
-Los datos que proporcionas (correo, apodo) serán usados exclusivamente para el funcionamiento del sistema. No serán compartidos con terceros sin tu consentimiento.
+2. Naturaleza del servicio
+CivicTrackIO es una herramienta informativa y preventiva que permite a los usuarios consultar mapas interactivos, registrar incidentes de forma colaborativa y acceder a estadísticas sobre hechos de riesgo o seguridad. La información suministrada es orientativa; no constituye asesoría profesional ni alerta oficial, y no reemplaza las actuaciones ni recomendaciones de las autoridades competentes. CivicTrackIO no garantiza la eliminación de riesgos ni la seguridad total de los usuarios.
 
-4. REPORTES
-Los reportes que registres deben ser verídicos. SafeRoute se reserva el derecho de ocultar o eliminar reportes que sean considerados fraudulentos o duplicados.
+3. Condiciones de acceso
+El acceso a determinadas funcionalidades podrá requerir la creación de una cuenta mediante registro local o autenticación con terceros (por ejemplo, Google, a través de Firebase). El usuario se obliga a suministrar información veraz, completa y actualizada, y será responsable de la custodia de sus credenciales de acceso.
 
-5. RESPONSABILIDAD
-SafeRoute no se hace responsable por decisiones tomadas con base en la información del sistema. La información es de carácter informativo.
+4. Registro y autenticación
+CivicTrackIO podrá habilitar mecanismos de autenticación basados en correo electrónico, apodo, contraseña, tokens de sesión y tecnologías equivalentes. En caso de autenticación mediante servicios de terceros, los datos requeridos serán tratados conforme a las finalidades aquí descritas y a la Política de Privacidad aplicable.
 
-6. MODIFICACIONES
-Estos términos pueden ser actualizados. Se notificará a los usuarios ante cambios significativos.
+5. Finalidad de la plataforma
+La plataforma facilita la consulta de información georreferenciada sobre incidentes reportados por la comunidad, apoya la toma de decisiones preventivas y promueve la participación ciudadana. El uso del servicio deberá ceñirse exclusivamente a dichas finalidades.
 
-7. CONTACTO
-Para consultas: soporte@saferoute.com`,
+6. Uso de la ubicación y consentimiento informado
+CivicTrackIO podrá solicitar acceso a la ubicación del usuario para mostrar reportes cercanos, zonas de riesgo y métricas asociadas al entorno inmediato. El tratamiento de geolocalización requiere el consentimiento previo, expreso e informado del titular; el usuario podrá otorgarlo o revocarlo desde la configuración del dispositivo o de la aplicación. La revocatoria del consentimiento podrá limitar ciertas funciones de la plataforma.
+
+7. Conducta del usuario
+El usuario se compromete a utilizar CivicTrackIO de manera lícita, diligente, responsable y conforme a la buena fe. Queda prohibido: incluir información falsa, maliciosa o que induzca a error; suplantar identidad o atribuirse la de terceros; utilizar la plataforma para hostigar, amenazar o divulgar contenido ilícito; alterar, interferir o vulnerar la seguridad de la aplicación o de sus componentes; emplear los contenidos o funcionalidades con fines distintos a los previstos por CivicTrackIO.
+
+8. Reportes colaborativos
+Los reportes realizados por los usuarios serán tratados con fines preventivos, analíticos y de visualización comunitaria. CivicTrackIO procurará, en la medida de lo técnicamente posible, preservar el carácter anónimo o despersonalizado de dichos reportes; no obstante, ciertos elementos técnicos o contextuales podrán conservarse internamente para garantizar la seguridad, continuidad y mejora del servicio.
+
+9. Propiedad intelectual
+Todos los derechos sobre la estructura, diseño, desarrollo, interfaz, bases de datos, código fuente, manuales, signos distintivos y demás elementos protegidos de CivicTrackIO pertenecen a sus desarrolladores o titulares autorizados, salvo los contenidos generados por usuarios o componentes sujetos a licencias de terceros. Queda prohibida su reproducción, transformación, distribución o explotación no autorizada.
+
+10. Limitación de responsabilidad
+CivicTrackIO no garantiza la ausencia de incidentes, la veracidad absoluta de los reportes, ni la disponibilidad ininterrumpida del servicio. El usuario reconoce que la plataforma tiene carácter orientativo y que cualquier decisión de desplazamiento o permanencia en determinada zona debe adoptarse bajo su propio criterio y responsabilidad.
+
+11. Suspensión y modificación del servicio
+CivicTrackIO podrá modificar, limitar, suspender o dar por terminadas, total o parcialmente, las funcionalidades de la plataforma cuando ello resulte necesario por razones técnicas, de seguridad, mantenimiento, actualización o por causas ajenas a su control.
+
+12. Eliminación de cuenta
+El usuario podrá solicitar la eliminación de su cuenta cuando la funcionalidad esté habilitada. Una vez efectuada la eliminación, los datos personales asociados al perfil podrán ser suprimidos o anonimizados, sin perjuicio de la conservación de aquella información que deba mantenerse por razones legales, de seguridad, auditoría o integridad operativa.
+
+13. Tratamiento de datos personales
+El tratamiento de los datos personales se regirá por la Política de Privacidad y Tratamiento de Datos Personales de la plataforma. El responsable del tratamiento es el equipo de desarrollo de CivicTrackIO. Para consultas: civictrackio@gmail.com.
+
+14. Legislación aplicable
+Estos términos se interpretarán y aplicarán conforme a las leyes de la República de Colombia.`,
+    politica_privacidad: `POLÍTICA DE PRIVACIDAD Y TRATAMIENTO DE DATOS PERSONALES DE CIVICTRACKIO
+
+Versión final. Fecha de entrada en vigencia: 14 de mayo de 2026.
+Nombre comercial: CivicTrackIO
+Correo de contacto: civictrackio@gmail.com
+
+1. Introducción
+CivicTrackIO, en su calidad de responsable del tratamiento de datos personales, adopta la presente Política en cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 y demás disposiciones aplicables en la República de Colombia.
+
+2. Responsable del tratamiento
+El responsable del tratamiento y administrador de la plataforma es el equipo de desarrollo de CivicTrackIO. Para consultas, solicitudes de derechos o reclamaciones: civictrackio@gmail.com.
+
+3. Qué datos recolectamos
+CivicTrackIO recolecta únicamente los datos necesarios: correo electrónico, apodo o nombre de usuario, contraseña (si hay registro local), nombre y correo asociados a cuenta de terceros (Google), ubicación geográfica (con autorización expresa), información de incidentes reportados, y datos técnicos de sesión y autenticación.
+
+4. Finalidades del tratamiento
+Los datos se usan para: gestionar registro y autenticación; habilitar el acceso seguro; mostrar mapas, estadísticas y zonas de riesgo según ubicación autorizada; procesar reportes colaborativos con fines preventivos y estadísticos; mejorar la experiencia, desempeño y seguridad técnica; y atender requerimientos operativos o de cumplimiento normativo.
+
+5. Base legal y consentimiento
+El tratamiento se realizará con la autorización previa, expresa e informada del titular, salvo excepciones legales. El consentimiento para la geolocalización será recabado de forma diferenciada y clara.
+
+6. Protección y medidas de seguridad
+CivicTrackIO implementará medidas técnicas, administrativas y organizativas razonables para proteger los datos frente a pérdida, alteración, acceso o uso no autorizado: control de acceso, autenticación segura, cifrado cuando sea aplicable, expiración de sesiones y auditorías periódicas.
+
+7. Derechos de los titulares
+El titular tiene derecho a conocer, actualizar, rectificar, solicitar prueba de la autorización, ser informado sobre el uso de sus datos, presentar quejas ante la autoridad competente, revocar la autorización y solicitar la supresión de datos cuando proceda. Canal: civictrackio@gmail.com.
+
+8. Menores de edad
+CivicTrackIO podrá ser utilizado por personas a partir de los 15 años; en el tratamiento de datos de menores se respetará el interés superior del menor y la normativa aplicable.
+
+9. Eliminación de cuenta y supresión
+El titular podrá solicitar la eliminación de su cuenta; se suprimirán o desasociarán los datos personales del perfil, sin perjuicio de la conservación de datos anonimizados o requeridos por ley.
+
+10. Modificaciones
+La política podrá modificarse para reflejar cambios normativos, tecnológicos o funcionales; cualquier modificación será publicada por los medios habilitados por CivicTrackIO.
+
+11. Legislación aplicable
+Esta política se rige por la Constitución Política de Colombia, la Ley 1581 de 2012, el Decreto 1377 de 2013 y demás normas aplicables.`,
+    aviso_ubicacion: `Al habilitar la ubicación autorizas a CivicTrackIO a recolectar y usar tu posición geográfica con la finalidad de mostrar reportes cercanos, calcular zonas de riesgo y mejorar la experiencia de prevención en la aplicación. Este tratamiento se realiza con tu consentimiento previo, expreso e informado; puedes revocar el permiso en cualquier momento desde la configuración del dispositivo o de la aplicación. Para consultas sobre el tratamiento de tus datos y para ejercer tus derechos escribe a civictrackio@gmail.com.`,
   });
 };
 
@@ -517,6 +581,15 @@ export const resetPassword = async (req, res) => {
 
     // Marcar token como usado
     await db.from("password_resets").update({ usado: true }).eq("id", reset.id);
+
+    // Enviar email de confirmación (silencioso si falla)
+    try {
+      const { data: usr } = await db.from("usuarios").select("correo").eq("id", reset.usuario_id).single();
+      if (usr) {
+        const { enviarCorreoPasswordCambiada } = await import("../../infrastructure/email/emailService.js");
+        await enviarCorreoPasswordCambiada(usr.correo);
+      }
+    } catch (_) {}
 
     res.json({ message: "Contraseña actualizada correctamente" });
 

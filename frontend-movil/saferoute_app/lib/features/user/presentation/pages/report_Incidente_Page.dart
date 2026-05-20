@@ -28,9 +28,9 @@ class ReportIncidentePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar hurto')),
-      body: Center(
+      body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -60,6 +60,23 @@ class ReportIncidentePage extends StatelessWidget {
                 color: ruralColor,
                 onTap: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const _ReportFormPage(esRural: true))),
+              ),
+              const SizedBox(height: 32),
+              // Sección de ayuda: tipos de hurto
+              Divider(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              const SizedBox(height: 16),
+              Text('¿Qué significa cada tipo?',
+                style: GoogleFonts.inter(fontSize: 13, color: textS, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: const [
+                  _TipoHurtoCard(tipo: 'Atraco', descripcion: 'Robo con intimidación o violencia directa hacia la víctima, generalmente mediante amenazas o uso de armas.', icono: Icons.warning_amber_rounded),
+                  _TipoHurtoCard(tipo: 'Raponazo', descripcion: 'Hurto repentino donde el agresor arrebata objetos de forma rápida y huye, comúnmente bolsos, celulares o cadenas.', icono: Icons.directions_run),
+                  _TipoHurtoCard(tipo: 'Cosquilleo', descripcion: 'Hurto sigiloso donde el ladrón sustrae objetos sin que la víctima se dé cuenta, típicamente en lugares concurridos.', icono: Icons.back_hand_outlined),
+                  _TipoHurtoCard(tipo: 'Fleteo', descripcion: 'Modalidad donde los delincuentes siguen a la víctima desde un lugar específico (banco, cajero) hasta un punto donde cometen el hurto.', icono: Icons.visibility),
+                ],
               ),
             ],
           ),
@@ -108,6 +125,85 @@ class _ZonaCard extends StatelessWidget {
                 color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
             ])),
             Icon(Icons.chevron_right_rounded, color: color),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta de tipo de hurto con long-press para ver descripción.
+class _TipoHurtoCard extends StatelessWidget {
+  const _TipoHurtoCard({required this.tipo, required this.descripcion, required this.icono});
+  final String tipo;
+  final String descripcion;
+  final IconData icono;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    final textColor = isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B);
+
+    return SizedBox(
+      width: (MediaQuery.of(context).size.width - 64 - 12) / 2, // 2 columnas
+      child: GestureDetector(
+        onLongPress: () => _mostrarDetalle(context),
+        onTap: () => _mostrarDetalle(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(children: [
+            Icon(icono, size: 18, color: AppColors.primary),
+            const SizedBox(width: 8),
+            Expanded(child: Text(tipo, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: textColor))),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  void _mostrarDetalle(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.help_outline, color: AppColors.primary, size: 24),
+              const SizedBox(width: 10),
+              Text(tipo, style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.bold,
+                color: isDark ? const Color(0xFFE2E8F0) : AppColors.textMain)),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Icon(Icons.close, color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub),
+              ),
+            ]),
+            const SizedBox(height: 16),
+            Text(descripcion, style: GoogleFonts.inter(fontSize: 14, height: 1.5,
+              color: isDark ? const Color(0xFF94A3B8) : AppColors.textSub)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Entendido', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15)),
+              ),
+            ),
           ]),
         ),
       ),
@@ -185,6 +281,18 @@ class _ReportFormPageState extends State<_ReportFormPage> {
     super.initState();
     _geoService = GeoService(dotenv.env['MAPBOX_TOKEN'] ?? '');
     _autocompleteService = AutocompleteService(dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000');
+
+    // Preseleccionar franja horaria según la hora actual
+    final hora = DateTime.now().hour;
+    if (hora >= 0 && hora <= 5) {
+      franjaHoraria = '00:00-05:59';
+    } else if (hora >= 6 && hora <= 11) {
+      franjaHoraria = '06:00-11:59';
+    } else if (hora >= 12 && hora <= 17) {
+      franjaHoraria = '12:00-17:59';
+    } else {
+      franjaHoraria = '18:00-23:59';
+    }
 
     if (_esRural) {
       _cargarCorregimientos();

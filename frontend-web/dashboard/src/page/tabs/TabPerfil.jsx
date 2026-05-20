@@ -34,7 +34,7 @@ export default function TabPerfil() {
 
   function guardar() {
     if (!editUsername.trim() || editUsername.trim().length < 3) { setMsg("err:Mínimo 3 caracteres"); return; }
-    api.patch("/api/perfil", { username: editUsername.trim() }).then(function (res) {
+    api.put("/api/perfil", { username: editUsername.trim() }).then(function (res) {
       setMsg("ok:Guardado correctamente");
       setPerfil(function (p) { return { ...p, username: res.data.data.username }; });
       var s = JSON.parse(sessionStorage.getItem("admin") || "{}");

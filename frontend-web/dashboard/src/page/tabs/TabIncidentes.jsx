@@ -45,6 +45,7 @@ export default function TabIncidentes({ onCountChange }) {
       if (filtros.estado) params.estado = filtros.estado;
       if (filtros.comuna) params.comuna = filtros.comuna;
       if (filtros.corregimiento) params.corregimiento_id = filtros.corregimiento;
+      if (filtros.franja) params.franja_horaria = filtros.franja;
       if (filtros.fechaDesde) params.fechaDesde = filtros.fechaDesde;
       if (filtros.fechaHasta) params.fechaHasta = filtros.fechaHasta;
       if (filtros.busqueda) params.busqueda = filtros.busqueda;
@@ -407,6 +408,8 @@ export default function TabIncidentes({ onCountChange }) {
             <Fila label="Franja horaria" valor={detalle.franja_horaria} />
             <Fila label="Barrio" valor={detalle.barrio_ingresado} />
             <Fila label="Comuna" valor={detalle.comuna ? "Comuna " + detalle.comuna : null} />
+            <Fila label="Corregimiento" valor={detalle.corregimiento_nombre || null} />
+            <Fila label="Zona" valor={detalle.zona_tipo === "rural" ? "Rural" : "Urbana"} />
             <Fila label="Dirección" valor={detalle.direccion} />
             {detalle.latitud && <Fila label="Coordenadas" valor={detalle.latitud + ", " + detalle.longitud} />}
             <Fila label="Objeto hurtado" valor={detalle.objeto_hurtado} />
@@ -423,6 +426,12 @@ export default function TabIncidentes({ onCountChange }) {
                     Ver en Google Maps
                   </a>
                 </div>
+              </div>
+            )}
+            {!detalle.latitud && !detalle.longitud && detalle.zona_tipo === "rural" && (
+              <div style={{ marginTop: 16, padding: "12px 14px", backgroundColor: "#F8FAFC", borderRadius: 8, border: "0.5px solid #E2E8F0", textAlign: "center" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" style={{ marginBottom: 4 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}>Reporte rural sin ubicación GPS registrada</p>
               </div>
             )}
           </div>
