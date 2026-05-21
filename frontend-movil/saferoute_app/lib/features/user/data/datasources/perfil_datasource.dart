@@ -5,6 +5,9 @@ import '../../../../services/auth_storage.dart';
 
 /// Datasource remoto para el perfil de usuario.
 class PerfilDatasource {
+  final http.Client client;
+  PerfilDatasource({http.Client? client}) : client = client ?? http.Client();
+
   static final _baseUrl = '${dotenv.env['API_BASE_URL']}/api/perfil';
 
   static Future<Map<String, String>> _headers() async {
@@ -26,7 +29,10 @@ class PerfilDatasource {
   }
 
   /// Actualiza username y/o foto_url.
-  Future<Map<String, dynamic>> updatePerfil({String? username, String? fotoUrl}) async {
+  Future<Map<String, dynamic>> updatePerfil({
+    String? username,
+    String? fotoUrl,
+  }) async {
     final body = <String, dynamic>{};
     if (username != null) body['username'] = username;
     if (fotoUrl != null) body['foto_url'] = fotoUrl;
@@ -55,11 +61,17 @@ class PerfilDatasource {
   }
 
   /// Cambia la contraseña del usuario autenticado (solo auth_provider = 'local').
-  Future<void> cambiarPassword({required String passwordActual, required String nuevaPassword}) async {
+  Future<void> cambiarPassword({
+    required String passwordActual,
+    required String nuevaPassword,
+  }) async {
     final res = await http.put(
       Uri.parse('$_baseUrl/password'),
       headers: await _headers(),
-      body: jsonEncode({'passwordActual': passwordActual, 'nuevaPassword': nuevaPassword}),
+      body: jsonEncode({
+        'passwordActual': passwordActual,
+        'nuevaPassword': nuevaPassword,
+      }),
     );
     if (res.statusCode != 200) {
       final data = jsonDecode(res.body);
@@ -73,11 +85,12 @@ class PerfilDatasource {
     final body = <String, dynamic>{};
     if (password != null && password.isNotEmpty) body['password'] = password;
 
-    final res = await http.delete(
+    final res = await client.delete(
       Uri.parse(_baseUrl),
       headers: await _headers(),
       body: jsonEncode(body),
     );
+
     if (res.statusCode != 200) {
       final data = jsonDecode(res.body);
       throw Exception(data['message'] ?? 'Error al eliminar cuenta');
