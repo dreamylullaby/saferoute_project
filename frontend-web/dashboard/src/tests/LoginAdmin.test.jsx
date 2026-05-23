@@ -1,52 +1,55 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import LoginAdmin from '../page/LoginAdmin';
 import * as authService from '../services/authService';
 
-const mockNavigate = jest.fn();
+const mockNavigate = vi.fn();
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
-jest.mock('../services/authService', () => ({
-  loginAdmin: jest.fn(),
+vi.mock('../services/authService', () => ({
+  loginAdmin: vi.fn(),
 }));
 
 describe('Pruebas LoginAdmin - HU-03', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
-  test('CP-HU03-01: Campo correo vacío muestra error de validación', async () => {
+  test('CP-H03-F-01: campo correo vacío muestra error de validación', async () => {
     render(
       <BrowserRouter>
         <LoginAdmin />
       </BrowserRouter>
     );
 
-    const correoInput = screen.getByLabelText(/Correo/i);
+    const correoInput = screen.getByLabelText(/correo/i, { selector: 'input' });
     expect(correoInput).toBeInTheDocument();
 
-    const passwordInput = screen.getByLabelText(/Contraseña/i);
+    const passwordInput = screen.getByLabelText(/contraseña/i, {
+      selector: 'input',
+    });
     fireEvent.change(passwordInput, { target: { value: 'pass123' } });
 
-    const submitButton = screen.getByRole('button', { name: /Iniciar sesión/i });
+    const submitButton = screen.getByRole('button', { name: /iniciar sesión/i });
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      const error = screen.getByText('El correo es obligatorio');
-      expect(error).toBeInTheDocument();
+      expect(screen.getByText('El correo es obligatorio')).toBeInTheDocument();
     });
 
     expect(authService.loginAdmin).not.toHaveBeenCalled();
-
-    console.log('✅ CP-HU03-01 APROBADA');
   });
 
-  test('CP-HU03-04: debe iniciar sesión y redirigir al dashboard cuando las credenciales son válidas', async () => {
+  test('CP-H03-F-02: debe iniciar sesión y redirigir al dashboard cuando las credenciales son válidas', async () => {
     authService.loginAdmin.mockResolvedValue({
       user: {
         id: 1,
@@ -62,8 +65,10 @@ describe('Pruebas LoginAdmin - HU-03', () => {
       </BrowserRouter>
     );
 
-    const correoInput = screen.getByLabelText(/correo/i);
-    const passwordInput = screen.getByLabelText(/contraseña/i);
+    const correoInput = screen.getByLabelText(/correo/i, { selector: 'input' });
+    const passwordInput = screen.getByLabelText(/contraseña/i, {
+      selector: 'input',
+    });
     const submitButton = screen.getByRole('button', { name: /iniciar sesión/i });
 
     fireEvent.change(correoInput, {
@@ -85,7 +90,5 @@ describe('Pruebas LoginAdmin - HU-03', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     expect(screen.queryByText(/error al iniciar sesión/i)).not.toBeInTheDocument();
-
-    console.log('✅ CP-HU03-04 APROBADA');
   });
 });

@@ -1,18 +1,21 @@
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { loginAdmin } from '../services/authService';
 import api from '../services/api';
 
-jest.mock('../services/api', () => ({
-  post: jest.fn(),
+vi.mock('../services/api', () => ({
+  default: {
+    post: vi.fn(),
+  },
 }));
 
-describe('CP-HU03-10 - Persistencia de sesión administrativa', () => {
+describe('CP-H03-F-01 - Persistencia de sesión administrativa', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     sessionStorage.clear();
   });
 
-  test('CP-HU03-10: guarda admin y token en sessionStorage después del login exitoso', async () => {
-    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+  test('CP-H03-F-01: guarda admin y token en sessionStorage después del login exitoso', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
 
     const mockResponse = {
       data: {
@@ -55,7 +58,5 @@ describe('CP-HU03-10 - Persistencia de sesión administrativa', () => {
     );
 
     expect(result).toEqual(mockResponse.data);
-
-    console.log('✅ CP-HU03-10 APROBADA');
   });
 });

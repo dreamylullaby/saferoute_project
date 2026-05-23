@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:saferoute_app/features/user/presentation/pages/estadisticas_page.dart';
-import 'package:saferoute_app/features/user/data/datasources/estadisticas_datasource.dart';
+import 'package:civictrackio_app/features/user/presentation/pages/estadisticas_page.dart';
+import 'package:civictrackio_app/features/user/data/datasources/estadisticas_datasource.dart';
 
 class FakeEstadisticasDatasource extends EstadisticasDatasource {
   FakeEstadisticasDatasource({
@@ -19,6 +19,8 @@ class FakeEstadisticasDatasource extends EstadisticasDatasource {
     List<String>? tipos,
     String? fechaDesde,
     String? fechaHasta,
+    int? corregimientoId,
+    bool? esRural,
   })? onGetResumenFiltrado;
   final Future<Map<String, dynamic>> Function({
     required String p1Desde,
@@ -71,6 +73,8 @@ class FakeEstadisticasDatasource extends EstadisticasDatasource {
     List<String>? tipos,
     String? fechaDesde,
     String? fechaHasta,
+    int? corregimientoId,
+    bool? esRural,
   }) async {
     llamadasResumenFiltrado++;
     ultimaComunas = comunas;
@@ -86,6 +90,8 @@ class FakeEstadisticasDatasource extends EstadisticasDatasource {
         tipos: tipos,
         fechaDesde: fechaDesde,
         fechaHasta: fechaHasta,
+        corregimientoId: corregimientoId,
+        esRural: esRural,
       );
     }
 
