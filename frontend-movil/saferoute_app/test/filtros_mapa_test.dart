@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:saferoute_app/features/user/presentation/pages/mapa_page.dart';
+import 'package:civictrackio_app/features/user/presentation/pages/mapa_page.dart';
 
 void main() {
   Future<void> pumpMapaPage(WidgetTester tester) async {

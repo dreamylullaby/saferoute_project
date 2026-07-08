@@ -9,10 +9,14 @@ import '../../data/datasources/user_Remote_Datasource.dart';
 import '../../data/repositories/user_repository.impl.dart';
 import '../../domain/usecases/register_User.dart';
 
-/// Pantalla de registro de nuevo usuario.
-/// Valida username, correo, contraseña y confirmación antes de enviar.
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  const RegisterPage({super.key, this.onRegister});
+
+  final Future<dynamic> Function({
+    required String username,
+    required String correo,
+    required String password,
+  })? onRegister;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -41,11 +45,24 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => isLoading = true);
 
     try {
-      final datasource = UserRemoteDatasource();
-      final repository = UserRepositoryImpl(datasource);
-      final registerUsecase = RegisterUser(repository);
+      final registerFn = widget.onRegister ??
+          ({
+            required String username,
+            required String correo,
+            required String password,
+          }) async {
+            final datasource = UserRemoteDatasource();
+            final repository = UserRepositoryImpl(datasource);
+            final registerUsecase = RegisterUser(repository);
 
-      final user = await registerUsecase(
+            return await registerUsecase(
+              username: username,
+              correo: correo,
+              password: password,
+            );
+          };
+
+      final user = await registerFn(
         username: usernameController.text.trim(),
         correo: emailController.text.trim(),
         password: passwordController.text.trim(),
@@ -61,7 +78,9 @@ class _RegisterPageState extends State<RegisterPage> {
       _mostrarError(e.toString().replaceAll('Exception: ', ''));
     }
 
-    setState(() => isLoading = false);
+    if (mounted) {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -81,128 +100,121 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         child: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Image.asset(
-                  'assets/Logo_CivicTrackIO_Color.png',
-                  height: 80,
-                ),
-                const SizedBox(height: 12),
-
-                Text(
-                  'CivicTrackIO',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 2,
+          child: SingleChildScrollView(
+            key: const Key('register_scroll'),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Image.asset(
+                    'assets/Logo_CivicTrackIO_Color.png',
+                    height: 80,
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Crea tu cuenta',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        blurRadius: 20,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      InputField(
-                        controller: usernameController,
-                        label: 'Nombre de usuario',
-                        icon: Icons.person_outline,
-                        extraValidator: (v) {
-                          final value = v?.trim() ?? '';
-                          if (value.isEmpty) return 'Campo obligatorio';
-                          if (value.length < 3) return 'El apodo debe tener mínimo 3 caracteres';
-                          if (value.length > 20) return 'El apodo debe tener máximo 20 caracteres';
-                          if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(value)) {
-                            return 'Solo se permiten letras, números, punto y guion bajo';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      InputField(
-                        controller: emailController,
-                        label: 'Correo',
-                        icon: Icons.email_outlined,
-                      ),
-                      const SizedBox(height: 16),
-
-                      InputField(
-                        controller: passwordController,
-                        label: 'Contraseña',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                        isPasswordConfirm: true,
-                      ),
-                      const SizedBox(height: 16),
-
-                      InputField(
-                        controller: confirmController,
-                        label: 'Confirmar contraseña',
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                        extraValidator: (v) {
-                          if (v != passwordController.text)
-                            return 'Las contraseñas no coinciden';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Términos y condiciones
-                      _buildTerminosCheckbox(),
-                      const SizedBox(height: 24),
-
-                      SubmitButton(
-                        text: 'Registrarse',
-                        onPressed: register,
-                        isLoading: isLoading,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                TextButton(
-                  onPressed: () =>
-                      Navigator.pushReplacementNamed(context, '/login'),
-                  child: Text(
-                    '¿Ya tienes cuenta? Inicia sesión',
-                    style: GoogleFonts.inter(
+                  const SizedBox(height: 12),
+                  Text(
+                    'CivicTrackIO',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
                       color: Colors.white,
-                      fontWeight: FontWeight.w500,
+                      letterSpacing: 2,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    'Crea tu cuenta',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.07),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        InputField(
+                          controller: usernameController,
+                          label: 'Nombre de usuario',
+                          icon: Icons.person_outline,
+                          extraValidator: (v) {
+                            final value = v?.trim() ?? '';
+                            if (value.isEmpty) return 'Campo obligatorio';
+                            if (value.length < 3) return 'El apodo debe tener mínimo 3 caracteres';
+                            if (value.length > 20) return 'El apodo debe tener máximo 20 caracteres';
+                            if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(value)) {
+                              return 'Solo se permiten letras, números, punto y guion bajo';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        InputField(
+                          controller: emailController,
+                          label: 'Correo',
+                          icon: Icons.email_outlined,
+                        ),
+                        const SizedBox(height: 16),
+                        InputField(
+                          controller: passwordController,
+                          label: 'Contraseña',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          isPasswordConfirm: true,
+                        ),
+                        const SizedBox(height: 16),
+                        InputField(
+                          controller: confirmController,
+                          label: 'Confirmar contraseña',
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                          extraValidator: (v) {
+                            if (v != passwordController.text) {
+                              return 'Las contraseñas no coinciden';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTerminosCheckbox(),
+                        const SizedBox(height: 24),
+                        SubmitButton(
+                          key: const Key('btn_registrarse'),
+                          text: 'Registrarse',
+                          onPressed: register,
+                          isLoading: isLoading,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/login'),
+                    child: Text(
+                      '¿Ya tienes cuenta? Inicia sesión',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -213,34 +225,65 @@ class _RegisterPageState extends State<RegisterPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 24, height: 24,
+          width: 24,
+          height: 24,
           child: Checkbox(
+            key: const Key('chk_terminos'),
             value: _aceptaTerminos,
             onChanged: (v) => setState(() => _aceptaTerminos = v ?? false),
             activeColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
           ),
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSub, height: 1.4),
-              children: [
-                const TextSpan(text: 'Acepto los '),
-                TextSpan(
-                  text: 'Términos y Condiciones',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
-                  recognizer: TapGestureRecognizer()..onTap = () => _mostrarTextoLegal('Términos y Condiciones'),
+          child: Wrap(
+            children: [
+              Text(
+                'Acepto los ',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.textSub,
+                  height: 1.4,
                 ),
-                const TextSpan(text: ' y la '),
-                TextSpan(
-                  text: 'Política de Privacidad',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600, decoration: TextDecoration.underline),
-                  recognizer: TapGestureRecognizer()..onTap = () => _mostrarTextoLegal('Política de Privacidad'),
+              ),
+              GestureDetector(
+                key: const Key('link_terminos'),
+                onTap: () => _mostrarTextoLegal('Términos y Condiciones'),
+                child: Text(
+                  'Términos y Condiciones',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
-              ],
-            ),
+              ),
+              Text(
+                ' y la ',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.textSub,
+                  height: 1.4,
+                ),
+              ),
+              GestureDetector(
+                key: const Key('link_privacidad'),
+                onTap: () => _mostrarTextoLegal('Política de Privacidad'),
+                child: Text(
+                  'Política de Privacidad',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -258,30 +301,52 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: bgColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
-            child: Row(children: [
-              Expanded(child: Text(titulo, style: GoogleFonts.montserrat(fontSize: 17, fontWeight: FontWeight.bold, color: textColor))),
-              IconButton(icon: Icon(Icons.close, color: textColor), onPressed: () => Navigator.pop(ctx)),
-            ]),
-          ),
-          Divider(height: 1, color: isDark ? const Color(0xFF475569) : AppColors.border),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\n'
-                'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'
-                'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.\n\n'
-                'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.\n\n'
-                'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga.',
-                style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 12, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      titulo,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: textColor),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-        ]),
+            Divider(
+              height: 1,
+              color: isDark ? const Color(0xFF475569) : AppColors.border,
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n\n'
+                  'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\n'
+                  'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: textColor,
+                    height: 1.6,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

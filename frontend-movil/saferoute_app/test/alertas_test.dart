@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:mocktail/mocktail.dart';
-
-import 'package:saferoute_app/features/user/data/datasources/alerta_config_datasource.dart';
-import 'package:saferoute_app/features/user/data/models/alerta_config_model.dart';
-import 'package:saferoute_app/features/user/presentation/pages/alerta_config_page.dart';
-import 'package:saferoute_app/services/location_service.dart';
+import 'package:civictrackio_app/features/user/data/datasources/alerta_config_datasource.dart';
+import 'package:civictrackio_app/features/user/data/models/alerta_config_model.dart';
+import 'package:civictrackio_app/features/user/presentation/pages/alerta_config_page.dart';
+import 'package:civictrackio_app/services/location_service.dart';
 
 class MockAlertaConfigDatasource extends Mock implements AlertaConfigDatasource {}
 class MockLocationService extends Mock implements LocationService {}

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:saferoute_app/features/user/data/models/reporte_mapa_model.dart';
+import 'package:civictrackio_app/features/user/data/models/reporte_mapa_model.dart';
 
 void main() {
   group('HU-08 Modelo - ReporteMapaModel', () {

@@ -21,7 +21,7 @@ describe('HU-01 Backend - ReportRepositoryImpl', () => {
     jest.clearAllMocks();
   });
 
-  test('CP-HU01-08: persistencia de coordenadas', async () => {
+  test('CP-HU01-B-01: persistencia de coordenadas', async () => {
     const insertedRow = {
       id: '00000000-0000-0000-0000-000000000001', // UUID válido
       usuario_id: '00000000-0000-0000-0000-000000000001',
@@ -62,7 +62,7 @@ describe('HU-01 Backend - ReportRepositoryImpl', () => {
     expect(result).toEqual(insertedRow);
   });
 
-  test('CP-HU01-08B: normaliza opcionales a null', async () => {
+  test('CP-HU01-B-02: normaliza opcionales a null', async () => {
     const insertedRow = {
       id: '00000000-0000-0000-0000-000000000002',
       direccion: null,
@@ -96,7 +96,7 @@ describe('HU-01 Backend - ReportRepositoryImpl', () => {
     expect(insertedRow.descripcion).toBeNull();
   });
 
-  test('CP-HU01-08C: error de base de datos al crear reporte', async () => {
+  test('CP-HU01-B-03: error de base de datos al crear reporte', async () => {
     supabase.from.mockReturnValue({
       insert: jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue({
