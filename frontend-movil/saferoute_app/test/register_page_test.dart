@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:civictrackio_app/features/user/presentation/pages/register_page.dart';
+import 'package:civictrackio_app/features/user/presentation/pages/register_Page.dart';
 
 void logInicio(String codigo, String nombre) {
   print('==============================');

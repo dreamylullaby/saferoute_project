@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:saferoute_app/features/user/presentation/pages/ranking_zonas_page.dart';
-import 'package:saferoute_app/features/user/data/datasources/estadisticas_datasource.dart';
+import 'package:civictrackio_app/features/user/presentation/pages/ranking_zonas_page.dart';
+import 'package:civictrackio_app/features/user/data/datasources/estadisticas_datasource.dart';
 
 class MockEstadisticasDatasource extends Mock
     implements EstadisticasDatasource {}
